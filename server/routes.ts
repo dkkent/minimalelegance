@@ -12,10 +12,12 @@ import {
   insertSpokenLovesliceSchema,
   insertJournalEntrySchema,
   conversationOutcomeEnum,
-  activeQuestions
+  activeQuestions,
+  responses,
+  questions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, not } from "drizzle-orm";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -247,6 +249,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(loveslices);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch loveslices" });
+    }
+  });
+  
+  // Get pending responses (questions user has answered but partner hasn't)
+  app.get("/api/pending-responses", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      if (!req.user.partnerId) {
+        return res.status(200).json([]);
+      }
+      
+      // Get all questions that the user has answered
+      const userAnsweredQuestions = await db
+        .select({
+          questionId: responses.questionId
+        })
+        .from(responses)
+        .where(eq(responses.userId, req.user.id));
+      
+      const questionIds = userAnsweredQuestions.map(q => q.questionId);
+      
+      if (questionIds.length === 0) {
+        return res.status(200).json([]);
+      }
+      
+      // For each question, check if partner has answered
+      const pendingResponses = [];
+      
+      for (const qId of questionIds) {
+        const userResponse = await storage.getResponsesByQuestionAndUser(qId, req.user.id);
+        const partnerResponse = await storage.getResponsesByQuestionAndUser(qId, req.user.partnerId);
+        const question = await storage.getQuestion(qId);
+        
+        if (userResponse && !partnerResponse && question) {
+          pendingResponses.push({
+            question,
+            userResponse,
+            answeredAt: userResponse.createdAt,
+          });
+        }
+      }
+      
+      // Sort by creation date, newest first
+      pendingResponses.sort((a, b) => new Date(b.answeredAt).getTime() - new Date(a.answeredAt).getTime());
+      
+      res.status(200).json(pendingResponses);
+    } catch (error) {
+      console.error("Failed to fetch pending responses:", error);
+      res.status(500).json({ message: "Failed to fetch pending responses" });
     }
   });
 
