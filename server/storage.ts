@@ -103,6 +103,7 @@ export interface IStorage {
   getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]>;
   getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined>;
   markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined>;
+  markConversationStarterAsUsed(id: number): Promise<ConversationStarter | undefined>;
   
   // User activity and garden health related methods
   recordUserActivity(userId: number, actionType: string): Promise<UserActivity>;
@@ -397,8 +398,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined> {
-    let query = db.select().from(conversationStarters);
+    // Start with a base query that only selects unused starters
+    let query = db.select().from(conversationStarters).where(eq(conversationStarters.used, false));
     
+    // Add theme filter if provided
     if (theme) {
       query = query.where(eq(conversationStarters.theme, theme));
     }
@@ -421,7 +424,17 @@ export class DatabaseStorage implements IStorage {
   async markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined> {
     const [updatedStarter] = await db
       .update(conversationStarters)
-      .set({ markedAsMeaningful: true })
+      .set({ markedAsMeaningful: true, used: true })
+      .where(eq(conversationStarters.id, id))
+      .returning();
+    
+    return updatedStarter;
+  }
+  
+  async markConversationStarterAsUsed(id: number): Promise<ConversationStarter | undefined> {
+    const [updatedStarter] = await db
+      .update(conversationStarters)
+      .set({ used: true })
       .where(eq(conversationStarters.id, id))
       .returning();
     

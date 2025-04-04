@@ -188,6 +188,7 @@ export const conversationStarters = pgTable("conversation_starters", {
   lovesliceId: integer("loveslice_id").references(() => loveslices.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   markedAsMeaningful: boolean("marked_as_meaningful").default(false),
+  used: boolean("used").default(false),
 });
 
 export const insertConversationStarterSchema = createInsertSchema(conversationStarters).pick({
@@ -196,6 +197,7 @@ export const insertConversationStarterSchema = createInsertSchema(conversationSt
   baseQuestionId: true,
   lovesliceId: true,
   markedAsMeaningful: true,
+  used: true,
 });
 
 export type InsertConversationStarter = z.infer<typeof insertConversationStarterSchema>;
