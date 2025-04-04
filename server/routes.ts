@@ -4,7 +4,14 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { randomBytes } from "crypto";
-import { insertResponseSchema } from "@shared/schema";
+import { 
+  insertResponseSchema, 
+  insertConversationSchema, 
+  insertConversationMessageSchema,
+  insertSpokenLovesliceSchema,
+  insertJournalEntrySchema,
+  conversationOutcomeEnum
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -373,6 +380,386 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(activity);
     } catch (error) {
       res.status(500).json({ message: "Failed to record activity" });
+    }
+  });
+
+  // ==============================================
+  // NEW API ENDPOINTS FOR CONVERSATIONS
+  // ==============================================
+  
+  // Get all conversations for the user
+  app.get("/api/conversations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversations = await storage.getConversationsByUserId(req.user.id);
+      res.status(200).json(conversations);
+    } catch (error) {
+      console.error("Failed to fetch conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // Get a specific conversation
+  app.get("/api/conversations/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      const conversation = await storage.getConversationById(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user is part of this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // Get messages for this conversation
+      const messages = await storage.getConversationMessages(conversationId);
+      
+      res.status(200).json({
+        ...conversation,
+        messages
+      });
+    } catch (error) {
+      console.error("Failed to fetch conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
+    }
+  });
+
+  // Start a new conversation
+  app.post("/api/conversations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { lovesliceId, starterId } = req.body;
+      
+      if (!lovesliceId && !starterId) {
+        return res.status(400).json({ message: "Either lovesliceId or starterId is required" });
+      }
+      
+      // If lovesliceId is provided, check if user has access to it
+      if (lovesliceId) {
+        const loveslice = await storage.getLovesliceById(lovesliceId);
+        if (!loveslice) {
+          return res.status(404).json({ message: "Loveslice not found" });
+        }
+        
+        if (loveslice.responses[0].user.id !== req.user.id && loveslice.responses[1].user.id !== req.user.id) {
+          return res.status(403).json({ message: "You do not have access to this loveslice" });
+        }
+        
+        // Update loveslice to mark that a conversation was started from it
+        await storage.updateLovesliceHasStartedConversation(lovesliceId, true);
+      }
+      
+      // If starterId is provided, check if it exists
+      if (starterId) {
+        const starter = await storage.getConversationStarterById(starterId);
+        if (!starter) {
+          return res.status(404).json({ message: "Conversation starter not found" });
+        }
+      }
+      
+      // Create the conversation
+      const conversation = await storage.createConversation({
+        lovesliceId: lovesliceId || null,
+        starterId: starterId || null,
+        initiatedByUserId: req.user.id,
+      });
+      
+      // Record user activity
+      await storage.recordUserActivity(req.user.id, 'start_conversation');
+      
+      res.status(201).json(conversation);
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  // End a conversation and optionally create a spoken loveslice
+  app.patch("/api/conversations/:id/end", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { outcome, createSpokenLoveslice, theme } = req.body;
+      
+      // Validate outcome
+      const validOutcomes = conversationOutcomeEnum.enumValues;
+      if (!outcome || !validOutcomes.includes(outcome)) {
+        return res.status(400).json({ 
+          message: `Outcome is required and must be one of: ${validOutcomes.join(', ')}` 
+        });
+      }
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // If a conversation is already ended, don't allow it to be ended again
+      if (conversation.endedAt) {
+        return res.status(400).json({ message: "This conversation has already ended" });
+      }
+      
+      // Calculate duration
+      const now = new Date();
+      const durationSeconds = Math.floor((now.getTime() - new Date(conversation.startedAt).getTime()) / 1000);
+      
+      // Update the conversation
+      const updatedConversation = await storage.updateConversationOutcome(
+        conversationId, 
+        outcome, 
+        durationSeconds
+      );
+      
+      // If user wants to create a spoken loveslice
+      let spokenLoveslice = null;
+      if (createSpokenLoveslice && req.user.partnerId) {
+        // We need a theme for the spoken loveslice
+        if (!theme) {
+          return res.status(400).json({ message: "Theme is required to create a spoken loveslice" });
+        }
+        
+        // Create the spoken loveslice
+        spokenLoveslice = await storage.createSpokenLoveslice({
+          conversationId,
+          user1Id: req.user.id,
+          user2Id: req.user.partnerId,
+          outcome,
+          theme,
+          durationSeconds
+        });
+        
+        // Mark the conversation as having created a spoken loveslice
+        await storage.updateConversationCreatedSpokenLoveslice(conversationId, true);
+        
+        // Record user activity
+        await storage.recordUserActivity(req.user.id, 'create_spoken_loveslice');
+      }
+      
+      res.status(200).json({
+        conversation: updatedConversation,
+        spokenLoveslice
+      });
+    } catch (error) {
+      console.error("Failed to end conversation:", error);
+      res.status(500).json({ message: "Failed to end conversation" });
+    }
+  });
+
+  // Add a message to a conversation
+  app.post("/api/conversations/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // Check if conversation has ended
+      if (conversation.endedAt) {
+        return res.status(400).json({ message: "Cannot add message to an ended conversation" });
+      }
+      
+      // Create the message
+      const message = await storage.createConversationMessage({
+        conversationId,
+        userId: req.user.id,
+        content
+      });
+      
+      // Record user activity
+      await storage.recordUserActivity(req.user.id, 'send_message');
+      
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Failed to create message:", error);
+      res.status(500).json({ message: "Failed to create message" });
+    }
+  });
+  
+  // ==============================================
+  // NEW API ENDPOINTS FOR JOURNAL ENTRIES
+  // ==============================================
+  
+  // Get all journal entries for the user
+  app.get("/api/journal", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { theme, search } = req.query;
+      let entries;
+      
+      if (search && typeof search === 'string') {
+        // Search journal entries
+        entries = await storage.searchJournalEntries(req.user.id, search);
+      } else if (theme && typeof theme === 'string') {
+        // Get entries by theme
+        entries = await storage.getJournalEntriesByTheme(req.user.id, theme);
+      } else {
+        // Get all entries
+        entries = await storage.getJournalEntriesByUserId(req.user.id);
+      }
+      
+      // Sort entries by creation date, newest first
+      entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.status(200).json(entries);
+    } catch (error) {
+      console.error("Failed to fetch journal entries:", error);
+      res.status(500).json({ message: "Failed to fetch journal entries" });
+    }
+  });
+  
+  // Create a new journal entry
+  app.post("/api/journal", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { writtenLovesliceId, spokenLovesliceId, theme, searchableContent } = req.body;
+      
+      if (!theme || !searchableContent) {
+        return res.status(400).json({ message: "Theme and searchableContent are required" });
+      }
+      
+      if (!writtenLovesliceId && !spokenLovesliceId) {
+        return res.status(400).json({ message: "Either writtenLovesliceId or spokenLovesliceId is required" });
+      }
+      
+      // Check if the user has a partner
+      if (!req.user.partnerId) {
+        return res.status(400).json({ message: "You need a partner to create journal entries" });
+      }
+      
+      // Create the journal entry
+      const entry = await storage.createJournalEntry({
+        user1Id: req.user.id,
+        user2Id: req.user.partnerId,
+        writtenLovesliceId: writtenLovesliceId || null,
+        spokenLovesliceId: spokenLovesliceId || null,
+        theme,
+        searchableContent
+      });
+      
+      // Record user activity
+      await storage.recordUserActivity(req.user.id, 'create_journal_entry');
+      
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Failed to create journal entry:", error);
+      res.status(500).json({ message: "Failed to create journal entry" });
+    }
+  });
+  
+  // ==============================================
+  // NEW API ENDPOINTS FOR SPOKEN LOVESLICES
+  // ==============================================
+  
+  // Get all spoken loveslices for the user
+  app.get("/api/spoken-loveslices", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const spokenLoveslices = await storage.getSpokenLoveslicesByUserId(req.user.id);
+      
+      // Sort by creation date, newest first
+      spokenLoveslices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.status(200).json(spokenLoveslices);
+    } catch (error) {
+      console.error("Failed to fetch spoken loveslices:", error);
+      res.status(500).json({ message: "Failed to fetch spoken loveslices" });
+    }
+  });
+  
+  // Get a specific spoken loveslice
+  app.get("/api/spoken-loveslices/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const spokenLovesliceId = parseInt(req.params.id);
+      const spokenLoveslice = await storage.getSpokenLovesliceById(spokenLovesliceId);
+      
+      if (!spokenLoveslice) {
+        return res.status(404).json({ message: "Spoken loveslice not found" });
+      }
+      
+      // Check if the user is part of this spoken loveslice
+      if (spokenLoveslice.user1Id !== req.user.id && spokenLoveslice.user2Id !== req.user.id) {
+        return res.status(403).json({ message: "You do not have access to this spoken loveslice" });
+      }
+      
+      // Get the associated conversation if it exists
+      let conversation = null;
+      if (spokenLoveslice.conversationId) {
+        conversation = await storage.getConversationById(spokenLoveslice.conversationId);
+        
+        // Get messages for this conversation if it exists
+        if (conversation) {
+          const messages = await storage.getConversationMessages(spokenLoveslice.conversationId);
+          conversation = { ...conversation, messages };
+        }
+      }
+      
+      res.status(200).json({
+        ...spokenLoveslice,
+        conversation
+      });
+    } catch (error) {
+      console.error("Failed to fetch spoken loveslice:", error);
+      res.status(500).json({ message: "Failed to fetch spoken loveslice" });
+    }
+  });
+  
+  // Mark a conversation starter as meaningful (after a good conversation)
+  app.patch("/api/conversation-starters/:id/mark-meaningful", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const starterId = parseInt(req.params.id);
+      
+      const updatedStarter = await storage.markConversationStarterAsMeaningful(starterId);
+      
+      if (!updatedStarter) {
+        return res.status(404).json({ message: "Conversation starter not found" });
+      }
+      
+      // Record user activity
+      await storage.recordUserActivity(req.user.id, 'mark_starter_meaningful');
+      
+      res.status(200).json(updatedStarter);
+    } catch (error) {
+      console.error("Failed to mark conversation starter as meaningful:", error);
+      res.status(500).json({ message: "Failed to mark conversation starter as meaningful" });
     }
   });
 

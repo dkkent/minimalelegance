@@ -405,6 +405,25 @@ export class DatabaseStorage implements IStorage {
     return results.length > 0 ? results[0] : undefined;
   }
   
+  async getConversationStarterById(id: number): Promise<ConversationStarter | undefined> {
+    const [starter] = await db
+      .select()
+      .from(conversationStarters)
+      .where(eq(conversationStarters.id, id));
+    
+    return starter;
+  }
+  
+  async markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined> {
+    const [updatedStarter] = await db
+      .update(conversationStarters)
+      .set({ markedAsMeaningful: true })
+      .where(eq(conversationStarters.id, id))
+      .returning();
+    
+    return updatedStarter;
+  }
+  
   // User activity methods
   async recordUserActivity(userId: number, actionType: string): Promise<UserActivity> {
     const today = new Date();
@@ -808,16 +827,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
-  // Conversation starter additional methods
-  async markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined> {
-    const [updatedStarter] = await db
-      .update(conversationStarters)
-      .set({ markedAsMeaningful: true })
-      .where(eq(conversationStarters.id, id))
-      .returning();
-    
-    return updatedStarter;
-  }
+  // Conversation methods start here
   
   // Conversation methods (follow-up discussions)
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
@@ -853,6 +863,18 @@ export class DatabaseStorage implements IStorage {
         outcome: outcome as any, // This cast is necessary because the enum types are complex
         durationSeconds,
         endedAt: new Date(),
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  async updateConversationCreatedSpokenLoveslice(id: number, created: boolean): Promise<Conversation | undefined> {
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        createdSpokenLoveslice: created,
       })
       .where(eq(conversations.id, id))
       .returning();
