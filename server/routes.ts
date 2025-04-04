@@ -253,15 +253,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let starters;
       
       if (theme && typeof theme === 'string') {
+        // Get starters for a specific theme
         starters = await storage.getConversationStartersByTheme(theme);
       } else {
-        // Get a random conversation starter
-        const randomStarter = await storage.getRandomConversationStarter();
-        starters = randomStarter ? [randomStarter] : [];
+        // Get all starters from all themes by getting each theme and combining them
+        const themes = ["Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
+        starters = [];
+        
+        for (const themeItem of themes) {
+          const themeStarters = await storage.getConversationStartersByTheme(themeItem);
+          starters = [...starters, ...themeStarters];
+        }
       }
       
       res.status(200).json(starters);
     } catch (error) {
+      console.error("Failed to fetch conversation starters:", error);
       res.status(500).json({ message: "Failed to fetch conversation starters" });
     }
   });
