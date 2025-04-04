@@ -28,9 +28,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   const navItems = [
-    { name: "Garden", path: "/" },
+    { name: "Home", path: "/" },
     { name: "Questions", path: "/question" },
-    { name: "Journal", path: "/garden" },
+    { name: "Journal", path: "/journal" },
     { name: "Conversations", path: "/conversation-starters" },
   ];
 
