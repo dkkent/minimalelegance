@@ -1077,14 +1077,29 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]> {
-    // First, get all journal entries for this user
+    // Get the user to check if they have a partner
+    const user = await this.getUser(userId);
+    const partnerId = user?.partnerId;
+
+    // First, get all journal entries for this user and their partner if they have one
     const entries = await db
       .select()
       .from(journalEntries)
-      .where(or(
-        eq(journalEntries.user1Id, userId),
-        eq(journalEntries.user2Id, userId)
-      ))
+      .where(
+        partnerId 
+          ? or(
+              // Include entries where either the user or their partner is involved
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId),
+              eq(journalEntries.user1Id, partnerId),
+              eq(journalEntries.user2Id, partnerId)
+            )
+          : or(
+              // If no partner, only include this user's entries
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId)
+            )
+      )
       .orderBy(desc(journalEntries.createdAt));
     
     // Enhance entries with loveslice data
@@ -1143,15 +1158,28 @@ export class DatabaseStorage implements IStorage {
   }
   
   async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
+    // Get the user to check if they have a partner
+    const user = await this.getUser(userId);
+    const partnerId = user?.partnerId;
+    
     // First get the base entries
     const entries = await db
       .select()
       .from(journalEntries)
       .where(and(
-        or(
-          eq(journalEntries.user1Id, userId),
-          eq(journalEntries.user2Id, userId)
-        ),
+        partnerId 
+          ? or(
+              // Include entries where either the user or their partner is involved
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId),
+              eq(journalEntries.user1Id, partnerId),
+              eq(journalEntries.user2Id, partnerId)
+            )
+          : or(
+              // If no partner, only include this user's entries
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId)
+            ),
         sql`${journalEntries.searchableContent} ILIKE ${`%${query}%`}`
       ))
       .orderBy(desc(journalEntries.createdAt));
@@ -1204,15 +1232,28 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]> {
+    // Get the user to check if they have a partner
+    const user = await this.getUser(userId);
+    const partnerId = user?.partnerId;
+    
     // First get the base entries
     const entries = await db
       .select()
       .from(journalEntries)
       .where(and(
-        or(
-          eq(journalEntries.user1Id, userId),
-          eq(journalEntries.user2Id, userId)
-        ),
+        partnerId 
+          ? or(
+              // Include entries where either the user or their partner is involved
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId),
+              eq(journalEntries.user1Id, partnerId),
+              eq(journalEntries.user2Id, partnerId)
+            )
+          : or(
+              // If no partner, only include this user's entries
+              eq(journalEntries.user1Id, userId),
+              eq(journalEntries.user2Id, userId)
+            ),
         eq(journalEntries.theme, theme)
       ))
       .orderBy(desc(journalEntries.createdAt));
