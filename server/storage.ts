@@ -13,13 +13,18 @@ import {
   type InsertLoveslice,
   activeQuestions, 
   type ActiveQuestion, 
-  type InsertActiveQuestion 
+  type InsertActiveQuestion,
+  conversationStarters,
+  type ConversationStarter,
+  type InsertConversationStarter,
+  userActivity,
+  type UserActivity,
+  type InsertUserActivity
 } from "@shared/schema";
 import { db } from "./db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc, gte, lte, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { sql } from "drizzle-orm";
 
 // PostgreSQL session store
 const PostgresSessionStore = connectPg(session);
@@ -53,6 +58,17 @@ export interface IStorage {
   getLoveslices(userId: number): Promise<any[]>;
   getLovesliceById(id: number): Promise<any | undefined>;
   updateLovesliceNote(id: number, note: string): Promise<Loveslice | undefined>;
+  
+  // Conversation starter related methods
+  createConversationStarter(starter: InsertConversationStarter): Promise<ConversationStarter>;
+  getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]>;
+  getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined>;
+  
+  // User activity and garden health related methods
+  recordUserActivity(userId: number, actionType: string): Promise<UserActivity>;
+  getUserActivity(userId: number, fromDate: Date, toDate: Date): Promise<UserActivity[]>;
+  getCurrentStreak(userId: number): Promise<number>;
+  getGardenHealth(userId: number): Promise<number>;
   
   // Session store
   sessionStore: any;
@@ -311,6 +327,141 @@ export class DatabaseStorage implements IStorage {
     
     return updatedLoveslice;
   }
+  
+  // Conversation starter methods
+  async createConversationStarter(starter: InsertConversationStarter): Promise<ConversationStarter> {
+    const [newStarter] = await db
+      .insert(conversationStarters)
+      .values(starter)
+      .returning();
+    
+    return newStarter;
+  }
+  
+  async getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]> {
+    return db.select().from(conversationStarters).where(eq(conversationStarters.theme, theme));
+  }
+  
+  async getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined> {
+    let query = db.select().from(conversationStarters);
+    
+    if (theme) {
+      query = query.where(eq(conversationStarters.theme, theme));
+    }
+    
+    // Order by random and limit to 1
+    const results = await query.orderBy(sql`RANDOM()`).limit(1);
+    
+    return results.length > 0 ? results[0] : undefined;
+  }
+  
+  // User activity methods
+  async recordUserActivity(userId: number, actionType: string): Promise<UserActivity> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    
+    // Format the date as a string in YYYY-MM-DD format
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Get previous day's activity to calculate streak
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Check if user already has activity for today
+    const [existingActivity] = await db
+      .select()
+      .from(userActivity)
+      .where(and(
+        eq(userActivity.userId, userId),
+        eq(sql`${userActivity.date}::text`, todayStr)
+      ));
+    
+    if (existingActivity) {
+      // Just return the existing activity, don't duplicate
+      return existingActivity;
+    }
+    
+    // Find the most recent activity to determine streak
+    const [latestActivity] = await db
+      .select()
+      .from(userActivity)
+      .where(eq(userActivity.userId, userId))
+      .orderBy(desc(userActivity.date))
+      .limit(1);
+    
+    let streak = 1;
+    let gardenHealth = 100;
+    
+    if (latestActivity) {
+      const latestDate = new Date(latestActivity.date);
+      const dayDiff = Math.round((today.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (dayDiff === 1) {
+        // User was active yesterday, continue streak
+        streak = latestActivity.streak + 1;
+        gardenHealth = Math.min(100, latestActivity.gardenHealth + 5); // Increase health, max 100
+      } else if (dayDiff > 1) {
+        // Streak broken
+        streak = 1;
+        gardenHealth = Math.max(50, latestActivity.gardenHealth - (dayDiff * 10)); // Decrease health
+      } else {
+        // Same day (shouldn't happen due to the check above)
+        streak = latestActivity.streak;
+        gardenHealth = latestActivity.gardenHealth;
+      }
+    }
+    
+    // Create new activity record
+    const [newActivity] = await db
+      .insert(userActivity)
+      .values({
+        userId: userId,
+        date: todayStr,
+        actionType: actionType,
+        streak: streak,
+        gardenHealth: gardenHealth
+      })
+      .returning();
+    
+    return newActivity;
+  }
+  
+  async getUserActivity(userId: number, fromDate: Date, toDate: Date): Promise<UserActivity[]> {
+    const fromDateStr = fromDate.toISOString().split('T')[0];
+    const toDateStr = toDate.toISOString().split('T')[0];
+    
+    return db
+      .select()
+      .from(userActivity)
+      .where(and(
+        eq(userActivity.userId, userId),
+        sql`${userActivity.date}::text >= ${fromDateStr}`,
+        sql`${userActivity.date}::text <= ${toDateStr}`
+      ))
+      .orderBy(userActivity.date);
+  }
+  
+  async getCurrentStreak(userId: number): Promise<number> {
+    const [latestActivity] = await db
+      .select()
+      .from(userActivity)
+      .where(eq(userActivity.userId, userId))
+      .orderBy(desc(userActivity.date))
+      .limit(1);
+    
+    return latestActivity?.streak || 0;
+  }
+  
+  async getGardenHealth(userId: number): Promise<number> {
+    const [latestActivity] = await db
+      .select()
+      .from(userActivity)
+      .where(eq(userActivity.userId, userId))
+      .orderBy(desc(userActivity.date))
+      .limit(1);
+    
+    return latestActivity?.gardenHealth || 100;
+  }
 
   private async checkAndCreateLoveslice(newResponse: Response): Promise<void> {
     // Get the user who created this response
@@ -419,6 +570,81 @@ export class DatabaseStorage implements IStorage {
     });
 
     console.log("Seeding questions complete.");
+    
+    // Now that we have questions, let's seed some conversation starters
+    console.log("Seeding conversation starters...");
+    
+    // Trust theme
+    await this.createConversationStarter({
+      content: "If we could improve one aspect of trust in our relationship, what would it be?",
+      theme: "Trust",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What's something I do that makes you feel safe and secure?",
+      theme: "Trust",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    
+    // Intimacy theme
+    await this.createConversationStarter({
+      content: "How would you describe our emotional connection right now?",
+      theme: "Intimacy",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What's a moment when you felt truly seen and understood by me?",
+      theme: "Intimacy",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    
+    // Conflict theme
+    await this.createConversationStarter({
+      content: "Is there a recurring misunderstanding between us that we should address?",
+      theme: "Conflict",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What's your preferred way to resolve tension between us?",
+      theme: "Conflict",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    
+    // Dreams theme
+    await this.createConversationStarter({
+      content: "What's something you hope we can accomplish together in the next year?",
+      theme: "Dreams",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "If we could design our ideal day together, what would it look like?",
+      theme: "Dreams",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    
+    // Play theme
+    await this.createConversationStarter({
+      content: "What's a childhood game or activity you'd love to share with me?",
+      theme: "Play",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "How can we bring more spontaneity and fun into our daily routine?",
+      theme: "Play",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    
+    console.log("Seeding conversation starters complete.");
   }
 }
 

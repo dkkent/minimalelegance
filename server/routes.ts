@@ -244,6 +244,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get conversation starters
+  app.get("/api/conversation-starters", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { theme } = req.query;
+      let starters;
+      
+      if (theme && typeof theme === 'string') {
+        starters = await storage.getConversationStartersByTheme(theme);
+      } else {
+        // Get a random conversation starter
+        const randomStarter = await storage.getRandomConversationStarter();
+        starters = randomStarter ? [randomStarter] : [];
+      }
+      
+      res.status(200).json(starters);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch conversation starters" });
+    }
+  });
+  
+  // Get a random conversation starter by theme
+  app.get("/api/conversation-starters/random", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { theme } = req.query;
+      const themeParam = typeof theme === 'string' ? theme : undefined;
+      
+      const starter = await storage.getRandomConversationStarter(themeParam);
+      
+      if (!starter) {
+        return res.status(404).json({ message: "No conversation starters found" });
+      }
+      
+      res.status(200).json(starter);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch conversation starter" });
+    }
+  });
+  
+  // Create a conversation starter
+  app.post("/api/conversation-starters", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { content, theme, baseQuestionId, lovesliceId } = req.body;
+      
+      if (!content || !theme) {
+        return res.status(400).json({ message: "Content and theme are required" });
+      }
+      
+      const starter = await storage.createConversationStarter({
+        content,
+        theme,
+        baseQuestionId: baseQuestionId || null,
+        lovesliceId: lovesliceId || null
+      });
+      
+      // Record user activity
+      await storage.recordUserActivity(req.user.id, 'create_starter');
+      
+      res.status(201).json(starter);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create conversation starter" });
+    }
+  });
+  
+  // Get user activity stats (streak and garden health)
+  app.get("/api/user-activity/stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const streak = await storage.getCurrentStreak(req.user.id);
+      const gardenHealth = await storage.getGardenHealth(req.user.id);
+      
+      res.status(200).json({ streak, gardenHealth });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch activity stats" });
+    }
+  });
+  
+  // Get user activity history
+  app.get("/api/user-activity/history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Default to last 30 days if not specified
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - days);
+      
+      const activities = await storage.getUserActivity(req.user.id, fromDate, toDate);
+      
+      res.status(200).json(activities);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch activity history" });
+    }
+  });
+  
+  // Record a user activity (manually trigger activity recording)
+  app.post("/api/user-activity", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { actionType } = req.body;
+      
+      if (!actionType) {
+        return res.status(400).json({ message: "Action type is required" });
+      }
+      
+      const activity = await storage.recordUserActivity(req.user.id, actionType);
+      
+      res.status(201).json(activity);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to record activity" });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   return httpServer;
