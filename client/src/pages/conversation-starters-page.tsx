@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layouts/main-layout';
+import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageCircle } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,6 +42,7 @@ type ConversationStarter = {
 export default function ConversationStartersPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [_, navigate] = useLocation();
   const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
@@ -157,6 +159,28 @@ export default function ConversationStartersPage() {
     }
   });
   
+  // Mutation for starting a conversation from a starter
+  const startConversationMutation = useMutation({
+    mutationFn: async (starterId: number) => {
+      const response = await apiRequest('POST', '/api/conversations', { starterId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Conversation started",
+        description: "Your conversation has been created",
+      });
+      navigate(`/conversation/${data.id}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to start conversation",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
   const handleTabChange = (value: string) => {
     setSelectedTheme(value as Theme);
   };
@@ -164,6 +188,20 @@ export default function ConversationStartersPage() {
   const handleGetRandomStarter = async () => {
     fetchRandomStarter();
     recordActivityMutation.mutate('view_starter');
+  };
+  
+  const handleStartConversation = (starterId: number) => {
+    if (!user?.partnerId) {
+      toast({
+        title: "Partner needed",
+        description: "You need to connect with a partner to start a conversation",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    startConversationMutation.mutate(starterId);
+    recordActivityMutation.mutate('start_conversation');
   };
   
   const onSubmit = (data: StarterFormData) => {
@@ -211,9 +249,27 @@ export default function ConversationStartersPage() {
                   <p className="mb-4 text-gray-500 italic">Click the button to get a random conversation starter</p>
                 )}
                 
-                <Button onClick={handleGetRandomStarter}>
-                  Get Random Starter
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <Button onClick={handleGetRandomStarter}>
+                    Get Random Starter
+                  </Button>
+                  
+                  {randomStarter && (
+                    <Button 
+                      variant="secondary" 
+                      className="flex items-center"
+                      onClick={() => handleStartConversation(randomStarter.id)}
+                      disabled={startConversationMutation.isPending}
+                    >
+                      {startConversationMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                      )}
+                      Start Conversation
+                    </Button>
+                  )}
+                </div>
               </div>
             </HandDrawnBorder>
             
@@ -253,6 +309,21 @@ export default function ConversationStartersPage() {
                           {starter.content}
                         </p>
                       </CardContent>
+                      <CardFooter>
+                        <Button 
+                          variant="secondary" 
+                          className="flex items-center w-full mt-2"
+                          onClick={() => handleStartConversation(starter.id)}
+                          disabled={startConversationMutation.isPending && startConversationMutation.variables === starter.id}
+                        >
+                          {startConversationMutation.isPending && startConversationMutation.variables === starter.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                          )}
+                          Start Conversation
+                        </Button>
+                      </CardFooter>
                     </Card>
                   ))}
                 </div>
