@@ -4,20 +4,9 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema } from "@shared/schema";
+import { User } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-
-// Define User type without password
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  partnerId: number | null;
-  inviteCode: string;
-  isIndividual: boolean;
-};
 
 type AuthContextType = {
   user: User | null;
@@ -26,35 +15,27 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
-  acceptInvitationMutation: UseMutationResult<User, Error, { inviteCode: string }>;
 };
 
-// Define the Login schema
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+type LoginData = {
+  email: string;
+  password: string;
+};
 
-type LoginData = z.infer<typeof loginSchema>;
-
-// Define the Register schema
-const registerSchema = insertUserSchema.extend({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  email: z.string().email("Please enter a valid email address"),
-});
-
-type RegisterData = z.infer<typeof registerSchema>;
+type RegisterData = {
+  name: string;
+  email: string;
+  password: string;
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<User>({
+  } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
@@ -67,35 +48,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
-        title: "Welcome back!",
-        description: `Good to see you again, ${user.name}`,
+        title: "Login successful",
+        description: `Welcome back, ${user.name}!`,
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+    mutationFn: async (userData: RegisterData) => {
+      const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
-        title: "Account created",
+        title: "Registration successful",
         description: `Welcome to Loveslices, ${user.name}!`,
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error.message || "Unable to create account",
         variant: "destructive",
       });
     },
@@ -109,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Logged out",
-        description: "You have been successfully logged out",
+        description: "You have been logged out successfully",
       });
     },
     onError: (error: Error) => {
@@ -121,37 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const acceptInvitationMutation = useMutation({
-    mutationFn: async ({ inviteCode }: { inviteCode: string }) => {
-      const res = await apiRequest("POST", "/api/accept-invitation", { inviteCode });
-      return await res.json();
-    },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Partnership established",
-        description: "You're now connected with your partner!",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to accept invitation",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   return (
     <AuthContext.Provider
       value={{
-        user: user || null,
+        user: user ?? null,
         isLoading,
         error,
         loginMutation,
         logoutMutation,
         registerMutation,
-        acceptInvitationMutation,
       }}
     >
       {children}

@@ -1,271 +1,271 @@
-import React, { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Logo } from "@/components/logo";
-import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { insertUserSchema } from "@shared/schema";
-
-// Define schemas
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  isIndividual: z.boolean().default(true),
-});
-
-type LoginData = z.infer<typeof loginSchema>;
-type RegisterData = z.infer<typeof registerSchema>;
+import { Logo } from "@/components/logo";
+import { useLocation } from "wouter";
+import { HandDrawnBorder } from "@/components/hand-drawn-border";
+import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
-  const [location, navigate] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
-  
-  const loginForm = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
   });
-
-  const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      isIndividual: true,
-    },
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    passwordConfirm: "",
   });
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
+  // If the user is already authenticated, redirect to the home page
+  if (user) {
+    setLocation("/");
+    return null;
+  }
 
-  const onLoginSubmit = (values: LoginData) => {
-    loginMutation.mutate(values);
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLoginForm({
+      ...loginForm,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const onRegisterSubmit = (values: RegisterData) => {
-    registerMutation.mutate(values);
+  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setRegisterForm({
+      ...registerForm,
+      [name]: value,
+    });
+
+    // Check password match if passwordConfirm is being updated
+    if (name === "passwordConfirm" || name === "password") {
+      const match = name === "password" 
+        ? value === registerForm.passwordConfirm 
+        : registerForm.password === value;
+      setPasswordMismatch(!match && registerForm.passwordConfirm !== "");
+    }
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate(loginForm);
+  };
+
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (registerForm.password !== registerForm.passwordConfirm) {
+      setPasswordMismatch(true);
+      return;
+    }
+    
+    registerMutation.mutate({
+      name: registerForm.name,
+      email: registerForm.email,
+      password: registerForm.password,
+    });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <Logo size="large" withText={true} />
+    <div className="flex flex-col md:flex-row min-h-screen">
+      {/* Left side - Login/Register form */}
+      <div className="w-full md:w-1/2 p-6 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Logo size="large" withText />
+            <p className="text-muted-foreground mt-2">
+              Nurturing relationships through meaningful connection
+            </p>
           </div>
+          
+          <HandDrawnBorder>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Welcome back</CardTitle>
+                    <CardDescription>
+                      Log in to continue nurturing your relationship garden
+                    </CardDescription>
+                  </CardHeader>
+                  <form onSubmit={handleLoginSubmit}>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email" 
+                          placeholder="your.email@example.com"
+                          value={loginForm.email}
+                          onChange={handleLoginChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          name="password"
+                          type="password"
+                          value={loginForm.password}
+                          onChange={handleLoginChange}
+                          required
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={loginMutation.isPending}
+                      >
+                        {loginMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Logging in...
+                          </>
+                        ) : "Login"}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="register">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Create an account</CardTitle>
+                    <CardDescription>
+                      Join Loveslices to start growing your relationship
+                    </CardDescription>
+                  </CardHeader>
+                  <form onSubmit={handleRegisterSubmit}>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          placeholder="Your Name"
+                          value={registerForm.name}
+                          onChange={handleRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-email">Email</Label>
+                        <Input
+                          id="register-email"
+                          name="email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          value={registerForm.email}
+                          onChange={handleRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-password">Password</Label>
+                        <Input
+                          id="register-password"
+                          name="password"
+                          type="password"
+                          value={registerForm.password}
+                          onChange={handleRegisterChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="passwordConfirm">Confirm Password</Label>
+                        <Input
+                          id="passwordConfirm"
+                          name="passwordConfirm"
+                          type="password"
+                          value={registerForm.passwordConfirm}
+                          onChange={handleRegisterChange}
+                          required
+                          className={passwordMismatch ? "border-destructive" : ""}
+                        />
+                        {passwordMismatch && (
+                          <p className="text-destructive text-sm">Passwords do not match</p>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={registerMutation.isPending || passwordMismatch}
+                      >
+                        {registerMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : "Register"}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </HandDrawnBorder>
         </div>
-
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="register">Create Account</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login">
-            <HandDrawnBorder className="bg-white bg-opacity-90 rounded-lg p-8 shadow-md">
-              <h2 className="font-serif text-2xl mb-6 text-center">Welcome Back</h2>
+      </div>
+      
+      {/* Right side - Hero section */}
+      <div className="hidden md:flex md:w-1/2 bg-muted flex-col items-center justify-center text-center p-12">
+        <div className="max-w-md space-y-6">
+          <HandDrawnBorder>
+            <div className="bg-card p-6 rounded-md">
+              <h1 className="text-3xl font-bold mb-4">Grow Together with Loveslices</h1>
+              <p className="text-muted-foreground mb-6">
+                A thoughtful space for couples to nurture their relationship through meaningful
+                conversations, shared insights, and intentional connection.
+              </p>
               
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="hello@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex justify-between items-center">
-                          <FormLabel>Password</FormLabel>
-                          <a href="#" className="text-xs text-sage hover:underline">Forgot password?</a>
-                        </div>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-sage hover:bg-sage-dark text-white"
-                    disabled={loginMutation.isPending}
-                  >
-                    {loginMutation.isPending ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </Form>
-              
-              <div className="relative flex items-center justify-center my-6">
-                <div className="border-t border-gray-200 absolute w-full"></div>
-                <div className="bg-white px-4 relative z-10 text-sm text-gray-500">or continue with</div>
+              <div className="grid grid-cols-2 gap-4 mt-8">
+                <div className="text-left">
+                  <h3 className="font-medium mb-2">Written Loveslices</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Answer thought-provoking questions that help you understand each other more deeply.
+                  </p>
+                </div>
+                <div className="text-left">
+                  <h3 className="font-medium mb-2">Spoken Loveslices</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Have meaningful conversations that strengthen your bond and create shared memories.
+                  </p>
+                </div>
+                <div className="text-left">
+                  <h3 className="font-medium mb-2">Relationship Garden</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Watch your relationship flourish as you tend to it with care and attention.
+                  </p>
+                </div>
+                <div className="text-left">
+                  <h3 className="font-medium mb-2">Private Journal</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Reflect on your growth and revisit the insights you've gained along the way.
+                  </p>
+                </div>
               </div>
-              
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.17 14.65,17.17C12.01,17.17 9.89,14.83 9.89,11.96C9.89,9.09 12.01,6.75 14.65,6.75C16.1,6.75 17.31,7.41 18.1,8.39L20.22,6.45C18.77,5.08 16.89,4.25 14.65,4.25C10.53,4.25 7,7.68 7,11.96C7,16.24 10.53,19.67 14.65,19.67C18.5,19.67 21.35,17.29 21.35,12.39C21.35,11.9 21.33,11.5 21.28,11.1Z"></path>
-                  </svg>
-                </Button>
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"></path>
-                  </svg>
-                </Button>
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C18.4,9.45 17.79,10.67 17.79,12C17.79,13.96 18.87,15.11 19.97,15.41C19.88,15.47 19.78,15.54 19.68,15.6C18.93,16.28 18.05,17.34 17.44,18.26C17.05,18.86 16.77,19.25 16.5,19.5H18.71M15.93,3.67C16.72,3.12 17.23,2.31 17.35,1.4C16.57,1.42 15.61,1.93 14.9,2.4C14.21,2.87 13.57,3.76 13.42,4.63C14.25,4.72 15.18,4.25 15.93,3.67Z" />
-                  </svg>
-                </Button>
-              </div>
-            </HandDrawnBorder>
-          </TabsContent>
-
-          <TabsContent value="register">
-            <HandDrawnBorder className="bg-white bg-opacity-90 rounded-lg p-8 shadow-md">
-              <h2 className="font-serif text-2xl mb-6 text-center">Create Your Account</h2>
-              
-              <Form {...registerForm}>
-                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                  <div className="mb-4 text-center">
-                    <p className="text-sm text-gray-600">Join Loveslices to nurture your relationship with meaningful conversations</p>
-                  </div>
-                  
-                  <FormField
-                    control={registerForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={registerForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="hello@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={registerForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Create a secure password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Must be at least 6 characters
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Hidden field for isIndividual */}
-                  <FormField
-                    control={registerForm.control}
-                    name="isIndividual"
-                    render={({ field }) => (
-                      <FormItem className="hidden">
-                        <FormControl>
-                          <Input type="hidden" {...field} value="true" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button
-                    type="submit"
-                    className="w-full bg-sage hover:bg-sage-dark text-white"
-                    disabled={registerMutation.isPending}
-                  >
-                    {registerMutation.isPending ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </Form>
-              
-              <div className="relative flex items-center justify-center my-6">
-                <div className="border-t border-gray-200 absolute w-full"></div>
-                <div className="bg-white px-4 relative z-10 text-sm text-gray-500">or sign up with</div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.17 14.65,17.17C12.01,17.17 9.89,14.83 9.89,11.96C9.89,9.09 12.01,6.75 14.65,6.75C16.1,6.75 17.31,7.41 18.1,8.39L20.22,6.45C18.77,5.08 16.89,4.25 14.65,4.25C10.53,4.25 7,7.68 7,11.96C7,16.24 10.53,19.67 14.65,19.67C18.5,19.67 21.35,17.29 21.35,12.39C21.35,11.9 21.33,11.5 21.28,11.1Z"></path>
-                  </svg>
-                </Button>
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"></path>
-                  </svg>
-                </Button>
-                <Button variant="outline" className="flex justify-center items-center py-2 px-4 border border-lavender rounded hover:bg-lavender-light transition duration-300">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C18.4,9.45 17.79,10.67 17.79,12C17.79,13.96 18.87,15.11 19.97,15.41C19.88,15.47 19.78,15.54 19.68,15.6C18.93,16.28 18.05,17.34 17.44,18.26C17.05,18.86 16.77,19.25 16.5,19.5H18.71M15.93,3.67C16.72,3.12 17.23,2.31 17.35,1.4C16.57,1.42 15.61,1.93 14.9,2.4C14.21,2.87 13.57,3.76 13.42,4.63C14.25,4.72 15.18,4.25 15.93,3.67Z" />
-                  </svg>
-                </Button>
-              </div>
-            </HandDrawnBorder>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </HandDrawnBorder>
+        </div>
       </div>
     </div>
   );
