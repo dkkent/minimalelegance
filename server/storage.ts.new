@@ -55,11 +55,11 @@ export interface IStorage {
   updateLovesliceNote(id: number, note: string): Promise<Loveslice | undefined>;
   
   // Session store
-  sessionStore: any;
+  sessionStore: session.SessionStore;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: any;
+  sessionStore: session.SessionStore;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
