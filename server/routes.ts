@@ -47,21 +47,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // to avoid circular dependencies
       const { sendPartnerInvitationEmail } = await import('./utils/sendgrid');
       
-      // Send the invitation email
-      const emailSent = await sendPartnerInvitationEmail({
-        to: email,
-        inviterName: req.user.name,
-        inviteCode,
-        personalMessage: message
-      });
-      
-      res.status(200).json({ 
-        inviteCode,
-        emailSent,
-        message: emailSent 
-          ? `Invitation sent to ${email}` 
-          : `Email could not be sent, but your invite code is ready to share manually.`
-      });
+      try {
+        // Send the invitation email
+        const emailSent = await sendPartnerInvitationEmail({
+          to: email,
+          inviterName: req.user.name,
+          inviteCode,
+          personalMessage: message
+        });
+        
+        console.log(`Email sending result: ${emailSent ? 'success' : 'failed'}`);
+        
+        if (emailSent) {
+          res.status(200).json({ 
+            inviteCode,
+            emailSent: true,
+            message: `Invitation successfully sent to ${email}`
+          });
+        } else {
+          // The email was not sent, but we have an invite code
+          res.status(202).json({ 
+            inviteCode,
+            emailSent: false,
+            message: `The invitation code was generated (${inviteCode}), but the email could not be sent. Please check your SendGrid configuration.`
+          });
+        }
+      } catch (error) {
+        const emailError = error as Error;
+        console.error('Error sending invitation email:', emailError);
+        res.status(202).json({ 
+          inviteCode,
+          emailSent: false,
+          message: `Error sending email: ${emailError.message || 'Unknown error'}. Your invite code is: ${inviteCode}`
+        });
+      }
     } catch (error) {
       console.error("Error sending invitation:", error);
       res.status(500).json({ message: "Failed to send invitation" });
