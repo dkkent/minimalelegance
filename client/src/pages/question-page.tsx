@@ -57,13 +57,44 @@ export default function QuestionPage() {
   });
   
   // Consolidate question data from either source
+  // Fetch partner response data if coming from a pending response
+  const { data: pendingResponsesData } = useQuery({
+    queryKey: ["/api/pending-responses"],
+    enabled: !!questionId,
+    queryFn: async () => {
+      const res = await fetch('/api/pending-responses');
+      if (!res.ok) throw new Error('Failed to fetch pending responses');
+      return res.json();
+    }
+  });
+
+  // Find if this question has a partner response from our pending responses
+  const findPartnerResponse = () => {
+    if (!pendingResponsesData || !questionId) return null;
+    
+    // Find this specific question in pending responses
+    const pendingItem = pendingResponsesData.find(
+      (item: any) => item.question.id === parseInt(questionId as string)
+    );
+    
+    // Return the partner response if this question is waiting for you
+    if (pendingItem && pendingItem.waitingForYou && pendingItem.partnerResponse) {
+      return pendingItem.partnerResponse;
+    }
+    
+    return null;
+  };
+  
   useEffect(() => {
     if (questionId && specificQuestionData) {
       // For specific question, create a structure similar to activeQuestionData
+      const partnerResponse = findPartnerResponse();
+      
       setQuestionData({
         question: specificQuestionData,
         userHasAnswered: false, // Assume not answered yet
-        partnerHasAnswered: true, // Since this is likely coming from a partner response
+        partnerHasAnswered: !!partnerResponse, // If we found a partner response
+        partnerResponse: partnerResponse, // Store the partner response for later reveal
       });
       setCurrentQuestionId(questionId);
     } else if (!questionId && activeQuestionData) {
@@ -74,7 +105,7 @@ export default function QuestionPage() {
         setCurrentQuestionId(activeQuestionData.question.id);
       }
     }
-  }, [questionId, specificQuestionData, activeQuestionData, currentQuestionId]);
+  }, [questionId, specificQuestionData, activeQuestionData, currentQuestionId, pendingResponsesData]);
   
   // Watch for question changes and trigger animation
   useEffect(() => {
@@ -97,6 +128,10 @@ export default function QuestionPage() {
     }
   }, [questionId, refetchActiveQuestion]);
 
+  // State to control whether to show partner's response after submission
+  const [showPartnerResponse, setShowPartnerResponse] = useState(false);
+  const [submittedResponseContent, setSubmittedResponseContent] = useState("");
+  
   // Submit response mutation
   const submitResponseMutation = useMutation({
     mutationFn: async ({ questionId, content }: { questionId: number; content: string }) => {
@@ -107,6 +142,15 @@ export default function QuestionPage() {
       return await res.json();
     },
     onSuccess: (data) => {
+      // Save the submitted response content
+      setSubmittedResponseContent(response);
+      
+      // If this is a question with a partner response, show the reveal first
+      if (questionData?.partnerResponse && !showPartnerResponse) {
+        setShowPartnerResponse(true);
+        return;
+      }
+      
       if (data.lovesliceCreated) {
         // If a loveslice was created, navigate to the reveal page
         navigate(`/reveal/${data.lovesliceId}`);
@@ -166,6 +210,60 @@ export default function QuestionPage() {
     );
   }
 
+  const handleContinueAfterReveal = () => {
+    // Continue with navigation after the reveal
+    queryClient.invalidateQueries({ queryKey: ["/api/active-question"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/pending-responses"] });
+    navigate("/");
+  };
+
+  // If we're showing the partner response after submission
+  if (showPartnerResponse && questionData?.partnerResponse) {
+    return (
+      <MainLayout>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="mb-10 text-center">
+            <ThemeBadge theme={questionData.question.theme} size="large" className="inline-block mb-4" />
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl mb-4 leading-relaxed">
+              "{questionData.question.content}"
+            </h2>
+            <p className="text-lavender text-lg font-medium">Loveslice Created!</p>
+          </div>
+          
+          <HandDrawnBorder className="bg-white rounded-lg shadow-md p-6 md:p-8 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Your response */}
+              <div>
+                <h3 className="font-medium mb-3">Your Response</h3>
+                <div className="bg-cream bg-opacity-40 p-4 rounded-lg">
+                  <p className="italic text-gray-700">"{submittedResponseContent}"</p>
+                </div>
+              </div>
+              
+              {/* Partner's response - now revealed */}
+              <div>
+                <h3 className="font-medium mb-3">Partner's Response</h3>
+                <div className="bg-lavender-light bg-opacity-40 p-4 rounded-lg">
+                  <p className="italic text-gray-700">"{questionData.partnerResponse.content}"</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 text-center">
+              <p className="text-gray-600 mb-4">You've both answered this question! A new Loveslice has been added to your garden.</p>
+              <Button
+                onClick={handleContinueAfterReveal}
+                className="bg-sage hover:bg-sage-dark text-white"
+              >
+                Continue to Home
+              </Button>
+            </div>
+          </HandDrawnBorder>
+        </div>
+      </MainLayout>
+    );
+  }
+  
   return (
     <MainLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">

@@ -401,7 +401,9 @@ export default function HomePage() {
                           <p className="text-sm font-medium">Partner's response</p>
                         </div>
                         <p className="text-sm text-gray-600 italic">
-                          "{pendingItem.partnerResponse.content || "Partner has responded"}"
+                          <span className="bg-sage-light bg-opacity-30 px-3 py-1 rounded">
+                            Answer the question to reveal your partner's response
+                          </span>
                         </p>
                         <div className="mt-4 bg-sage-light bg-opacity-30 rounded p-3 text-center">
                           <p className="text-sm text-sage-dark">
