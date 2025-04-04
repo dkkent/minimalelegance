@@ -90,10 +90,23 @@ export default function ConversationPage() {
       if (!res.ok) {
         throw new Error('Failed to fetch conversation');
       }
-      return res.json();
+      const data = await res.json();
+      console.log("Conversation data received:", data);
+      return data;
     },
     enabled: !!conversationId && !!user,
   });
+  
+  // Debug logging
+  useEffect(() => {
+    if (conversation) {
+      console.log("Conversation data available:", conversation);
+      console.log("Has starter:", !!conversation.starter);
+      if (conversation.starter) {
+        console.log("Starter content:", conversation.starter.content);
+      }
+    }
+  }, [conversation]);
 
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
