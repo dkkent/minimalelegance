@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if a loveslice already exists for this question
         // We'll only show pending responses if the loveslice doesn't exist yet
         const existingLoveslices = await storage.getLoveslices(req.user.id);
-        const lovesliceExists = existingLoveslices.some(ls => ls.question.id === qId);
+        const lovesliceExists = existingLoveslices.some(ls => ls.question_id === qId);
         
         // Only add if there's no loveslice yet
         if (userResponse && question && !lovesliceExists) {
