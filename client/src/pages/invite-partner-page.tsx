@@ -1,182 +1,231 @@
-import React, { useState } from "react";
-import { useLocation } from "wouter";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { MainLayout } from "@/components/layouts/main-layout";
-import { HandDrawnBorder } from "@/components/hand-drawn-border";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
-import { Logo } from "@/components/logo";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-const inviteSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  message: z.string().optional(),
-});
-
-type InviteFormValues = z.infer<typeof inviteSchema>;
+import { AlertCircle, Copy, Loader2, Mail, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InvitePartnerPage() {
-  const [_, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [inviteCode, setInviteCode] = useState(user?.inviteCode || "");
+  const [copied, setCopied] = useState(false);
+  const [showEmailSent, setShowEmailSent] = useState(false);
 
-  const form = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: {
-      email: "",
-      message: "",
+  const inviteMutation = useMutation({
+    mutationFn: async (data: { email: string; message: string }) => {
+      const res = await apiRequest("POST", "/api/invite-partner", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setInviteCode(data.inviteCode);
+      setShowEmailSent(true);
+      setEmail("");
+      setMessage("");
+      toast({
+        title: "Invitation sent",
+        description: data.emailSent 
+          ? `An invitation has been sent to ${email}`
+          : `The invitation code was generated, but the email could not be sent.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send invitation",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
-  const onSubmit = async (values: InviteFormValues) => {
-    setIsLoading(true);
-    try {
-      const response = await apiRequest("POST", "/api/invite-partner", values);
-      const data = await response.json();
-      setInviteCode(data.inviteCode);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    inviteMutation.mutate({ email, message });
+  };
+
+  const copyInviteCode = () => {
+    if (inviteCode) {
+      navigator.clipboard.writeText(inviteCode);
+      setCopied(true);
       toast({
-        title: "Invitation ready!",
-        description: "Share your invite code with your partner.",
+        title: "Copied to clipboard",
+        description: "The invite code has been copied to your clipboard",
       });
-    } catch (error) {
-      toast({
-        title: "Failed to send invitation",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleSkip = () => {
-    navigate("/");
-  };
-
   return (
-    <MainLayout>
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          <div className="text-center mb-10">
-            <div className="flex justify-center mb-4">
-              <Logo size="large" withText={true} />
-            </div>
-          </div>
+    <div className="container max-w-3xl py-10">
+      <h1 className="text-3xl font-bold mb-6 text-center">Invite Your Partner</h1>
+      <p className="text-muted-foreground text-center mb-8">
+        Share Loveslices with your partner to start growing your relationship garden together.
+      </p>
 
-          <HandDrawnBorder className="bg-white bg-opacity-90 rounded-lg p-8 shadow-md">
-            <h2 className="font-serif text-2xl mb-6 text-center">Invite Your Partner</h2>
-            
-            <div className="mb-8">
-              <p className="text-center mb-4">Let's grow a garden of connection together</p>
-              <div className="text-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                  alt="Two hands holding a small plant" 
-                  className="rounded-lg mx-auto w-48 h-36 object-cover mb-4" 
-                />
-              </div>
-            </div>
-            
-            {inviteCode ? (
-              <div className="text-center">
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Your Invitation Code</h3>
-                  <div className="bg-sage-light bg-opacity-60 rounded-lg p-4 font-mono text-xl tracking-wide">
-                    {inviteCode}
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600">
-                    Share this code with your partner so they can connect with you.
-                  </p>
+      <div className="grid gap-8 md:grid-cols-2">
+        {/* Left side - Invite by email */}
+        <HandDrawnBorder>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Invite by Email
+              </CardTitle>
+              <CardDescription>
+                Send an invitation email to your partner with your invite code.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Partner's Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="partner@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
-                
-                <Button
-                  className="w-full bg-sage hover:bg-sage-dark text-white"
-                  onClick={() => navigate("/")}
+                <div className="space-y-2">
+                  <Label htmlFor="message">Personal Message (optional)</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Add a personal note to your invitation..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={inviteMutation.isPending || !email}
                 >
-                  Continue to Your Garden
+                  {inviteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : "Send Invitation"}
                 </Button>
-              </div>
-            ) : (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Partner's Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="partner@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Add a personal message (optional)</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            rows={3} 
-                            placeholder="I'd love to grow our relationship together..."
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button
-                    type="submit"
-                    className="w-full bg-sage hover:bg-sage-dark text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      "Send Invitation"
-                    )}
-                  </Button>
-                  
-                  <div className="text-center mt-4">
+              </CardFooter>
+            </form>
+          </Card>
+        </HandDrawnBorder>
+
+        {/* Right side - Share invite code manually */}
+        <HandDrawnBorder>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                Share Invite Code
+              </CardTitle>
+              <CardDescription>
+                {inviteCode 
+                  ? "Copy your invite code to share with your partner manually." 
+                  : "After you send an email invitation, your invite code will appear here."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {inviteCode ? (
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">Your Invite Code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="inviteCode"
+                      value={inviteCode}
+                      readOnly
+                      className="font-mono"
+                    />
                     <Button 
-                      variant="link" 
-                      className="text-sage hover:text-sage-dark text-sm"
-                      onClick={handleSkip}
+                      type="button" 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={copyInviteCode}
                     >
-                      Skip for now
+                      {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-                </form>
-              </Form>
-            )}
-          </HandDrawnBorder>
-        </div>
+                </div>
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                  <p>No invite code generated yet</p>
+                  <p className="text-sm mt-2">Send an email invitation to generate a code</p>
+                </div>
+              )}
+
+              {showEmailSent && (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Invitation Sent</AlertTitle>
+                  <AlertDescription>
+                    Your partner will receive an email with instructions to join.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter className="flex-col space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Your partner will use this code to connect with your account after 
+                they create their own Loveslices account.
+              </p>
+            </CardFooter>
+          </Card>
+        </HandDrawnBorder>
       </div>
-    </MainLayout>
+
+      <div className="mt-8">
+        <HandDrawnBorder>
+          <Card>
+            <CardHeader>
+              <CardTitle>How It Works</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-4 list-decimal list-inside">
+                <li>
+                  <span className="font-medium">Send an invitation:</span>
+                  <p className="pl-6 text-muted-foreground mt-1">
+                    Send an email invitation to your partner, or share your invite code manually.
+                  </p>
+                </li>
+                <li>
+                  <span className="font-medium">Partner creates an account:</span>
+                  <p className="pl-6 text-muted-foreground mt-1">
+                    Your partner signs up for their own Loveslices account.
+                  </p>
+                </li>
+                <li>
+                  <span className="font-medium">Partner enters the invite code:</span>
+                  <p className="pl-6 text-muted-foreground mt-1">
+                    After creating an account, they'll enter your invite code to connect.
+                  </p>
+                </li>
+                <li>
+                  <span className="font-medium">Start growing together:</span>
+                  <p className="pl-6 text-muted-foreground mt-1">
+                    Once connected, you'll both see shared questions and loveslices in your garden.
+                  </p>
+                </li>
+              </ol>
+            </CardContent>
+          </Card>
+        </HandDrawnBorder>
+      </div>
+    </div>
   );
 }

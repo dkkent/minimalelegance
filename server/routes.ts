@@ -34,14 +34,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      // In a real app, we would send an email here with the invite link
-      // For now, we'll just return the invite code
+      // Generate or retrieve invite code
+      let inviteCode = req.user.inviteCode;
+      
+      // If no invite code exists for the user, generate one
+      if (!inviteCode) {
+        inviteCode = randomBytes(6).toString('hex');
+        await storage.updateUser(req.user.id, { inviteCode });
+      }
+      
+      // Import the sendPartnerInvitationEmail function only when needed
+      // to avoid circular dependencies
+      const { sendPartnerInvitationEmail } = await import('./utils/sendgrid');
+      
+      // Send the invitation email
+      const emailSent = await sendPartnerInvitationEmail({
+        to: email,
+        inviterName: req.user.name,
+        inviteCode,
+        personalMessage: message
+      });
       
       res.status(200).json({ 
-        inviteCode: req.user.inviteCode,
-        message: `In a production environment, an email would be sent to ${email} with your invite code.`
+        inviteCode,
+        emailSent,
+        message: emailSent 
+          ? `Invitation sent to ${email}` 
+          : `Email could not be sent, but your invite code is ready to share manually.`
       });
     } catch (error) {
+      console.error("Error sending invitation:", error);
       res.status(500).json({ message: "Failed to send invitation" });
     }
   });
@@ -79,9 +101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedUser = await storage.getUser(req.user.id);
-      const { password, ...userWithoutPassword } = updatedUser;
       
-      res.status(200).json(userWithoutPassword);
+      if (updatedUser) {
+        const { password, ...userWithoutPassword } = updatedUser;
+        res.status(200).json(userWithoutPassword);
+      } else {
+        res.status(500).json({ message: "Failed to retrieve updated user information" });
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to accept invitation" });
     }
@@ -360,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { theme } = req.query;
-      let starters;
+      let starters: Awaited<ReturnType<typeof storage.getConversationStartersByTheme>> = [];
       
       if (theme && typeof theme === 'string') {
         // Get starters for a specific theme
@@ -368,7 +394,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Get all starters from all themes by getting each theme and combining them
         const themes = ["Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
-        starters = [];
         
         for (const themeItem of themes) {
           const themeStarters = await storage.getConversationStartersByTheme(themeItem);
