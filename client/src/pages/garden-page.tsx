@@ -58,7 +58,7 @@ export default function GardenPage() {
     <MainLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-10">
-          <h2 className="font-serif text-3xl mb-2">Your Garden</h2>
+          <h2 className="font-serif text-3xl mb-2">Your Journal</h2>
           <p className="text-gray-600">Explore your shared moments of connection</p>
         </div>
         
