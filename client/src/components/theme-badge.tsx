@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-type Theme = "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "Money";
+export type Theme = "All" | "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "Money";
 
 type ThemeBadgeProps = {
   theme: Theme;
@@ -15,6 +15,7 @@ export const ThemeBadge: React.FC<ThemeBadgeProps> = ({
   className = "" 
 }) => {
   const themeColors = {
+    All: "bg-gray-100 text-gray-700",
     Trust: "bg-sage-light text-sage-dark",
     Intimacy: "bg-lavender-light text-lavender-dark",
     Conflict: "bg-coral-light text-coral-dark",

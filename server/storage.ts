@@ -1077,7 +1077,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]> {
-    return db
+    // First, get all journal entries for this user
+    const entries = await db
       .select()
       .from(journalEntries)
       .where(or(
@@ -1085,10 +1086,65 @@ export class DatabaseStorage implements IStorage {
         eq(journalEntries.user2Id, userId)
       ))
       .orderBy(desc(journalEntries.createdAt));
+    
+    // Enhance entries with loveslice data
+    for (const entry of entries) {
+      // If it's a written loveslice, fetch the details
+      if (entry.writtenLovesliceId) {
+        const loveslice = await this.getLovesliceById(entry.writtenLovesliceId);
+        if (loveslice) {
+          // Get the question
+          const question = await this.getQuestion(loveslice.questionId);
+          
+          // Get both responses
+          const response1 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response1Id));
+            
+          const response2 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response2Id));
+          
+          // Get user info for the responses
+          const user1 = await this.getUser(loveslice.user1Id);
+          const user2 = await this.getUser(loveslice.user2Id);
+            
+          // Add the data to the entry
+          entry.writtenLoveslice = {
+            ...loveslice,
+            question,
+            responses: [
+              { ...response1[0], user: user1 },
+              { ...response2[0], user: user2 }
+            ]
+          };
+        }
+      }
+      
+      // If it's a spoken loveslice, fetch the details
+      if (entry.spokenLovesliceId) {
+        const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
+        if (spokenLoveslice) {
+          // Get the conversation
+          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
+          
+          // Add the data to the entry
+          entry.spokenLoveslice = {
+            ...spokenLoveslice,
+            conversation
+          };
+        }
+      }
+    }
+    
+    return entries;
   }
   
   async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
-    return db
+    // First get the base entries
+    const entries = await db
       .select()
       .from(journalEntries)
       .where(and(
@@ -1099,10 +1155,57 @@ export class DatabaseStorage implements IStorage {
         sql`${journalEntries.searchableContent} ILIKE ${`%${query}%`}`
       ))
       .orderBy(desc(journalEntries.createdAt));
+    
+    // Enhance entries with loveslice data (same as in getJournalEntriesByUserId)
+    for (const entry of entries) {
+      if (entry.writtenLovesliceId) {
+        const loveslice = await this.getLovesliceById(entry.writtenLovesliceId);
+        if (loveslice) {
+          const question = await this.getQuestion(loveslice.questionId);
+          
+          const response1 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response1Id));
+            
+          const response2 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response2Id));
+          
+          const user1 = await this.getUser(loveslice.user1Id);
+          const user2 = await this.getUser(loveslice.user2Id);
+            
+          entry.writtenLoveslice = {
+            ...loveslice,
+            question,
+            responses: [
+              { ...response1[0], user: user1 },
+              { ...response2[0], user: user2 }
+            ]
+          };
+        }
+      }
+      
+      if (entry.spokenLovesliceId) {
+        const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
+        if (spokenLoveslice) {
+          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
+          
+          entry.spokenLoveslice = {
+            ...spokenLoveslice,
+            conversation
+          };
+        }
+      }
+    }
+    
+    return entries;
   }
   
   async getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]> {
-    return db
+    // First get the base entries
+    const entries = await db
       .select()
       .from(journalEntries)
       .where(and(
@@ -1113,6 +1216,52 @@ export class DatabaseStorage implements IStorage {
         eq(journalEntries.theme, theme)
       ))
       .orderBy(desc(journalEntries.createdAt));
+    
+    // Enhance entries with loveslice data (same as in getJournalEntriesByUserId)
+    for (const entry of entries) {
+      if (entry.writtenLovesliceId) {
+        const loveslice = await this.getLovesliceById(entry.writtenLovesliceId);
+        if (loveslice) {
+          const question = await this.getQuestion(loveslice.questionId);
+          
+          const response1 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response1Id));
+            
+          const response2 = await db
+            .select()
+            .from(responses)
+            .where(eq(responses.id, loveslice.response2Id));
+          
+          const user1 = await this.getUser(loveslice.user1Id);
+          const user2 = await this.getUser(loveslice.user2Id);
+            
+          entry.writtenLoveslice = {
+            ...loveslice,
+            question,
+            responses: [
+              { ...response1[0], user: user1 },
+              { ...response2[0], user: user2 }
+            ]
+          };
+        }
+      }
+      
+      if (entry.spokenLovesliceId) {
+        const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
+        if (spokenLoveslice) {
+          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
+          
+          entry.spokenLoveslice = {
+            ...spokenLoveslice,
+            conversation
+          };
+        }
+      }
+    }
+    
+    return entries;
   }
 }
 

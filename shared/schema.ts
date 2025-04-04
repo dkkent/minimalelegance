@@ -225,7 +225,63 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).pick(
 });
 
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
-export type JournalEntry = typeof journalEntries.$inferSelect;
+export type JournalEntry = typeof journalEntries.$inferSelect & {
+  // Extended types for expanded data
+  writtenLoveslice?: {
+    id: number;
+    questionId: number;
+    user1Id: number;
+    user2Id: number;
+    response1Id: number;
+    response2Id: number;
+    privateNote: string | null;
+    type: string;
+    hasStartedConversation: boolean;
+    createdAt: Date;
+    question?: {
+      id: number;
+      content: string;
+      theme: string;
+      createdAt: Date;
+    };
+    responses?: Array<{
+      id: number;
+      userId: number;
+      questionId: number;
+      content: string;
+      createdAt: Date;
+      user?: {
+        id: number;
+        name: string;
+        email: string;
+        partnerId: number | null;
+      };
+    }>;
+  };
+  spokenLoveslice?: {
+    id: number;
+    conversationId: number;
+    user1Id: number;
+    user2Id: number;
+    theme: string;
+    outcome: string;
+    createdAt: Date;
+    conversation?: {
+      id: number;
+      lovesliceId: number | null;
+      starterId: number | null;
+      initiatedByUserId: number;
+      startedAt: Date;
+      endedAt: Date | null;
+      durationSeconds: number | null;
+      outcome: string | null;
+      user1EndRequested: boolean;
+      user2EndRequested: boolean;
+      createdSpokenLoveslice: boolean;
+      finalNote: string | null;
+    };
+  };
+};
 
 // User Activity schema (for tracking streaks and garden health)
 export const userActivity = pgTable("user_activity", {
