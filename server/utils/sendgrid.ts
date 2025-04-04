@@ -1,13 +1,27 @@
 import { MailService } from '@sendgrid/mail';
 
-// Initialize SendGrid
+// Initialize SendGrid with better logging
 if (!process.env.SENDGRID_API_KEY) {
-  console.warn("SENDGRID_API_KEY environment variable is not set. Email functionality will be disabled.");
+  console.error("CRITICAL ERROR: SENDGRID_API_KEY environment variable is not set. Email functionality will be disabled.");
+} else {
+  console.log("SendGrid API Key is configured (not showing for security)");
 }
 
+if (!process.env.SENDGRID_VERIFIED_SENDER) {
+  console.error("CRITICAL ERROR: SENDGRID_VERIFIED_SENDER environment variable is not set. Email functionality will be disabled.");
+} else {
+  console.log(`SendGrid Verified Sender is configured: ${process.env.SENDGRID_VERIFIED_SENDER}`);
+}
+
+// Create a new instance of the mail service
 const mailService = new MailService();
 if (process.env.SENDGRID_API_KEY) {
-  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+  try {
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log("SendGrid API key applied to mail service successfully");
+  } catch (error) {
+    console.error("Error configuring SendGrid mail service:", error);
+  }
 }
 
 export interface EmailParams {
@@ -34,7 +48,14 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     const fromEmail = process.env.SENDGRID_VERIFIED_SENDER;
     const fromName = params.fromName || 'Loveslices';
     
-    await mailService.send({
+    // Log email details before sending
+    console.log('Attempting to send email:');
+    console.log('From:', fromEmail);
+    console.log('To:', params.to);
+    console.log('Subject:', params.subject);
+    
+    // Create email data object
+    const emailData = {
       to: params.to,
       from: {
         email: fromEmail,
@@ -43,11 +64,40 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       subject: params.subject,
       text: params.text || '',
       html: params.html || params.text || ''
-    });
+    };
     
-    return true;
+    // Send email and log response
+    try {
+      const response = await mailService.send(emailData);
+      console.log('Email sent successfully!');
+      console.log('SendGrid response headers:', response[0].headers);
+      return true;
+    } catch (sendError) {
+      // More detailed error logging
+      if (sendError instanceof Error) {
+        console.error('SendGrid email sending error:', {
+          message: sendError.message,
+          name: sendError.name, 
+          stack: sendError.stack
+        });
+        
+        // If it's an API error with response data, log that too
+        if ('response' in sendError && sendError.response) {
+          try {
+            console.error('SendGrid API error response:', 
+              JSON.stringify(sendError.response, null, 2)
+            );
+          } catch (jsonError) {
+            console.error('Error parsing SendGrid API error response', jsonError);
+          }
+        }
+      } else {
+        console.error('Unknown SendGrid error type:', sendError);
+      }
+      return false;
+    }
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('SendGrid email preparation error:', error);
     return false;
   }
 }
