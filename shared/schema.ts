@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, varchar, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, varchar, date, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -56,7 +56,7 @@ export const insertResponseSchema = createInsertSchema(responses).pick({
 export type InsertResponse = z.infer<typeof insertResponseSchema>;
 export type Response = typeof responses.$inferSelect;
 
-// Loveslices schema
+// Loveslices schema (written loveslices from question responses)
 export const loveslices = pgTable("loveslices", {
   id: serial("id").primaryKey(),
   questionId: integer("question_id").notNull().references(() => questions.id),
@@ -65,6 +65,8 @@ export const loveslices = pgTable("loveslices", {
   response1Id: integer("response1_id").notNull().references(() => responses.id),
   response2Id: integer("response2_id").notNull().references(() => responses.id),
   privateNote: text("private_note"),
+  type: text("type").notNull().default("written"), // 'written' or 'spoken'
+  hasStartedConversation: boolean("has_started_conversation").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -75,10 +77,83 @@ export const insertLovesliceSchema = createInsertSchema(loveslices).pick({
   response1Id: true,
   response2Id: true,
   privateNote: true,
+  type: true,
+  hasStartedConversation: true,
 });
 
 export type InsertLoveslice = z.infer<typeof insertLovesliceSchema>;
 export type Loveslice = typeof loveslices.$inferSelect;
+
+// Conversations schema (follow-up discussions after loveslices are formed)
+export const conversationOutcomeEnum = pgEnum("conversation_outcome", [
+  "connected",
+  "tried_and_listened",
+  "hard_but_honest",
+  "no_outcome",
+]);
+
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  lovesliceId: integer("loveslice_id").references(() => loveslices.id),
+  starterId: integer("starter_id").references(() => conversationStarters.id),
+  initiatedByUserId: integer("initiated_by_user_id").notNull().references(() => users.id),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+  durationSeconds: integer("duration_seconds"),
+  outcome: conversationOutcomeEnum("outcome").default("no_outcome"),
+  createdSpokenLoveslice: boolean("created_spoken_loveslice").default(false),
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).pick({
+  lovesliceId: true,
+  starterId: true,
+  initiatedByUserId: true,
+});
+
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
+// Conversation Messages schema
+export const conversationMessages = pgTable("conversation_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertConversationMessageSchema = createInsertSchema(conversationMessages).pick({
+  conversationId: true,
+  userId: true,
+  content: true,
+});
+
+export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
+export type ConversationMessage = typeof conversationMessages.$inferSelect;
+
+// Spoken Loveslices schema (from meaningful conversations)
+export const spokenLoveslices = pgTable("spoken_loveslices", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  user1Id: integer("user1_id").notNull().references(() => users.id),
+  user2Id: integer("user2_id").notNull().references(() => users.id),
+  outcome: conversationOutcomeEnum("outcome").notNull(),
+  theme: text("theme").notNull(),
+  durationSeconds: integer("duration_seconds").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSpokenLovesliceSchema = createInsertSchema(spokenLoveslices).pick({
+  conversationId: true,
+  user1Id: true,
+  user2Id: true,
+  outcome: true,
+  theme: true,
+  durationSeconds: true,
+});
+
+export type InsertSpokenLoveslice = z.infer<typeof insertSpokenLovesliceSchema>;
+export type SpokenLoveslice = typeof spokenLoveslices.$inferSelect;
 
 // Active questions schema (questions assigned to users)
 export const activeQuestions = pgTable("active_questions", {
@@ -105,6 +180,7 @@ export const conversationStarters = pgTable("conversation_starters", {
   baseQuestionId: integer("base_question_id").references(() => questions.id),
   lovesliceId: integer("loveslice_id").references(() => loveslices.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  markedAsMeaningful: boolean("marked_as_meaningful").default(false),
 });
 
 export const insertConversationStarterSchema = createInsertSchema(conversationStarters).pick({
@@ -112,17 +188,42 @@ export const insertConversationStarterSchema = createInsertSchema(conversationSt
   theme: true,
   baseQuestionId: true,
   lovesliceId: true,
+  markedAsMeaningful: true,
 });
 
 export type InsertConversationStarter = z.infer<typeof insertConversationStarterSchema>;
 export type ConversationStarter = typeof conversationStarters.$inferSelect;
+
+// Journal Entries schema (for search/browsing across all loveslices and conversations)
+export const journalEntries = pgTable("journal_entries", {
+  id: serial("id").primaryKey(),
+  user1Id: integer("user1_id").notNull().references(() => users.id),
+  user2Id: integer("user2_id").notNull().references(() => users.id),
+  writtenLovesliceId: integer("written_loveslice_id").references(() => loveslices.id),
+  spokenLovesliceId: integer("spoken_loveslice_id").references(() => spokenLoveslices.id),
+  theme: text("theme").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  searchableContent: text("searchable_content").notNull(),
+});
+
+export const insertJournalEntrySchema = createInsertSchema(journalEntries).pick({
+  user1Id: true,
+  user2Id: true,
+  writtenLovesliceId: true,
+  spokenLovesliceId: true,
+  theme: true,
+  searchableContent: true,
+});
+
+export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+export type JournalEntry = typeof journalEntries.$inferSelect;
 
 // User Activity schema (for tracking streaks and garden health)
 export const userActivity = pgTable("user_activity", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   date: date("date").notNull(),
-  actionType: varchar("action_type", { length: 30 }).notNull(), // 'response', 'conversation', etc.
+  actionType: varchar("action_type", { length: 30 }).notNull(), // 'response', 'conversation', 'spoken_loveslice', etc.
   streak: integer("streak").notNull().default(1),
   gardenHealth: integer("garden_health").notNull().default(100),
 });
