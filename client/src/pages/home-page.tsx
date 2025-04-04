@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -22,21 +22,78 @@ export default function HomePage() {
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   
+  // Safe fallback for theme values
+  const getThemeSafely = (item: any): string => {
+    try {
+      // First try the most common structure
+      if (item?.question?.theme) {
+        return item.question.theme;
+      }
+      
+      // Try secondary structures
+      if (item?.theme) {
+        return item.theme;
+      }
+      
+      if (item?.question_id && item?.question?.theme) {
+        return item.question.theme;
+      }
+      
+      // Default fallback
+      return "Trust";
+    } catch (err) {
+      console.error("Error getting theme:", err);
+      return "Trust";
+    }
+  };
+  
+  // Safe fallback for content
+  const getContentSafely = (item: any): string => {
+    try {
+      if (item?.question?.content) {
+        return item.question.content;
+      }
+      
+      if (item?.content) {
+        return item.content;
+      }
+      
+      if (item?.question_id && item?.question?.content) {
+        return item.question.content;
+      }
+      
+      return "What's important to you in this relationship?";
+    } catch (err) {
+      console.error("Error getting content:", err);
+      return "What's important to you in this relationship?";
+    }
+  };
+  
   // Fetch active question for home page - separate from question page
   const {
     data: activeQuestionData,
-    isLoading,
-    error,
+    isLoading: isActiveQuestionLoading,
+    error: activeQuestionError,
     refetch,
   } = useQuery({
     queryKey: ["/api/active-question", "home-page"],
     refetchInterval: false,
+    refetchOnWindowFocus: false,
+    retry: 2,
     queryFn: async () => {
-      const res = await fetch(`/api/active-question?referer=home-page`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!res.ok) throw new Error('Failed to fetch active question');
-      return res.json();
+      try {
+        const res = await fetch(`/api/active-question?referer=home-page`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) {
+          console.error(`Failed to fetch active question: ${res.status}`);
+          throw new Error('Failed to fetch active question');
+        }
+        return res.json();
+      } catch (err) {
+        console.error("Error fetching active question:", err);
+        throw err;
+      }
     }
   });
   
@@ -65,25 +122,48 @@ export default function HomePage() {
   }, []);
 
   // Fetch loveslices for relationship view
-  const { data: loveslices = [] } = useQuery<any[]>({
+  const { 
+    data: loveslices = [], 
+    isLoading: isLoveslicesLoading,
+    error: loveslicesError 
+  } = useQuery<any[]>({
     queryKey: ["/api/loveslices"],
     refetchInterval: false,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    onError: (error) => {
+      console.error("Error fetching loveslices:", error);
+    }
   });
   
   // Fetch pending responses (questions the user has answered but partner hasn't)
-  const { data: pendingResponses = [] } = useQuery<any[]>({
+  const { 
+    data: pendingResponses = [],
+    isLoading: isPendingResponsesLoading,
+    error: pendingResponsesError
+  } = useQuery<any[]>({
     queryKey: ["/api/pending-responses"],
     refetchInterval: false,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    onError: (error) => {
+      console.error("Error fetching pending responses:", error);
+    }
   });
 
   // Submit response mutation
   const submitResponseMutation = useMutation({
     mutationFn: async ({ questionId, content }: { questionId: number; content: string }) => {
-      const res = await apiRequest("POST", "/api/responses", {
-        questionId,
-        content,
-      });
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/responses", {
+          questionId,
+          content,
+        });
+        return await res.json();
+      } catch (err) {
+        console.error("Error submitting response:", err);
+        throw err;
+      }
     },
     onSuccess: (data) => {
       if (data.lovesliceCreated) {
@@ -97,6 +177,9 @@ export default function HomePage() {
         setResponse("");
       }
     },
+    onError: (error) => {
+      console.error("Error in submit response mutation:", error);
+    }
   });
 
   const handleSubmitResponse = () => {
@@ -118,12 +201,29 @@ export default function HomePage() {
     setResponse("");
   };
 
+  // Render different loading states
+  const isLoading = isActiveQuestionLoading || isLoveslicesLoading || isPendingResponsesLoading;
+  const hasError = activeQuestionError || loveslicesError || pendingResponsesError;
+
+  // Safely check for responses existence before mapping
+  const hasResponses = (slice: any) => {
+    return slice && slice.responses && Array.isArray(slice.responses) && slice.responses.length > 0;
+  };
+  
+  if (hasError) {
+    console.error("Errors detected:", { 
+      activeQuestionError, 
+      loveslicesError, 
+      pendingResponsesError 
+    });
+  }
+
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-10">
           <h2 className="font-serif text-3xl mb-2">
-            Welcome back, <span className="font-handwritten text-sage">{user?.name.split(' ')[0]}</span>
+            Welcome back, <span className="font-handwritten text-sage">{user?.name ? user.name.split(' ')[0] : 'Friend'}</span>
           </h2>
           <p className="text-gray-600">Let's nurture your relationship today</p>
         </div>
@@ -132,15 +232,15 @@ export default function HomePage() {
         <section className="mb-12">
           <HandDrawnBorder className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="p-6 md:p-8">
-              {isLoading ? (
+              {isActiveQuestionLoading ? (
                 <div className="flex justify-center items-center py-16">
                   <Loader2 className="h-8 w-8 animate-spin text-sage" />
                 </div>
-              ) : error ? (
+              ) : activeQuestionError ? (
                 <div className="text-center py-8">
                   <p className="text-red-500">Failed to load your question. Please try again later.</p>
                 </div>
-              ) : activeQuestionData ? (
+              ) : activeQuestionData?.question ? (
                 <>
                   <div className="flex items-center mb-4">
                     <div className="w-10 h-10 bg-sage-light rounded-full flex items-center justify-center mr-4">
@@ -150,7 +250,9 @@ export default function HomePage() {
                     </div>
                     <div>
                       <h3 className="font-medium text-lg">Today's Loveslice</h3>
-                      <p className="text-xs text-gray-500">Theme: {activeQuestionData.question.theme}</p>
+                      <p className="text-xs text-gray-500">
+                        Theme: {activeQuestionData.question?.theme || "Trust"}
+                      </p>
                     </div>
                     <div className="ml-auto">
                       <span className="bg-lavender-light text-lavender-dark text-xs py-1 px-2 rounded-full">New</span>
@@ -179,7 +281,7 @@ export default function HomePage() {
                         }}
                       >
                         <blockquote className="font-serif text-xl md:text-2xl leading-relaxed italic mb-4">
-                          "{activeQuestionData.question.content}"
+                          "{activeQuestionData.question.content || "What matters most to you in this relationship?"}"
                         </blockquote>
                       </motion.div>
                     </AnimatePresence>
@@ -249,44 +351,50 @@ export default function HomePage() {
                     </div>
                   )}
                 </>
-              ) : null}
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No active question found. Check back later.</p>
+                </div>
+              )}
             </div>
           </HandDrawnBorder>
         </section>
         
         {/* Pending Responses Section */}
-        {pendingResponses && pendingResponses.length > 0 && (
+        {!isPendingResponsesLoading && !pendingResponsesError && pendingResponses && pendingResponses.length > 0 && (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-serif text-2xl">Pending Partner Responses</h3>
             </div>
             
             <div className="space-y-4">
-              {pendingResponses.map((pendingItem: any) => (
+              {pendingResponses.map((pendingItem: any, index: number) => (
                 <HandDrawnBorder
-                  key={`pending-${pendingItem.question.id}`}
+                  key={`pending-${index}-${pendingItem.question?.id || index}`}
                   className="bg-white rounded-lg shadow-sm overflow-hidden transition duration-300 hover:shadow-md"
                 >
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-4">
-                      <ThemeBadge theme={pendingItem.question.theme} size="small" />
+                      <ThemeBadge theme={getThemeSafely(pendingItem)} size="small" />
                       <span className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(pendingItem.answeredAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(pendingItem.answeredAt || new Date()), { addSuffix: true })}
                       </span>
                     </div>
                     <blockquote className="font-serif text-lg mb-4">
-                      "{pendingItem.question.content}"
+                      "{getContentSafely(pendingItem)}"
                     </blockquote>
                     <div className="border-t border-gray-100 pt-4 mt-2">
                       <div className="flex items-center mb-2">
                         <Avatar className="h-6 w-6 rounded-full mr-2">
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {user?.name.split(' ').map((n: string) => n[0]).join('')}
+                            {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <p className="text-sm font-medium">Your response</p>
                       </div>
-                      <p className="text-sm text-gray-600 italic">"{pendingItem.userResponse.content}"</p>
+                      <p className="text-sm text-gray-600 italic">
+                        "{pendingItem.userResponse?.content || "Your response is saved."}"
+                      </p>
                     </div>
                     <div className="mt-4 bg-lavender-light bg-opacity-30 rounded p-3 text-center">
                       <p className="text-sm text-lavender-dark">Waiting for partner to respond</p>
@@ -311,51 +419,73 @@ export default function HomePage() {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loveslices && loveslices.length > 0 ? (
-              loveslices.slice(0, 3).map((slice: any) => (
-                <HandDrawnBorder
-                  key={slice.id}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden transition duration-300 hover:shadow-md"
-                >
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <ThemeBadge theme={slice.question_id ? slice.question.theme : slice.theme} size="small" />
-                      <span className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(slice.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <blockquote className="font-serif text-lg mb-4">
-                      "{slice.question_id ? slice.question.content : slice.content}"
-                    </blockquote>
-                    <div className="border-t border-gray-100 pt-4 mt-2">
-                      <div className="grid grid-cols-2 gap-4">
-                        {slice.responses.map((response: any, index: number) => (
-                          <div key={index}>
-                            <div className="flex items-center mb-2">
-                              <Avatar className="h-6 w-6 rounded-full mr-2">
-                                <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                  {response.user.name.split(' ').map((n: string) => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <p className="text-sm font-medium">{response.user.name.split(' ')[0]}</p>
-                            </div>
-                            <p className="text-sm text-gray-600 italic">"{response.content}"</p>
-                          </div>
-                        ))}
+          {isLoveslicesLoading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-sage" />
+            </div>
+          ) : loveslicesError ? (
+            <div className="text-center py-8">
+              <p className="text-red-500">Failed to load loveslices. Please try again later.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loveslices && loveslices.length > 0 ? (
+                loveslices.slice(0, 3).map((slice: any, index: number) => (
+                  <HandDrawnBorder
+                    key={`slice-${slice.id || index}`}
+                    className="bg-white rounded-lg shadow-sm overflow-hidden transition duration-300 hover:shadow-md"
+                  >
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <ThemeBadge theme={getThemeSafely(slice)} size="small" />
+                        <span className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(slice.createdAt || new Date()), { addSuffix: true })}
+                        </span>
                       </div>
+                      <blockquote className="font-serif text-lg mb-4">
+                        "{getContentSafely(slice)}"
+                      </blockquote>
+                      {hasResponses(slice) ? (
+                        <div className="border-t border-gray-100 pt-4 mt-2">
+                          <div className="grid grid-cols-2 gap-4">
+                            {slice.responses.map((responseItem: any, responseIndex: number) => (
+                              <div key={`response-${responseIndex}`}>
+                                <div className="flex items-center mb-2">
+                                  <Avatar className="h-6 w-6 rounded-full mr-2">
+                                    <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                      {responseItem.user?.name 
+                                        ? responseItem.user.name.split(' ').map((n: string) => n[0]).join('')
+                                        : 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <p className="text-sm font-medium">
+                                    {responseItem.user?.name 
+                                      ? responseItem.user.name.split(' ')[0]
+                                      : 'User'}
+                                  </p>
+                                </div>
+                                <p className="text-sm text-gray-600 italic">"{responseItem.content || "No response"}"</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-2">
+                          <p className="text-sm text-gray-500">Responses not available</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </HandDrawnBorder>
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-8">
-                <p className="text-gray-500">
-                  You haven't created any Loveslices yet. Answer questions together with your partner to nurture your relationship.
-                </p>
-              </div>
-            )}
-          </div>
+                  </HandDrawnBorder>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-8">
+                  <p className="text-gray-500">
+                    You haven't created any Loveslices yet. Answer questions together with your partner to nurture your relationship.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           
           {loveslices && loveslices.length > 0 && (
             <div className="mt-6 text-center">
