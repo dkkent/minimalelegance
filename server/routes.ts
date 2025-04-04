@@ -360,7 +360,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if the user is part of this loveslice
-      if (loveslice.responses[0].user.id !== req.user.id && loveslice.responses[1].user.id !== req.user.id) {
+      const participant1Id = loveslice.responses[0].user.id;
+      const participant2Id = loveslice.responses[1].user.id;
+      
+      const isDirectParticipant = participant1Id === req.user.id || participant2Id === req.user.id;
+      
+      // If not a direct participant, check if user is a partner of one of the participants
+      let isPartnerOfParticipant = false;
+      if (!isDirectParticipant && req.user.partnerId) {
+        isPartnerOfParticipant = participant1Id === req.user.partnerId || participant2Id === req.user.partnerId;
+      }
+      
+      if (!isDirectParticipant && !isPartnerOfParticipant) {
         return res.status(403).json({ message: "You do not have access to this loveslice" });
       }
       
@@ -386,7 +397,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if the user is part of this loveslice
-      if (loveslice.responses[0].user.id !== req.user.id && loveslice.responses[1].user.id !== req.user.id) {
+      const participant1Id = loveslice.responses[0].user.id;
+      const participant2Id = loveslice.responses[1].user.id;
+      
+      const isDirectParticipant = participant1Id === req.user.id || participant2Id === req.user.id;
+      
+      // If not a direct participant, check if user is a partner of one of the participants
+      let isPartnerOfParticipant = false;
+      if (!isDirectParticipant && req.user.partnerId) {
+        isPartnerOfParticipant = participant1Id === req.user.partnerId || participant2Id === req.user.partnerId;
+      }
+      
+      if (!isDirectParticipant && !isPartnerOfParticipant) {
         return res.status(403).json({ message: "You do not have access to this loveslice" });
       }
       
@@ -596,7 +618,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Loveslice not found" });
         }
         
-        if (loveslice.responses[0].user.id !== req.user.id && loveslice.responses[1].user.id !== req.user.id) {
+        const participant1Id = loveslice.responses[0].user.id;
+        const participant2Id = loveslice.responses[1].user.id;
+        
+        const isDirectParticipant = participant1Id === req.user.id || participant2Id === req.user.id;
+        
+        // If not a direct participant, check if user is a partner of one of the participants
+        let isPartnerOfParticipant = false;
+        if (!isDirectParticipant && req.user.partnerId) {
+          isPartnerOfParticipant = participant1Id === req.user.partnerId || participant2Id === req.user.partnerId;
+        }
+        
+        if (!isDirectParticipant && !isPartnerOfParticipant) {
           return res.status(403).json({ message: "You do not have access to this loveslice" });
         }
         
@@ -997,8 +1030,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Spoken loveslice not found" });
       }
       
-      // Check if the user is part of this spoken loveslice
-      if (spokenLoveslice.user1Id !== req.user.id && spokenLoveslice.user2Id !== req.user.id) {
+      // Check if the user is part of this spoken loveslice or is a partner of someone in the loveslice
+      const isDirectParticipant = spokenLoveslice.user1Id === req.user.id || spokenLoveslice.user2Id === req.user.id;
+      
+      // If not a direct participant, check if user is a partner of one of the participants
+      let isPartnerOfParticipant = false;
+      if (!isDirectParticipant && req.user.partnerId) {
+        isPartnerOfParticipant = 
+          spokenLoveslice.user1Id === req.user.partnerId || 
+          spokenLoveslice.user2Id === req.user.partnerId;
+      }
+      
+      if (!isDirectParticipant && !isPartnerOfParticipant) {
         return res.status(403).json({ message: "You do not have access to this spoken loveslice" });
       }
       
