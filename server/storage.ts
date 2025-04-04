@@ -340,7 +340,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]> {
-    return db.select().from(conversationStarters).where(eq(conversationStarters.theme, theme));
+    return db.select()
+      .from(conversationStarters)
+      .where(eq(conversationStarters.theme, theme))
+      .orderBy(desc(conversationStarters.createdAt)); // Sort by newest first
   }
   
   async getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined> {

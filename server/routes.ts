@@ -266,6 +266,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Sort starters by creation date (newest first)
+      starters.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
       res.status(200).json(starters);
     } catch (error) {
       console.error("Failed to fetch conversation starters:", error);

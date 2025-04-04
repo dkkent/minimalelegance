@@ -135,10 +135,10 @@ export default function ConversationStartersPage() {
       // Refetch random starter
       fetchRandomStarter();
       
-      // Clear the highlight effect after 3 seconds
+      // Clear the highlight effect after 15 seconds (much slower fade)
       setTimeout(() => {
         setNewStarterId(null);
-      }, 3000);
+      }, 15000);
     },
     onError: (error) => {
       toast({
@@ -233,8 +233,8 @@ export default function ConversationStartersPage() {
                     <Card 
                       key={starter.id}
                       className={cn(
-                        "transition-all duration-300",
-                        starter.id === newStarterId && "border-primary border-2 shadow-lg animate-pulse bg-primary/5"
+                        "transition-all duration-1000",
+                        starter.id === newStarterId && "border-primary border-2 shadow-lg bg-primary/5 animate-[pulse_4s_ease-in-out_infinite]"
                       )}
                     >
                       <CardHeader>
