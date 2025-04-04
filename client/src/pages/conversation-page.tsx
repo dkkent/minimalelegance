@@ -207,7 +207,7 @@ export default function ConversationPage() {
     <MainLayout>
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center mb-4">
           <Button variant="ghost" onClick={() => navigate("/")} className="p-0 mr-4">
             <ArrowLeft className="h-5 w-5 mr-1" />
             <span>Back</span>
@@ -216,7 +216,7 @@ export default function ConversationPage() {
           <div className="flex-1">
             <h1 className="text-xl font-serif">
               {conversation.starter
-                ? `Talking about: "${conversation.starter.content}"`
+                ? `Conversation`
                 : conversation.loveslice
                   ? `Discussing your Loveslice`
                   : `Conversation`}
@@ -247,6 +247,18 @@ export default function ConversationPage() {
           )}
         </div>
         
+        {/* Conversation Starter */}
+        {conversation.starter && (
+          <HandDrawnBorder className="mb-6 bg-white p-4 rounded-lg border-2 border-sage/30">
+            <div className="mb-2">
+              <span className="text-sm font-medium text-sage">Conversation Starter:</span>
+            </div>
+            <blockquote className="font-serif text-xl">
+              "{conversation.starter.content}"
+            </blockquote>
+          </HandDrawnBorder>
+        )}
+        
         {/* Source content */}
         {conversation.loveslice && (
           <HandDrawnBorder className="mb-6 bg-white p-4 rounded-lg">
@@ -271,17 +283,6 @@ export default function ConversationPage() {
                 </div>
               ))}
             </div>
-          </HandDrawnBorder>
-        )}
-        
-        {conversation.starter && (
-          <HandDrawnBorder className="mb-6 bg-white p-4 rounded-lg">
-            <div className="mb-3">
-              <span className="text-sm text-gray-500">Conversation starter:</span>
-            </div>
-            <blockquote className="font-serif text-lg">
-              "{conversation.starter.content}"
-            </blockquote>
           </HandDrawnBorder>
         )}
         
