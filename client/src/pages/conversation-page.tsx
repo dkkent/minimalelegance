@@ -734,7 +734,7 @@ export default function ConversationPage() {
             <DialogHeader>
               <DialogTitle>End this conversation</DialogTitle>
               <DialogDescription>
-                How would you describe this conversation? Your reflection helps nurture your relationship garden.
+                How would you describe this conversation? Your reflection helps nurture your relationship journey.
               </DialogDescription>
             </DialogHeader>
             
@@ -768,7 +768,7 @@ export default function ConversationPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Spoken Loveslices are meaningful moments of connection that help your garden grow.
+                  Spoken Loveslices are meaningful moments of connection that help your relationship grow.
                 </p>
               </div>
               

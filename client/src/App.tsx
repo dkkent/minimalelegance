@@ -21,7 +21,7 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/garden" component={GardenPage} />
+      <ProtectedRoute path="/garden" component={JournalPage} /> {/* Redirecting garden to journal page */}
       <ProtectedRoute path="/question" component={QuestionPage} />
       <ProtectedRoute path="/reveal/:id" component={RevealPage} />
       <ProtectedRoute path="/invite" component={InvitePartnerPage} />
