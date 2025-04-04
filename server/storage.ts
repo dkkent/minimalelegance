@@ -370,12 +370,23 @@ export class DatabaseStorage implements IStorage {
     const results = await db.execute(sql`
       SELECT 
         l.*,
+        q.id as question_id,
         q.content as question_content,
         q.theme as question_theme,
+        r1.id as response1_id,
         r1.content as response1_content,
+        r1.created_at as response1_created_at,
+        r2.id as response2_id,
         r2.content as response2_content,
+        r2.created_at as response2_created_at,
+        u1.id as user1_id,
         u1.name as user1_name,
-        u2.name as user2_name
+        u1.email as user1_email,
+        u1.partner_id as user1_partner_id,
+        u2.id as user2_id,
+        u2.name as user2_name,
+        u2.email as user2_email,
+        u2.partner_id as user2_partner_id
       FROM loveslices l
       JOIN questions q ON l.question_id = q.id
       JOIN responses r1 ON l.response1_id = r1.id
@@ -388,29 +399,53 @@ export class DatabaseStorage implements IStorage {
     if (results.length === 0) return undefined;
     
     const result = results[0] as any;
+    
+    // Restructure the response to match the expected format
     return {
-      ...result,
+      id: result.id,
+      questionId: result.question_id,
+      user1Id: result.user1_id,
+      user2Id: result.user2_id,
+      response1Id: result.response1_id,
+      response2Id: result.response2_id,
+      privateNote: result.private_note,
+      type: result.type,
+      hasStartedConversation: result.has_started_conversation,
+      createdAt: result.created_at,
       question: {
         id: result.question_id,
         content: result.question_content,
-        theme: result.question_theme
+        theme: result.question_theme,
+        createdAt: null // We don't have this in the query
       },
-      response1: {
-        id: result.response1_id,
-        content: result.response1_content
-      },
-      response2: {
-        id: result.response2_id,
-        content: result.response2_content
-      },
-      user1: {
-        id: result.user1_id,
-        name: result.user1_name
-      },
-      user2: {
-        id: result.user2_id,
-        name: result.user2_name
-      }
+      responses: [
+        {
+          id: result.response1_id,
+          userId: result.user1_id,
+          questionId: result.question_id,
+          content: result.response1_content,
+          createdAt: result.response1_created_at,
+          user: {
+            id: result.user1_id,
+            name: result.user1_name,
+            email: result.user1_email,
+            partnerId: result.user1_partner_id
+          }
+        },
+        {
+          id: result.response2_id,
+          userId: result.user2_id,
+          questionId: result.question_id,
+          content: result.response2_content,
+          createdAt: result.response2_created_at,
+          user: {
+            id: result.user2_id,
+            name: result.user2_name,
+            email: result.user2_email,
+            partnerId: result.user2_partner_id
+          }
+        }
+      ]
     };
   }
 
