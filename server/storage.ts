@@ -1201,8 +1201,9 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          // Add the data to the entry
-          entry.writtenLoveslice = {
+          // Add the data to the entry 
+          // We need to cast entry to JournalEntry type with the extended properties
+          (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
@@ -1221,7 +1222,7 @@ export class DatabaseStorage implements IStorage {
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
           // Add the data to the entry
-          entry.spokenLoveslice = {
+          (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
             conversation
           };
@@ -1279,7 +1280,7 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          entry.writtenLoveslice = {
+          (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
@@ -1295,7 +1296,7 @@ export class DatabaseStorage implements IStorage {
         if (spokenLoveslice) {
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
-          entry.spokenLoveslice = {
+          (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
             conversation
           };
@@ -1353,7 +1354,7 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          entry.writtenLoveslice = {
+          (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
@@ -1369,7 +1370,7 @@ export class DatabaseStorage implements IStorage {
         if (spokenLoveslice) {
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
-          entry.spokenLoveslice = {
+          (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
             conversation
           };
