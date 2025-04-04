@@ -1,0 +1,68 @@
+I want to create a web-based relationship platform called Loveslices—a “virtual gardener for your relationship.”
+
+The goal is to help individuals or couples deepen connection through emotionally intelligent conversation prompts and shared reflections.
+
+Core functionality:
+	•	Users sign up either as individuals or as part of a couple (in a linked account).
+	•	Sign-up/login should support Google, Facebook, and Apple Auth, in addition to email/password.
+	•	After signing in, users receive a thoughtful question (daily or weekly) related to intimacy, trust, values, or emotional growth.
+	•	Each partner answers privately. Responses are only revealed if both have answered the same question.
+	•	When this happens, it creates a Loveslice: a shared moment of authentic connection, logged in a private journal.
+
+The app should include:
+	•	Secure authentication with multiple sign-in options (Google, Facebook, Apple, email/password)
+	•	Ability to join as an individual or invite/link a partner account via a secure code or email invite
+	•	A question delivery system with a curated question database (tagged by theme: Trust, Intimacy, Conflict, Growth, Sex, Dreams, Money, etc.)
+	•	“Answer-to-unlock” logic for questions
+	•	A dashboard or “Garden” view that shows past Loveslices
+	•	Optional solo mode (for singles or self-reflection users)
+
+Future feature ideas (stretch goals):
+	•	Guided journeys called “Seasons of Growth” (e.g., Trust, Reconnection, Desire, Play)
+	•	An AI-based “Gardener” that notices patterns and suggests questions based on emotional themes
+	•	Notifications/reminders with a gentle tone (e.g., “A new slice is ready to blossom”)
+
+Tech:
+Please use React for the frontend, and Firebase or PostgreSQL for the backend, depending on best fit. You may use Firebase Auth for OAuth login if easier.
+
+Future Planning: 
+Loveslices can evolve to offer more features around intimacy, conectedness, couples workshops, tutorials, games and content to help couples grow.
+
+Generate initial routes, data models, and components for:
+	•	Auth
+	•	Question flow
+	•	Matching/answer logic
+	•	Love Slice dashboard
+	•	Invite system for couples
+
+Also include a starter database with example questions. Here are some to include:
+
+⸻
+
+🌿 Example Love Slices Questions:
+
+Theme: Trust
+	•	“What helps you feel safe enough to be fully yourself with me?”
+	•	“What’s one thing you’ve never told me, not because it’s bad—but because it felt too vulnerable?”
+
+Theme: Intimacy
+	•	“What do you miss most when we’re emotionally distant?”
+	•	“How do you like to be touched when you’re feeling sad?”
+
+Theme: Conflict
+	•	“When I withdraw during conflict, what do you imagine I’m feeling?”
+	•	“What’s something you wish I understood better when we argue?”
+
+Theme: Dreams
+	•	“If we could build a life anywhere, what would it look like?”
+	•	“What do you still hope to experience together that we haven’t yet?”
+
+Theme: Play
+	•	“What’s one silly or spontaneous thing we could do this month?”
+	•	“When do you feel most light-hearted around me?”
+
+⸻
+
+Build this as a gentle, poetic space. Let the UI be minimal and nurturing—more like a journal than an app.
+Let it feel like tending a garden of connection. 🌸
+
