@@ -37,6 +37,8 @@ type ConversationStarter = {
   baseQuestionId: number | null;
   lovesliceId: number | null;
   createdAt: string;
+  markedAsMeaningful: boolean;
+  used: boolean;
 };
 
 export default function ConversationStartersPage() {
@@ -307,61 +309,109 @@ export default function ConversationStartersPage() {
               </div>
             </HandDrawnBorder>
             
-            {/* All Starters Section */}
-            <div>
-              <h2 className="text-2xl font-semibold mb-4">
-                {selectedTheme === "All" ? "All Starters" : `${selectedTheme} Starters`}
-              </h2>
-              
-              {isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : conversationStarters && conversationStarters.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {conversationStarters.map(starter => (
-                    <Card 
-                      key={starter.id}
-                      className={cn(
-                        "transition-all duration-1000",
-                        starter.id === newStarterId && "border-primary border-2 shadow-lg bg-primary/5 animate-[pulse_4s_ease-in-out_infinite]"
-                      )}
-                    >
-                      <CardHeader>
-                        <CardTitle className="flex justify-between items-center">
-                          <ThemeBadge theme={starter.theme as any} />
-                          <span className="text-sm text-gray-500">
-                            {new Date(starter.createdAt).toLocaleDateString()}
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className={cn(
-                          "text-lg",
-                          starter.id === newStarterId && "font-medium"
-                        )}>
-                          {starter.content}
-                        </p>
-                      </CardContent>
-                      <CardFooter>
-                        <Button 
-                          variant="secondary" 
-                          className="flex items-center w-full mt-2"
-                          onClick={() => handleStartConversation(starter.id)}
-                          disabled={startConversationMutation.isPending && startConversationMutation.variables === starter.id}
-                        >
-                          {startConversationMutation.isPending && startConversationMutation.variables === starter.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <MessageCircle className="mr-2 h-4 w-4" />
+            {/* Starters Sections */}
+            <div className="space-y-10">
+              {/* Available Starters Section */}
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">
+                  {selectedTheme === "All" ? "Available Starters" : `Available ${selectedTheme} Starters`}
+                </h2>
+                
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : conversationStarters && conversationStarters.filter(s => !s.used).length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {conversationStarters
+                      .filter(starter => !starter.used)
+                      .map(starter => (
+                        <Card 
+                          key={starter.id}
+                          className={cn(
+                            "transition-all duration-1000",
+                            starter.id === newStarterId && "border-primary border-2 shadow-lg bg-primary/5 animate-[pulse_4s_ease-in-out_infinite]"
                           )}
-                          Start Conversation
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+                        >
+                          <CardHeader>
+                            <CardTitle className="flex justify-between items-center">
+                              <ThemeBadge theme={starter.theme as any} />
+                              <span className="text-sm text-gray-500">
+                                {new Date(starter.createdAt).toLocaleDateString()}
+                              </span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className={cn(
+                              "text-lg",
+                              starter.id === newStarterId && "font-medium"
+                            )}>
+                              {starter.content}
+                            </p>
+                          </CardContent>
+                          <CardFooter>
+                            <Button 
+                              variant="secondary" 
+                              className="flex items-center w-full mt-2"
+                              onClick={() => handleStartConversation(starter.id)}
+                              disabled={startConversationMutation.isPending && startConversationMutation.variables === starter.id}
+                            >
+                              {startConversationMutation.isPending && startConversationMutation.variables === starter.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <MessageCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Start Conversation
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center p-8 border border-dashed rounded-lg">
+                    <p className="text-gray-500">No available conversation starters found for this theme.</p>
+                    <p className="text-gray-500">Create a new one below!</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Completed Starters Section */}
+              {conversationStarters && conversationStarters.filter(s => s.used).length > 0 && (
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">
+                    {selectedTheme === "All" ? "Completed Starters" : `Completed ${selectedTheme} Starters`}
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {conversationStarters!
+                      .filter(starter => starter.used)
+                      .map(starter => (
+                        <Card 
+                          key={starter.id}
+                          className="opacity-70 hover:opacity-100 transition-opacity"
+                        >
+                          <CardHeader>
+                            <CardTitle className="flex justify-between items-center">
+                              <ThemeBadge theme={starter.theme as any} />
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">Completed</span>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(starter.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-lg">{starter.content}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
                 </div>
-              ) : (
+              )}
+              
+              {/* Show no starters message if neither available nor completed starters exist */}
+              {!isLoading && (!conversationStarters || conversationStarters.length === 0) && (
                 <div className="text-center p-8 border border-dashed rounded-lg">
                   <p className="text-gray-500">No conversation starters found for this theme.</p>
                   <p className="text-gray-500">Create a new one below!</p>

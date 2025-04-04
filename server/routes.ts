@@ -458,12 +458,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateLovesliceHasStartedConversation(lovesliceId, true);
       }
       
-      // If starterId is provided, check if it exists
+      // If starterId is provided, check if it exists and mark it as used
       if (starterId) {
         const starter = await storage.getConversationStarterById(starterId);
         if (!starter) {
           return res.status(404).json({ message: "Conversation starter not found" });
         }
+        
+        // Mark the conversation starter as used
+        await storage.markConversationStarterAsUsed(starterId);
       }
       
       // Create the conversation
