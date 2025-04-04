@@ -19,10 +19,23 @@ import {
   type InsertConversationStarter,
   userActivity,
   type UserActivity,
-  type InsertUserActivity
+  type InsertUserActivity,
+  conversations,
+  type Conversation,
+  type InsertConversation,
+  conversationMessages,
+  type ConversationMessage,
+  type InsertConversationMessage,
+  spokenLoveslices,
+  type SpokenLoveslice,
+  type InsertSpokenLoveslice,
+  journalEntries,
+  type JournalEntry,
+  type InsertJournalEntry,
+  conversationOutcomeEnum
 } from "@shared/schema";
 import { db } from "./db";
-import { and, eq, desc, gte, lte, sql } from "drizzle-orm";
+import { and, eq, desc, gte, lte, sql, or } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -58,11 +71,34 @@ export interface IStorage {
   getLoveslices(userId: number): Promise<any[]>;
   getLovesliceById(id: number): Promise<any | undefined>;
   updateLovesliceNote(id: number, note: string): Promise<Loveslice | undefined>;
+  updateLovesliceHasStartedConversation(id: number, hasStarted: boolean): Promise<Loveslice | undefined>;
+  
+  // Conversation related methods (for in-app follow-up discussions)
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  getConversationById(id: number): Promise<Conversation | undefined>;
+  getConversationsByUserId(userId: number): Promise<Conversation[]>;
+  updateConversationOutcome(id: number, outcome: string, durationSeconds: number): Promise<Conversation | undefined>;
+  
+  // Conversation messages methods
+  createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage>;
+  getConversationMessages(conversationId: number): Promise<ConversationMessage[]>;
+  
+  // Spoken Loveslice methods (from meaningful conversations)
+  createSpokenLoveslice(spokenLoveslice: InsertSpokenLoveslice): Promise<SpokenLoveslice>;
+  getSpokenLoveslicesByUserId(userId: number): Promise<SpokenLoveslice[]>;
+  getSpokenLovesliceById(id: number): Promise<SpokenLoveslice | undefined>;
+  
+  // Journal methods (for unified view of written and spoken loveslices)
+  createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
+  getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]>;
+  searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]>;
+  getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]>;
   
   // Conversation starter related methods
   createConversationStarter(starter: InsertConversationStarter): Promise<ConversationStarter>;
   getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]>;
   getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined>;
+  markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined>;
   
   // User activity and garden health related methods
   recordUserActivity(userId: number, actionType: string): Promise<UserActivity>;
@@ -329,6 +365,16 @@ export class DatabaseStorage implements IStorage {
     return updatedLoveslice;
   }
   
+  async updateLovesliceHasStartedConversation(id: number, hasStarted: boolean): Promise<Loveslice | undefined> {
+    const [updatedLoveslice] = await db
+      .update(loveslices)
+      .set({ hasStartedConversation: hasStarted })
+      .where(eq(loveslices.id, id))
+      .returning();
+    
+    return updatedLoveslice;
+  }
+  
   // Conversation starter methods
   async createConversationStarter(starter: InsertConversationStarter): Promise<ConversationStarter> {
     const [newStarter] = await db
@@ -479,6 +525,10 @@ export class DatabaseStorage implements IStorage {
     );
     
     if (partnerResponse) {
+      // Get the question to include its theme
+      const question = await this.getQuestion(newResponse.questionId);
+      if (!question) return;
+      
       // Both partners have responded, create a loveslice
       const lovesliceData: InsertLoveslice = {
         questionId: newResponse.questionId,
@@ -487,9 +537,22 @@ export class DatabaseStorage implements IStorage {
         response1Id: newResponse.id,
         response2Id: partnerResponse.id,
         privateNote: null,
+        type: "written",
+        hasStartedConversation: false
       };
       
-      await this.createLoveslice(lovesliceData);
+      // Create the loveslice
+      const newLoveslice = await this.createLoveslice(lovesliceData);
+      
+      // Also create a journal entry for this loveslice for easier searching
+      await this.createJournalEntry({
+        user1Id: user.id,
+        user2Id: user.partnerId,
+        writtenLovesliceId: newLoveslice.id,
+        spokenLovesliceId: null,
+        theme: question.theme,
+        searchableContent: `Written loveslice about ${question.theme}: "${question.content}" - Responses: "${newResponse.content}" and "${partnerResponse.content}"`
+      });
     }
   }
 
@@ -609,7 +672,8 @@ export class DatabaseStorage implements IStorage {
       content: "If we could improve one aspect of trust in our relationship, what would it be?",
       theme: "Trust",
       baseQuestionId: null,
-      lovesliceId: null
+      lovesliceId: null,
+      markedAsMeaningful: false
     });
     await this.createConversationStarter({
       content: "What's something I do that makes you feel safe and secure?",
@@ -742,6 +806,180 @@ export class DatabaseStorage implements IStorage {
       baseQuestionId: null,
       lovesliceId: null
     });
+  }
+  
+  // Conversation starter additional methods
+  async markConversationStarterAsMeaningful(id: number): Promise<ConversationStarter | undefined> {
+    const [updatedStarter] = await db
+      .update(conversationStarters)
+      .set({ markedAsMeaningful: true })
+      .where(eq(conversationStarters.id, id))
+      .returning();
+    
+    return updatedStarter;
+  }
+  
+  // Conversation methods (follow-up discussions)
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [newConversation] = await db
+      .insert(conversations)
+      .values(conversation)
+      .returning();
+    
+    return newConversation;
+  }
+  
+  async getConversationById(id: number): Promise<Conversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id));
+    
+    return conversation;
+  }
+  
+  async getConversationsByUserId(userId: number): Promise<Conversation[]> {
+    return db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.initiatedByUserId, userId))
+      .orderBy(desc(conversations.startedAt));
+  }
+  
+  async updateConversationOutcome(id: number, outcome: string, durationSeconds: number): Promise<Conversation | undefined> {
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        outcome: outcome as any, // This cast is necessary because the enum types are complex
+        durationSeconds,
+        endedAt: new Date(),
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  // Conversation messages methods
+  async createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage> {
+    const [newMessage] = await db
+      .insert(conversationMessages)
+      .values(message)
+      .returning();
+    
+    return newMessage;
+  }
+  
+  async getConversationMessages(conversationId: number): Promise<ConversationMessage[]> {
+    return db
+      .select()
+      .from(conversationMessages)
+      .where(eq(conversationMessages.conversationId, conversationId))
+      .orderBy(conversationMessages.createdAt);
+  }
+  
+  // Spoken Loveslice methods
+  async createSpokenLoveslice(spokenLoveslice: InsertSpokenLoveslice): Promise<SpokenLoveslice> {
+    const [newSpokenLoveslice] = await db
+      .insert(spokenLoveslices)
+      .values(spokenLoveslice)
+      .returning();
+    
+    // When a spoken loveslice is created, also create a journal entry for it
+    const conversation = await this.getConversationById(spokenLoveslice.conversationId);
+    
+    if (conversation) {
+      // Create journal entry for this spoken loveslice
+      await this.createJournalEntry({
+        user1Id: spokenLoveslice.user1Id,
+        user2Id: spokenLoveslice.user2Id,
+        writtenLovesliceId: null,
+        spokenLovesliceId: newSpokenLoveslice.id,
+        theme: spokenLoveslice.theme,
+        searchableContent: `Spoken conversation about ${spokenLoveslice.theme}: ${
+          spokenLoveslice.outcome === 'connected' ? 'We connected' :
+          spokenLoveslice.outcome === 'tried_and_listened' ? 'We tried and listened' :
+          spokenLoveslice.outcome === 'hard_but_honest' ? 'It was hard but honest' : 'We had a conversation'
+        }`
+      });
+      
+      // Update the conversation to mark it as having created a spoken loveslice
+      await db
+        .update(conversations)
+        .set({ createdSpokenLoveslice: true })
+        .where(eq(conversations.id, conversation.id));
+    }
+    
+    return newSpokenLoveslice;
+  }
+  
+  async getSpokenLoveslicesByUserId(userId: number): Promise<SpokenLoveslice[]> {
+    return db
+      .select()
+      .from(spokenLoveslices)
+      .where(or(
+        eq(spokenLoveslices.user1Id, userId),
+        eq(spokenLoveslices.user2Id, userId)
+      ))
+      .orderBy(desc(spokenLoveslices.createdAt));
+  }
+  
+  async getSpokenLovesliceById(id: number): Promise<SpokenLoveslice | undefined> {
+    const [spokenLoveslice] = await db
+      .select()
+      .from(spokenLoveslices)
+      .where(eq(spokenLoveslices.id, id));
+    
+    return spokenLoveslice;
+  }
+  
+  // Journal methods
+  async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
+    const [newEntry] = await db
+      .insert(journalEntries)
+      .values(entry)
+      .returning();
+    
+    return newEntry;
+  }
+  
+  async getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]> {
+    return db
+      .select()
+      .from(journalEntries)
+      .where(or(
+        eq(journalEntries.user1Id, userId),
+        eq(journalEntries.user2Id, userId)
+      ))
+      .orderBy(desc(journalEntries.createdAt));
+  }
+  
+  async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
+    return db
+      .select()
+      .from(journalEntries)
+      .where(and(
+        or(
+          eq(journalEntries.user1Id, userId),
+          eq(journalEntries.user2Id, userId)
+        ),
+        sql`${journalEntries.searchableContent} ILIKE ${`%${query}%`}`
+      ))
+      .orderBy(desc(journalEntries.createdAt));
+  }
+  
+  async getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]> {
+    return db
+      .select()
+      .from(journalEntries)
+      .where(and(
+        or(
+          eq(journalEntries.user1Id, userId),
+          eq(journalEntries.user2Id, userId)
+        ),
+        eq(journalEntries.theme, theme)
+      ))
+      .orderBy(desc(journalEntries.createdAt));
   }
 }
 
