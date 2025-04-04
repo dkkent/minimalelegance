@@ -14,6 +14,7 @@ import {
   conversationOutcomeEnum
 } from "@shared/schema";
 
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
@@ -123,6 +124,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ) 
         : null;
       
+      // If the user has already answered, mark the question as answered and we'll
+      // assign a new one when they next visit the question page
+      if (userResponse) {
+        await storage.markActiveQuestionAsAnswered(result.activeQuestion.id);
+      }
+      
       res.status(200).json({
         ...result,
         userHasAnswered: !!userResponse,
@@ -166,6 +173,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         questionId,
         content
       });
+      
+      // Mark the active question as answered so it doesn't show up again in the question page
+      const activeQuestion = await storage.getActiveQuestionForUser(req.user.id);
+      if (activeQuestion && activeQuestion.activeQuestion.questionId === questionId) {
+        await storage.markActiveQuestionAsAnswered(activeQuestion.activeQuestion.id);
+      }
       
       // Check if a loveslice was created (if both partners have answered)
       const partner = req.user.partnerId 
