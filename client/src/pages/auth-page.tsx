@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "@/components/logo";
@@ -17,11 +17,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { insertUserSchema } from "@shared/schema";
 
-type AccountType = "individual" | "couple";
-
+// Define schemas
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -31,14 +30,17 @@ const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  accountType: z.enum(["individual", "couple"]),
+  isIndividual: z.boolean().default(true),
 });
+
+type LoginData = z.infer<typeof loginSchema>;
+type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+  const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -46,13 +48,13 @@ export default function AuthPage() {
     },
   });
 
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
+  const registerForm = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
       email: "",
       password: "",
-      accountType: "individual",
+      isIndividual: true,
     },
   });
 
@@ -62,17 +64,12 @@ export default function AuthPage() {
     }
   }, [user, navigate]);
 
-  const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
+  const onLoginSubmit = (values: LoginData) => {
     loginMutation.mutate(values);
   };
 
-  const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
-    registerMutation.mutate({
-      name: values.name,
-      email: values.email,
-      password: values.password,
-      isIndividual: values.accountType === "individual",
-    });
+  const onRegisterSubmit = (values: RegisterData) => {
+    registerMutation.mutate(values);
   };
 
   return (
@@ -168,83 +165,8 @@ export default function AuthPage() {
               
               <Form {...registerForm}>
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                  <div className="mb-6">
-                    <h3 className="text-center mb-4">I'm joining as:</h3>
-                    <FormField
-                      control={registerForm.control}
-                      name="accountType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="grid grid-cols-2 gap-4"
-                            >
-                              <div className="border border-lavender rounded-lg p-4 cursor-pointer hover:bg-lavender-light transition text-center relative">
-                                <RadioGroupItem
-                                  value="individual"
-                                  id="individual"
-                                  className="absolute opacity-0"
-                                />
-                                <Label
-                                  htmlFor="individual"
-                                  className="cursor-pointer block"
-                                >
-                                  <div className="text-center mb-1">
-                                    <svg
-                                      className="w-8 h-8 mx-auto text-sage"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="1.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                      <circle cx="12" cy="7" r="4"></circle>
-                                    </svg>
-                                  </div>
-                                  <span className="font-medium">Individual</span>
-                                </Label>
-                              </div>
-                              <div className="border border-lavender rounded-lg p-4 cursor-pointer hover:bg-lavender-light transition text-center relative">
-                                <RadioGroupItem
-                                  value="couple"
-                                  id="couple"
-                                  className="absolute opacity-0"
-                                />
-                                <Label
-                                  htmlFor="couple"
-                                  className="cursor-pointer block"
-                                >
-                                  <div className="text-center mb-1">
-                                    <svg
-                                      className="w-8 h-8 mx-auto text-sage"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="1.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                      <circle cx="9" cy="7" r="4"></circle>
-                                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                    </svg>
-                                  </div>
-                                  <span className="font-medium">Couple</span>
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="mb-4 text-center">
+                    <p className="text-sm text-gray-600">Join Loveslices to nurture your relationship with meaningful conversations</p>
                   </div>
                   
                   <FormField
@@ -292,6 +214,19 @@ export default function AuthPage() {
                           Must be at least 6 characters
                         </p>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Hidden field for isIndividual */}
+                  <FormField
+                    control={registerForm.control}
+                    name="isIndividual"
+                    render={({ field }) => (
+                      <FormItem className="hidden">
+                        <FormControl>
+                          <Input type="hidden" {...field} value="true" />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
