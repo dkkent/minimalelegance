@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +9,14 @@ import { Separator } from "@/components/ui/separator";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [_, navigate] = useLocation();
   const [inviteCode, setInviteCode] = useState("");
   
   const acceptInvitationMutation = useMutation({
@@ -97,9 +99,29 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               {user.partnerId ? (
-                <div className="bg-muted p-4 rounded-md">
-                  <div className="font-medium">
-                    Your garden is growing together with your partner.
+                <div className="bg-sage-light/30 p-4 rounded-md border border-sage-light">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="bg-sage-light text-sage-dark px-3 py-1 text-xs rounded-full font-medium">
+                      Connected
+                    </div>
+                  </div>
+                  <div className="font-medium mb-2">
+                    You are now connected with your partner!
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    You can now see each other's responses and loveslices in your shared garden.
+                    Together you'll cultivate your relationship through meaningful conversations and 
+                    shared reflections.
+                  </p>
+                  <div className="flex items-center justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/journal')}
+                      className="text-sage hover:text-sage-dark"
+                    >
+                      Visit your shared garden
+                    </Button>
                   </div>
                 </div>
               ) : (
