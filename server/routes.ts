@@ -257,10 +257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      if (!req.user.partnerId) {
-        return res.status(200).json([]);
-      }
-      
       // Get all questions that the user has answered
       const userAnsweredQuestions = await db
         .select({
@@ -275,15 +271,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).json([]);
       }
       
-      // For each question, check if partner has answered
+      // For each question, get details
       const pendingResponses = [];
       
       for (const qId of questionIds) {
         const userResponse = await storage.getResponsesByQuestionAndUser(qId, req.user.id);
-        const partnerResponse = await storage.getResponsesByQuestionAndUser(qId, req.user.partnerId);
         const question = await storage.getQuestion(qId);
         
-        if (userResponse && !partnerResponse && question) {
+        // Check if a loveslice already exists for this question
+        // We'll only show pending responses if the loveslice doesn't exist yet
+        const existingLoveslices = await storage.getLoveslices(req.user.id);
+        const lovesliceExists = existingLoveslices.some(ls => ls.question.id === qId);
+        
+        // Only add if there's no loveslice yet
+        if (userResponse && question && !lovesliceExists) {
           pendingResponses.push({
             question,
             userResponse,

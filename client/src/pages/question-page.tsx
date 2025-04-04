@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MainLayout } from "@/components/layouts/main-layout";
@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, SkipForward } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function QuestionPage() {
   const [_, navigate] = useLocation();
   const [response, setResponse] = useState("");
+  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Fetch active question - force a refetch by adding referer to URL
   const {
@@ -31,8 +34,27 @@ export default function QuestionPage() {
     }
   });
   
+  // Watch for question changes and trigger animation
+  useEffect(() => {
+    if (activeQuestionData?.question?.id && 
+        currentQuestionId !== null && 
+        activeQuestionData.question.id !== currentQuestionId) {
+      setIsAnimating(true);
+      // Reset animation state after animation completes
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000); // Match this with animation duration
+      return () => clearTimeout(timer);
+    }
+    
+    // Set current question ID when data is first loaded
+    if (activeQuestionData?.question?.id && !currentQuestionId) {
+      setCurrentQuestionId(activeQuestionData.question.id);
+    }
+  }, [activeQuestionData, currentQuestionId]);
+  
   // Force refetch on mount
-  React.useEffect(() => {
+  useEffect(() => {
     refetch();
   }, []);
 
@@ -60,6 +82,9 @@ export default function QuestionPage() {
 
   const handleSubmitResponse = () => {
     if (!activeQuestionData?.question?.id || !response.trim()) return;
+    
+    // Store the current question ID before submitting
+    setCurrentQuestionId(activeQuestionData.question.id);
     
     submitResponseMutation.mutate({
       questionId: activeQuestionData.question.id,
@@ -105,10 +130,32 @@ export default function QuestionPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-10 text-center">
           <ThemeBadge theme={activeQuestionData.question.theme} size="large" className="inline-block mb-4" />
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl mb-4 leading-relaxed">
-            "{activeQuestionData.question.content}"
-          </h2>
-          <p className="text-gray-600 text-sm">This question explores the boundaries and trust in your relationship</p>
+          <div className="overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.h2 
+                key={activeQuestionData.question.id}
+                className="font-serif text-2xl md:text-3xl lg:text-4xl mb-4 leading-relaxed"
+                initial={isAnimating ? { y: 50, opacity: 0 } : { y: 0, opacity: 1 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -50, opacity: 0 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 300, 
+                  damping: 30,
+                  duration: 0.6 
+                }}
+              >
+                "{activeQuestionData.question.content}"
+              </motion.h2>
+            </AnimatePresence>
+          </div>
+          <motion.p 
+            className="text-gray-600 text-sm"
+            animate={{ opacity: isAnimating ? 0 : 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            This question explores the boundaries and trust in your relationship
+          </motion.p>
         </div>
         
         <HandDrawnBorder className="bg-white rounded-lg shadow-md p-6 md:p-8 mb-8">
