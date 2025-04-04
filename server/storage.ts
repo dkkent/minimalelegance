@@ -845,6 +845,35 @@ export class DatabaseStorage implements IStorage {
       .from(conversations)
       .where(eq(conversations.id, id));
     
+    if (!conversation) return undefined;
+    
+    // If this conversation has a starter, fetch the starter details
+    if (conversation.starterId) {
+      const [starter] = await db
+        .select()
+        .from(conversationStarters)
+        .where(eq(conversationStarters.id, conversation.starterId));
+      
+      if (starter) {
+        return {
+          ...conversation,
+          starter
+        };
+      }
+    }
+    
+    // If this conversation has a loveslice, fetch the loveslice details
+    if (conversation.lovesliceId) {
+      const loveslice = await this.getLovesliceById(conversation.lovesliceId);
+      
+      if (loveslice) {
+        return {
+          ...conversation,
+          loveslice
+        };
+      }
+    }
+    
     return conversation;
   }
   
