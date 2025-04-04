@@ -11,8 +11,11 @@ import {
   insertConversationMessageSchema,
   insertSpokenLovesliceSchema,
   insertJournalEntrySchema,
-  conversationOutcomeEnum
+  conversationOutcomeEnum,
+  activeQuestions
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -88,16 +91,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const userId = req.user.id;
+      const referer = req.query.referer as string || 'default';
       let result = await storage.getActiveQuestionForUser(userId);
       
-      // If the user doesn't have an active question, assign one
-      if (!result) {
+      // If the user doesn't have an active question, or if the request is from question-page 
+      // and the user has already answered the current question, assign a new one
+      if (!result || (referer === 'question-page' && result && await storage.getResponsesByQuestionAndUser(result.question.id, userId))) {
         // Get all available questions
         const allQuestions = await storage.getQuestions();
         
-        // Randomly select a question
-        const randomIndex = Math.floor(Math.random() * allQuestions.length);
-        const selectedQuestion = allQuestions[randomIndex];
+        if (!allQuestions || allQuestions.length === 0) {
+          return res.status(404).json({ message: "No questions available" });
+        }
+        
+        // If we need to assign a new question, first mark the current one as answered if it exists
+        if (result) {
+          await storage.markActiveQuestionAsAnswered(result.activeQuestion.id);
+        }
+        
+        // Find a question that hasn't been answered before or pick a random one if all have been answered
+        let selectedQuestion;
+        // This logic keeps track of answered questions to avoid showing them again
+        const answeredQuestions = await db
+          .select({
+            questionId: activeQuestions.questionId
+          })
+          .from(activeQuestions)
+          .where(eq(activeQuestions.userId, userId));
+          
+        const answeredQuestionIds = answeredQuestions.map(q => q.questionId);
+        
+        // Filter questions that haven't been answered yet
+        const unansweredQuestions = allQuestions.filter(q => !answeredQuestionIds.includes(q.id));
+        
+        if (unansweredQuestions.length > 0) {
+          // Randomly select from unanswered questions
+          const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
+          selectedQuestion = unansweredQuestions[randomIndex];
+        } else {
+          // If all questions have been answered, just pick a random one
+          const randomIndex = Math.floor(Math.random() * allQuestions.length);
+          selectedQuestion = allQuestions[randomIndex];
+        }
         
         // Create an active question
         const activeQuestion = await storage.assignQuestionToUser({
@@ -124,16 +159,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ) 
         : null;
       
-      // If the user has already answered, mark the question as answered and we'll
-      // assign a new one when they next visit the question page
-      if (userResponse) {
+      // For the home page, we don't want to automatically mark questions as answered
+      // We only do that in the question-page view or after submitting a response
+      if (userResponse && referer !== 'home-page') {
         await storage.markActiveQuestionAsAnswered(result.activeQuestion.id);
       }
       
       res.status(200).json({
         ...result,
         userHasAnswered: !!userResponse,
-        partnerHasAnswered: !!partnerResponse
+        partnerHasAnswered: !!partnerResponse,
+        referer
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get active question" });

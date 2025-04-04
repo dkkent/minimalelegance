@@ -17,15 +17,28 @@ export default function HomePage() {
   const [_, navigate] = useLocation();
   const [response, setResponse] = useState("");
 
-  // Fetch active question
+  // Fetch active question for home page - separate from question page
   const {
     data: activeQuestionData,
     isLoading,
     error,
+    refetch,
   } = useQuery({
-    queryKey: ["/api/active-question"],
+    queryKey: ["/api/active-question", "home-page"],
     refetchInterval: false,
+    queryFn: async () => {
+      const res = await fetch(`/api/active-question?referer=home-page`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Failed to fetch active question');
+      return res.json();
+    }
   });
+  
+  // Refresh data on mount
+  React.useEffect(() => {
+    refetch();
+  }, []);
 
   // Fetch loveslices for relationship view
   const { data: loveslices } = useQuery({
@@ -48,7 +61,8 @@ export default function HomePage() {
         navigate(`/reveal/${data.lovesliceId}`);
       } else {
         // Otherwise just refetch the active question
-        queryClient.invalidateQueries({ queryKey: ["/api/active-question"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
         setResponse("");
       }
     },
