@@ -19,11 +19,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-type Theme = "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "All";
+type Theme = "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "Money" | "All";
 
 const starterFormSchema = z.object({
   content: z.string().min(5, "Content must be at least 5 characters"),
-  theme: z.enum(["Trust", "Intimacy", "Conflict", "Dreams", "Play"])
+  theme: z.enum(["Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"])
 });
 
 type StarterFormData = z.infer<typeof starterFormSchema>;
@@ -167,13 +167,14 @@ export default function ConversationStartersPage() {
           <div className="md:col-span-2">
             {/* Filter tabs */}
             <Tabs defaultValue="All" onValueChange={handleTabChange} className="mb-8">
-              <TabsList className="w-full grid grid-cols-6">
+              <TabsList className="w-full grid grid-cols-7">
                 <TabsTrigger value="All">All</TabsTrigger>
                 <TabsTrigger value="Trust">Trust</TabsTrigger>
                 <TabsTrigger value="Intimacy">Intimacy</TabsTrigger>
                 <TabsTrigger value="Conflict">Conflict</TabsTrigger>
                 <TabsTrigger value="Dreams">Dreams</TabsTrigger>
                 <TabsTrigger value="Play">Play</TabsTrigger>
+                <TabsTrigger value="Money">Money</TabsTrigger>
               </TabsList>
             </Tabs>
             
@@ -285,6 +286,7 @@ export default function ConversationStartersPage() {
                               <option value="Conflict">Conflict</option>
                               <option value="Dreams">Dreams</option>
                               <option value="Play">Play</option>
+                              <option value="Money">Money</option>
                             </select>
                           </FormControl>
                           <FormMessage />
