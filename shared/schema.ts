@@ -96,3 +96,44 @@ export const insertActiveQuestionSchema = createInsertSchema(activeQuestions).pi
 
 export type InsertActiveQuestion = z.infer<typeof insertActiveQuestionSchema>;
 export type ActiveQuestion = typeof activeQuestions.$inferSelect;
+
+// Conversation starters schema
+export const conversationStarters = pgTable("conversation_starters", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  theme: text("theme").notNull(),
+  baseQuestionId: integer("base_question_id").references(() => questions.id),
+  lovesliceId: integer("loveslice_id").references(() => loveslices.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertConversationStarterSchema = createInsertSchema(conversationStarters).pick({
+  content: true,
+  theme: true,
+  baseQuestionId: true,
+  lovesliceId: true,
+});
+
+export type InsertConversationStarter = z.infer<typeof insertConversationStarterSchema>;
+export type ConversationStarter = typeof conversationStarters.$inferSelect;
+
+// User Activity schema (for tracking streaks and garden health)
+export const userActivity = pgTable("user_activity", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: date("date").notNull(),
+  actionType: varchar("action_type", { length: 30 }).notNull(), // 'response', 'conversation', etc.
+  streak: integer("streak").notNull().default(1),
+  gardenHealth: integer("garden_health").notNull().default(100),
+});
+
+export const insertUserActivitySchema = createInsertSchema(userActivity).pick({
+  userId: true,
+  date: true,
+  actionType: true,
+  streak: true,
+  gardenHealth: true,
+});
+
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+export type UserActivity = typeof userActivity.$inferSelect;
