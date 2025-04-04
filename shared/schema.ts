@@ -140,6 +140,7 @@ export const spokenLoveslices = pgTable("spoken_loveslices", {
   outcome: conversationOutcomeEnum("outcome").notNull(),
   theme: text("theme").notNull(),
   durationSeconds: integer("duration_seconds").notNull(),
+  continuedOffline: boolean("continued_offline").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -150,6 +151,7 @@ export const insertSpokenLovesliceSchema = createInsertSchema(spokenLoveslices).
   outcome: true,
   theme: true,
   durationSeconds: true,
+  continuedOffline: true,
 });
 
 export type InsertSpokenLoveslice = z.infer<typeof insertSpokenLovesliceSchema>;

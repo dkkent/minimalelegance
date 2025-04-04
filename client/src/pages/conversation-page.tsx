@@ -80,6 +80,7 @@ export default function ConversationPage() {
   const [selectedOutcome, setSelectedOutcome] = useState<string>("connected");
   const [selectedTheme, setSelectedTheme] = useState<string>("Trust");
   const [createSpokenLoveslice, setCreateSpokenLoveslice] = useState(true);
+  const [continueOffline, setContinueOffline] = useState(false);
   
   // Fetch the conversation and its messages
   const { data: conversation, isLoading, error } = useQuery({
@@ -120,6 +121,7 @@ export default function ConversationPage() {
         outcome: selectedOutcome,
         createSpokenLoveslice,
         theme: selectedTheme,
+        continueOffline
       };
       const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/end`, payload);
       return res.json();
@@ -423,7 +425,25 @@ export default function ConversationPage() {
                 </p>
               </div>
               
-              {createSpokenLoveslice && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Continue offline?</label>
+                  <Button
+                    variant={continueOffline ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setContinueOffline(!continueOffline)}
+                    className="h-8"
+                  >
+                    {continueOffline ? <Check className="h-4 w-4 mr-1" /> : null}
+                    {continueOffline ? "Yes" : "No"}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Choose this if you'll continue this conversation in person. We'll track it as a loveslice!
+                </p>
+              </div>
+              
+              {(createSpokenLoveslice || continueOffline) && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Theme</label>
                   <Select value={selectedTheme} onValueChange={setSelectedTheme}>

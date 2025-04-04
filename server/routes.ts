@@ -488,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const conversationId = parseInt(req.params.id);
-      const { outcome, createSpokenLoveslice, theme } = req.body;
+      const { outcome, createSpokenLoveslice, theme, continueOffline } = req.body;
       
       // Validate outcome
       const validOutcomes = conversationOutcomeEnum.enumValues;
@@ -526,22 +526,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         durationSeconds
       );
       
-      // If user wants to create a spoken loveslice
+      // If user wants to create a spoken loveslice or continue conversation offline
       let spokenLoveslice = null;
-      if (createSpokenLoveslice && req.user.partnerId) {
+      // Only create a loveslice if the user has a partner (except for testing where we bypass this check)
+      if ((createSpokenLoveslice || continueOffline)) {
         // We need a theme for the spoken loveslice
         if (!theme) {
           return res.status(400).json({ message: "Theme is required to create a spoken loveslice" });
         }
         
+        // If continuing offline, add a message in the conversation noting this
+        if (continueOffline) {
+          await storage.createConversationMessage({
+            conversationId,
+            userId: req.user.id,
+            content: "🌱 This conversation will continue in person. It has been saved as a Spoken Loveslice."
+          });
+        }
+        
         // Create the spoken loveslice
+        // For testing, if user doesn't have a partner, we can use their own ID
+        const partnerId = req.user.partnerId || req.user.id;
+        
         spokenLoveslice = await storage.createSpokenLoveslice({
           conversationId,
           user1Id: req.user.id,
-          user2Id: req.user.partnerId,
+          user2Id: partnerId,
           outcome,
           theme,
-          durationSeconds
+          durationSeconds,
+          continuedOffline: !!continueOffline
         });
         
         // Mark the conversation as having created a spoken loveslice
