@@ -139,12 +139,6 @@ export default function JournalPage() {
           
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              onClick={() => navigate("/journal")}
-            >
-              Back to Journal
-            </Button>
-            <Button
               onClick={() => navigate("/conversation-starters")}
             >
               Start a Conversation
