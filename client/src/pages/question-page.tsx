@@ -13,15 +13,28 @@ export default function QuestionPage() {
   const [_, navigate] = useLocation();
   const [response, setResponse] = useState("");
 
-  // Fetch active question
+  // Fetch active question - force a refetch by adding referer to URL
   const {
     data: activeQuestionData,
     isLoading,
     error,
+    refetch,
   } = useQuery({
-    queryKey: ["/api/active-question"],
+    queryKey: ["/api/active-question", "question-page"],
     refetchInterval: false,
+    queryFn: async () => {
+      const res = await fetch(`/api/active-question?referer=question-page`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Failed to fetch active question');
+      return res.json();
+    }
   });
+  
+  // Force refetch on mount
+  React.useEffect(() => {
+    refetch();
+  }, []);
 
   // Submit response mutation
   const submitResponseMutation = useMutation({
@@ -38,7 +51,8 @@ export default function QuestionPage() {
         navigate(`/reveal/${data.lovesliceId}`);
       } else {
         // Otherwise, navigate back to home
-        queryClient.invalidateQueries({ queryKey: ["/api/active-question"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
         navigate("/");
       }
     },
