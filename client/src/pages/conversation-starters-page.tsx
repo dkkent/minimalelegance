@@ -3,6 +3,7 @@ import { MainLayout } from '@/components/layouts/main-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { cn } from '@/lib/utils';
 import { HandDrawnBorder } from '@/components/hand-drawn-border';
 import { HandDrawnUnderline } from '@/components/hand-drawn-underline';
 import { ThemeBadge } from '@/components/theme-badge';
@@ -42,6 +43,9 @@ export default function ConversationStartersPage() {
   const { toast } = useToast();
   const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Track the newly created starter for highlight effect
+  const [newStarterId, setNewStarterId] = useState<number | null>(null);
   
   // Form for creating a new conversation starter
   const form = useForm<StarterFormData>({
@@ -110,7 +114,7 @@ export default function ConversationStartersPage() {
       const response = await apiRequest('POST', '/api/conversation-starters', data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (createdStarter: ConversationStarter) => {
       toast({
         title: "Conversation starter created",
         description: "Your conversation starter has been added.",
@@ -119,11 +123,22 @@ export default function ConversationStartersPage() {
       // Reset form
       form.reset();
       
+      // Switch to the appropriate theme tab to show the new starter
+      setSelectedTheme(createdStarter.theme as Theme);
+      
+      // Store the new starter ID for highlighting
+      setNewStarterId(createdStarter.id);
+      
       // Refresh starters list
       setRefreshTrigger(prev => prev + 1);
       
       // Refetch random starter
       fetchRandomStarter();
+      
+      // Clear the highlight effect after 3 seconds
+      setTimeout(() => {
+        setNewStarterId(null);
+      }, 3000);
     },
     onError: (error) => {
       toast({
@@ -166,7 +181,7 @@ export default function ConversationStartersPage() {
           {/* Conversation Starters Main Content */}
           <div className="md:col-span-2">
             {/* Filter tabs */}
-            <Tabs defaultValue="All" onValueChange={handleTabChange} className="mb-8">
+            <Tabs value={selectedTheme} onValueChange={handleTabChange} className="mb-8">
               <TabsList className="w-full grid grid-cols-7">
                 <TabsTrigger value="All">All</TabsTrigger>
                 <TabsTrigger value="Trust">Trust</TabsTrigger>
@@ -215,7 +230,13 @@ export default function ConversationStartersPage() {
               ) : conversationStarters && conversationStarters.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {conversationStarters.map(starter => (
-                    <Card key={starter.id}>
+                    <Card 
+                      key={starter.id}
+                      className={cn(
+                        "transition-all duration-300",
+                        starter.id === newStarterId && "border-primary border-2 shadow-lg animate-pulse bg-primary/5"
+                      )}
+                    >
                       <CardHeader>
                         <CardTitle className="flex justify-between items-center">
                           <ThemeBadge theme={starter.theme as any} />
@@ -225,7 +246,12 @@ export default function ConversationStartersPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-lg">{starter.content}</p>
+                        <p className={cn(
+                          "text-lg",
+                          starter.id === newStarterId && "font-medium"
+                        )}>
+                          {starter.content}
+                        </p>
                       </CardContent>
                     </Card>
                   ))}
