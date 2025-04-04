@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -11,12 +11,17 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, ChevronRight, SkipForward } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [_, navigate] = useLocation();
   const [response, setResponse] = useState("");
 
+  // Keep track of the current question for animation
+  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  
   // Fetch active question for home page - separate from question page
   const {
     data: activeQuestionData,
@@ -35,8 +40,27 @@ export default function HomePage() {
     }
   });
   
+  // Watch for question changes and trigger animation
+  useEffect(() => {
+    if (activeQuestionData?.question?.id && 
+        currentQuestionId !== null && 
+        activeQuestionData.question.id !== currentQuestionId) {
+      setIsAnimating(true);
+      // Reset animation state after animation completes
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000); // Match this with animation duration
+      return () => clearTimeout(timer);
+    }
+    
+    // Set current question ID when data is first loaded
+    if (activeQuestionData?.question?.id && !currentQuestionId) {
+      setCurrentQuestionId(activeQuestionData.question.id);
+    }
+  }, [activeQuestionData, currentQuestionId]);
+  
   // Refresh data on mount
-  React.useEffect(() => {
+  useEffect(() => {
     refetch();
   }, []);
 
@@ -78,6 +102,10 @@ export default function HomePage() {
   const handleSubmitResponse = () => {
     if (!activeQuestionData?.question?.id || !response.trim()) return;
     
+    // Store the current question ID before submitting
+    setCurrentQuestionId(activeQuestionData.question.id);
+    
+    // The mutation will trigger the animation when the new question is loaded
     submitResponseMutation.mutate({
       questionId: activeQuestionData.question.id,
       content: response.trim(),
@@ -135,10 +163,32 @@ export default function HomePage() {
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                       </svg>
                     </div>
-                    <blockquote className="font-serif text-xl md:text-2xl leading-relaxed italic mb-4">
-                      "{activeQuestionData.question.content}"
-                    </blockquote>
-                    <p className="text-right text-sm text-gray-500">
+                    
+                    {/* Question animation with framer-motion */}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeQuestionData.question.id}
+                        initial={isAnimating ? { x: 100, opacity: 0 } : { x: 0, opacity: 1 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -100, opacity: 0 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 500, 
+                          damping: 30,
+                          duration: 0.5
+                        }}
+                      >
+                        <blockquote className="font-serif text-xl md:text-2xl leading-relaxed italic mb-4">
+                          "{activeQuestionData.question.content}"
+                        </blockquote>
+                      </motion.div>
+                    </AnimatePresence>
+                    
+                    <motion.p 
+                      className="text-right text-sm text-gray-500"
+                      animate={{ opacity: isAnimating ? 0 : 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       {activeQuestionData.userHasAnswered && activeQuestionData.partnerHasAnswered
                         ? "Both responses complete"
                         : activeQuestionData.userHasAnswered
@@ -146,7 +196,7 @@ export default function HomePage() {
                         : activeQuestionData.partnerHasAnswered
                         ? "Your partner has answered - your turn!"
                         : "Waiting for both responses"}
-                    </p>
+                    </motion.p>
                   </div>
                   
                   {!activeQuestionData.userHasAnswered ? (
