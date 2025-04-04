@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -6,7 +6,7 @@ import { Loader2, Search, X, MessageSquare, BookOpen, Filter, ChevronDown } from
 import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layouts/main-layout";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
-import { ThemeBadge } from "@/components/theme-badge";
+import { ThemeBadge, type Theme } from "@/components/theme-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ type JournalEntry = {
   user2Id: number;
   writtenLovesliceId: number | null;
   spokenLovesliceId: number | null;
-  theme: string;
+  theme: Theme;
   searchableContent: string;
   createdAt: string;
   
@@ -43,14 +43,14 @@ type JournalEntry = {
   spokenLoveslice?: any;
 };
 
-const ALL_THEMES = ["All", "Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
+const ALL_THEMES: Theme[] = ["All", "Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
 
 export default function JournalPage() {
   const [_, navigate] = useLocation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedTheme, setSelectedTheme] = useState("All");
+  const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [activeTab, setActiveTab] = useState("all");
   
   // Fetch journal entries
@@ -81,17 +81,20 @@ export default function JournalPage() {
     enabled: !!user,
   });
 
+  // Add timeout ref
+  const searchTimeoutRef = useRef<number | null>(null);
+  
   // Handle search input with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     
     // Clear any existing timeout
-    if (window.searchTimeout) {
-      clearTimeout(window.searchTimeout);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
     
     // Set a new timeout
-    window.searchTimeout = setTimeout(() => {
+    searchTimeoutRef.current = window.setTimeout(() => {
       setDebouncedQuery(e.target.value);
     }, 500);
   };
@@ -224,7 +227,7 @@ export default function JournalPage() {
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
-                    <ThemeBadge theme={entry.theme} size="small" />
+                    <ThemeBadge theme={entry.theme as Theme} size="small" />
                     {entry.spokenLovesliceId ? (
                       <Badge className="bg-lavender text-lavender-dark flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
