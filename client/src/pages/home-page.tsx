@@ -136,7 +136,7 @@ export default function HomePage() {
     }
   });
   
-  // Fetch pending responses (questions the user has answered but partner hasn't)
+  // Fetch pending responses (both user's own responses waiting for partner and partner's responses waiting for user)
   const { 
     data: pendingResponses = [],
     isLoading: isPendingResponsesLoading,
@@ -146,7 +146,10 @@ export default function HomePage() {
     refetchInterval: false,
     refetchOnWindowFocus: false,
     retry: 2,
-    onError: (error) => {
+    onSuccess: (data) => {
+      console.log("Pending responses loaded:", data.length);
+    },
+    onError: (error: any) => {
       console.error("Error fetching pending responses:", error);
     }
   });
@@ -364,7 +367,7 @@ export default function HomePage() {
         {!isPendingResponsesLoading && !pendingResponsesError && pendingResponses && pendingResponses.length > 0 && (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-serif text-2xl">Pending Partner Responses</h3>
+              <h3 className="font-serif text-2xl">Pending Responses</h3>
             </div>
             
             <div className="space-y-4">
@@ -383,22 +386,56 @@ export default function HomePage() {
                     <blockquote className="font-serif text-lg mb-4">
                       "{getContentSafely(pendingItem)}"
                     </blockquote>
-                    <div className="border-t border-gray-100 pt-4 mt-2">
-                      <div className="flex items-center mb-2">
-                        <Avatar className="h-6 w-6 rounded-full mr-2">
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className="text-sm font-medium">Your response</p>
+                    
+                    {/* If this is a question that your partner has answered but you haven't */}
+                    {pendingItem.waitingForYou && pendingItem.partnerResponse && (
+                      <div className="border-t border-gray-100 pt-4 mt-2">
+                        <div className="flex items-center mb-2">
+                          <Avatar className="h-6 w-6 rounded-full mr-2">
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {pendingItem.partnerResponse.user?.name ? 
+                                pendingItem.partnerResponse.user.name.split(' ').map((n: string) => n[0]).join('') 
+                                : 'P'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="text-sm font-medium">Partner's response</p>
+                        </div>
+                        <p className="text-sm text-gray-600 italic">
+                          "{pendingItem.partnerResponse.content || "Partner has responded"}"
+                        </p>
+                        <div className="mt-4 bg-sage-light bg-opacity-30 rounded p-3 text-center">
+                          <p className="text-sm text-sage-dark">
+                            <Button
+                              size="sm"
+                              className="bg-sage hover:bg-sage-dark text-white"
+                              onClick={() => navigate(`/question/${pendingItem.question.id}`)}
+                            >
+                              Answer this question
+                            </Button>
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 italic">
-                        "{pendingItem.userResponse?.content || "Your response is saved."}"
-                      </p>
-                    </div>
-                    <div className="mt-4 bg-lavender-light bg-opacity-30 rounded p-3 text-center">
-                      <p className="text-sm text-lavender-dark">Waiting for partner to respond</p>
-                    </div>
+                    )}
+                    
+                    {/* If this is a question that you answered but your partner hasn't */}
+                    {pendingItem.waitingForPartner && pendingItem.userResponse && (
+                      <div className="border-t border-gray-100 pt-4 mt-2">
+                        <div className="flex items-center mb-2">
+                          <Avatar className="h-6 w-6 rounded-full mr-2">
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="text-sm font-medium">Your response</p>
+                        </div>
+                        <p className="text-sm text-gray-600 italic">
+                          "{pendingItem.userResponse.content || "Your response is saved."}"
+                        </p>
+                        <div className="mt-4 bg-lavender-light bg-opacity-30 rounded p-3 text-center">
+                          <p className="text-sm text-lavender-dark">Waiting for partner to respond</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </HandDrawnBorder>
               ))}

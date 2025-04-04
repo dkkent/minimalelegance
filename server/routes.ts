@@ -302,30 +302,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      // Get all questions that the user has answered
+      // First, get current user's partner ID
+      const currentUser = req.user;
+      const partnerId = currentUser.partnerId;
+
+      // Collect all pending responses - both from the user and their partner
+      const pendingResponses = [];
+      
+      // 1. Get all questions that the user has answered
       const userAnsweredQuestions = await db
         .select({
           questionId: responses.questionId
         })
         .from(responses)
-        .where(eq(responses.userId, req.user.id));
+        .where(eq(responses.userId, currentUser.id));
       
-      const questionIds = userAnsweredQuestions.map(q => q.questionId);
+      const userQuestionIds = userAnsweredQuestions.map(q => q.questionId);
       
-      if (questionIds.length === 0) {
-        return res.status(200).json([]);
-      }
-      
-      // For each question, get details
-      const pendingResponses = [];
-      
-      for (const qId of questionIds) {
-        const userResponse = await storage.getResponsesByQuestionAndUser(qId, req.user.id);
+      // Process user's own pending responses
+      for (const qId of userQuestionIds) {
+        const userResponse = await storage.getResponsesByQuestionAndUser(qId, currentUser.id);
         const question = await storage.getQuestion(qId);
         
         // Check if a loveslice already exists for this question
-        // We'll only show pending responses if the loveslice doesn't exist yet
-        const existingLoveslices = await storage.getLoveslices(req.user.id);
+        const existingLoveslices = await storage.getLoveslices(currentUser.id);
         const lovesliceExists = existingLoveslices.some(ls => ls.question_id === qId);
         
         // Only add if there's no loveslice yet
@@ -334,7 +334,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
             question,
             userResponse,
             answeredAt: userResponse.createdAt,
+            waitingForPartner: true
           });
+        }
+      }
+      
+      // 2. If the user has a partner, also get questions that their partner has answered
+      if (partnerId) {
+        const partnerAnsweredQuestions = await db
+          .select({
+            questionId: responses.questionId
+          })
+          .from(responses)
+          .where(eq(responses.userId, partnerId));
+        
+        const partnerQuestionIds = partnerAnsweredQuestions.map(q => q.questionId);
+        
+        // Process partner's pending responses
+        for (const qId of partnerQuestionIds) {
+          // Check if the user has already answered this question
+          const userResponse = await storage.getResponsesByQuestionAndUser(qId, currentUser.id);
+          
+          // Only include if the user hasn't answered yet
+          if (!userResponse) {
+            const partnerResponse = await storage.getResponsesByQuestionAndUser(qId, partnerId);
+            const question = await storage.getQuestion(qId);
+            
+            // Check if a loveslice already exists for this question
+            const existingLoveslices = await storage.getLoveslices(currentUser.id);
+            const lovesliceExists = existingLoveslices.some(ls => ls.question_id === qId);
+            
+            // Only add if there's no loveslice yet and the partner has responded
+            if (partnerResponse && question && !lovesliceExists) {
+              pendingResponses.push({
+                question,
+                partnerResponse,
+                answeredAt: partnerResponse.createdAt,
+                waitingForYou: true
+              });
+            }
+          }
         }
       }
       
