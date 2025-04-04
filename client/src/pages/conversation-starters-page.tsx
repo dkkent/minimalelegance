@@ -168,10 +168,20 @@ export default function ConversationStartersPage() {
   // Mutation for starting a conversation from a starter
   const startConversationMutation = useMutation({
     mutationFn: async (starterId: number) => {
-      const response = await apiRequest('POST', '/api/conversations', { starterId });
-      return response.json();
+      console.log("Making API request to start conversation with ID:", starterId);
+      try {
+        const response = await apiRequest('POST', '/api/conversations', { starterId });
+        console.log("Response received:", response);
+        const data = await response.json();
+        console.log("Parsed response data:", data);
+        return data;
+      } catch (err) {
+        console.error("Error in mutation:", err);
+        throw err;
+      }
     },
     onSuccess: (data) => {
+      console.log("Mutation successful with data:", data);
       toast({
         title: "Conversation started",
         description: "Your conversation has been created",
@@ -179,6 +189,7 @@ export default function ConversationStartersPage() {
       navigate(`/conversation/${data.id}`);
     },
     onError: (error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Failed to start conversation",
         description: error.message,
@@ -197,7 +208,11 @@ export default function ConversationStartersPage() {
   };
   
   const handleStartConversation = (starterId: number) => {
+    console.log("Starting conversation with starter ID:", starterId);
+    console.log("Current user:", user);
+    
     if (!user?.partnerId) {
+      console.log("No partner found - showing toast message");
       toast({
         title: "Partner needed",
         description: "You need to connect with a partner to start a conversation",
@@ -206,6 +221,7 @@ export default function ConversationStartersPage() {
       return;
     }
     
+    console.log("Initiating startConversationMutation with ID:", starterId);
     startConversationMutation.mutate(starterId);
     recordActivityMutation.mutate('start_conversation');
   };
