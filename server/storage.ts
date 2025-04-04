@@ -78,6 +78,10 @@ export interface IStorage {
   getConversationById(id: number): Promise<Conversation | undefined>;
   getConversationsByUserId(userId: number): Promise<Conversation[]>;
   updateConversationOutcome(id: number, outcome: string, durationSeconds: number): Promise<Conversation | undefined>;
+  initiateConversationEnding(id: number, userId: number): Promise<Conversation | undefined>;
+  confirmConversationEnding(id: number, userId: number): Promise<Conversation | undefined>;
+  addConversationFinalNote(id: number, note: string): Promise<Conversation | undefined>;
+  cancelConversationEnding(id: number): Promise<Conversation | undefined>;
   
   // Conversation messages methods
   createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage>;
@@ -904,6 +908,71 @@ export class DatabaseStorage implements IStorage {
       .update(conversations)
       .set({
         createdSpokenLoveslice: created,
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  async initiateConversationEnding(id: number, userId: number): Promise<Conversation | undefined> {
+    const now = new Date();
+    
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        endInitiatedByUserId: userId,
+        endInitiatedAt: now
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  async confirmConversationEnding(id: number, userId: number): Promise<Conversation | undefined> {
+    const now = new Date();
+    // Calculate duration in seconds from start to now
+    const conversation = await this.getConversationById(id);
+    if (!conversation) return undefined;
+    
+    const startTime = new Date(conversation.startedAt);
+    const durationSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        endConfirmedByUserId: userId,
+        endConfirmedAt: now,
+        endedAt: now,
+        durationSeconds
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  async addConversationFinalNote(id: number, note: string): Promise<Conversation | undefined> {
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        finalNote: note
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    
+    return updatedConversation;
+  }
+  
+  async cancelConversationEnding(id: number): Promise<Conversation | undefined> {
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        endInitiatedByUserId: null,
+        endInitiatedAt: null,
+        endConfirmedByUserId: null,
+        endConfirmedAt: null
       })
       .where(eq(conversations.id, id))
       .returning();

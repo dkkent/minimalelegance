@@ -102,6 +102,11 @@ export const conversations = pgTable("conversations", {
   durationSeconds: integer("duration_seconds"),
   outcome: conversationOutcomeEnum("outcome").default("no_outcome"),
   createdSpokenLoveslice: boolean("created_spoken_loveslice").default(false),
+  endInitiatedByUserId: integer("end_initiated_by_user_id").references(() => users.id),
+  endInitiatedAt: timestamp("end_initiated_at"),
+  endConfirmedByUserId: integer("end_confirmed_by_user_id").references(() => users.id),
+  endConfirmedAt: timestamp("end_confirmed_at"),
+  finalNote: text("final_note"),
 });
 
 export const insertConversationSchema = createInsertSchema(conversations).pick({

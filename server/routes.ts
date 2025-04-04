@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { WebSocketServer, WebSocket } from 'ws';
 import { 
   insertResponseSchema, 
   insertConversationSchema, 
@@ -482,7 +483,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // End a conversation and optionally create a spoken loveslice
+  // Initiate conversation ending (for shared ending flow)
+  app.patch("/api/conversations/:id/initiate-end", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // If a conversation is already ended, don't allow ending to be initiated
+      if (conversation.endedAt) {
+        return res.status(400).json({ message: "This conversation has already ended" });
+      }
+      
+      // If ending is already initiated by this user, just return the conversation
+      if (conversation.endInitiatedByUserId === req.user.id) {
+        return res.status(200).json(conversation);
+      }
+      
+      // Initiate ending
+      const updatedConversation = await storage.initiateConversationEnding(conversationId, req.user.id);
+      res.status(200).json(updatedConversation);
+    } catch (error) {
+      console.error("Failed to initiate conversation ending:", error);
+      res.status(500).json({ message: "Failed to initiate conversation ending" });
+    }
+  });
+  
+  // Confirm conversation ending (when partner agrees to end)
+  app.patch("/api/conversations/:id/confirm-end", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { finalNote } = req.body;
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // If a conversation is already ended, don't allow it to be confirmed again
+      if (conversation.endedAt) {
+        return res.status(400).json({ message: "This conversation has already ended" });
+      }
+      
+      // Check if an end has been initiated
+      if (!conversation.endInitiatedByUserId) {
+        return res.status(400).json({ message: "Conversation ending has not been initiated" });
+      }
+      
+      // Don't let the same user who initiated also confirm
+      if (conversation.endInitiatedByUserId === req.user.id) {
+        return res.status(400).json({ message: "You already initiated the ending, waiting for partner confirmation" });
+      }
+      
+      // Add final note if provided
+      if (finalNote) {
+        await storage.addConversationFinalNote(conversationId, finalNote);
+      }
+      
+      // Confirm ending
+      const updatedConversation = await storage.confirmConversationEnding(conversationId, req.user.id);
+      res.status(200).json(updatedConversation);
+    } catch (error) {
+      console.error("Failed to confirm conversation ending:", error);
+      res.status(500).json({ message: "Failed to confirm conversation ending" });
+    }
+  });
+  
+  // Cancel conversation ending (if either user changes their mind)
+  app.patch("/api/conversations/:id/cancel-end", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // If a conversation is already ended, don't allow cancellation
+      if (conversation.endedAt) {
+        return res.status(400).json({ message: "This conversation has already ended" });
+      }
+      
+      // Cancel ending
+      const updatedConversation = await storage.cancelConversationEnding(conversationId);
+      res.status(200).json(updatedConversation);
+    } catch (error) {
+      console.error("Failed to cancel conversation ending:", error);
+      res.status(500).json({ message: "Failed to cancel conversation ending" });
+    }
+  });
+  
+  // End a conversation and optionally create a spoken loveslice (legacy direct ending)
   app.patch("/api/conversations/:id/end", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -779,5 +900,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create the HTTP server
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server for real-time communication
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Map to store user connections
+  const userConnections = new Map<number, WebSocket>();
+  
+  wss.on('connection', function connection(ws) {
+    // Initial connection state
+    let userId: number | null = null;
+    
+    ws.on('message', async function incoming(message) {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle authentication message to identify user
+        if (data.type === 'auth') {
+          userId = data.userId;
+          console.log(`User ${userId} connected to WebSocket`);
+          userConnections.set(userId, ws);
+        }
+        
+        // Handle conversation ending initiation
+        else if (data.type === 'initiate_ending' && userId) {
+          const { conversationId, partnerId, userName } = data;
+          
+          if (partnerId && userConnections.has(partnerId)) {
+            const partnerWs = userConnections.get(partnerId);
+            if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+              partnerWs.send(JSON.stringify({
+                type: 'ending_requested',
+                conversationId,
+                requestedBy: {
+                  id: userId,
+                  name: userName
+                }
+              }));
+              console.log(`Sent ending request notification to user ${partnerId}`);
+            }
+          }
+        }
+        
+        // Handle conversation ending confirmation
+        else if (data.type === 'confirm_ending' && userId) {
+          const { conversationId, partnerId } = data;
+          
+          if (partnerId && userConnections.has(partnerId)) {
+            const partnerWs = userConnections.get(partnerId);
+            if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+              partnerWs.send(JSON.stringify({
+                type: 'ending_confirmed',
+                conversationId
+              }));
+              console.log(`Sent ending confirmation to user ${partnerId}`);
+            }
+          }
+        }
+        
+        // Handle conversation ending cancellation
+        else if (data.type === 'cancel_ending' && userId) {
+          const { conversationId, partnerId } = data;
+          
+          if (partnerId && userConnections.has(partnerId)) {
+            const partnerWs = userConnections.get(partnerId);
+            if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+              partnerWs.send(JSON.stringify({
+                type: 'ending_cancelled',
+                conversationId
+              }));
+              console.log(`Sent ending cancellation to user ${partnerId}`);
+            }
+          }
+        }
+        
+        // Handle adding final note
+        else if (data.type === 'add_final_note' && userId) {
+          const { conversationId, partnerId, note } = data;
+          
+          if (partnerId && userConnections.has(partnerId)) {
+            const partnerWs = userConnections.get(partnerId);
+            if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+              partnerWs.send(JSON.stringify({
+                type: 'final_note_added',
+                conversationId,
+                note
+              }));
+              console.log(`Sent final note update to user ${partnerId}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+    
+    ws.on('close', function() {
+      if (userId) {
+        console.log(`User ${userId} disconnected from WebSocket`);
+        userConnections.delete(userId);
+      }
+    });
+  });
+
   return httpServer;
 }

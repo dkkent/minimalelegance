@@ -1,0 +1,62 @@
+Absolutely. Here’s a clean, collaborative prompt you can drop into Replit or wherever your dev/design team is iterating. It’s structured to be practical, but still rooted in the emotional philosophy of Loveslices.
+
+⸻
+
+✨ Replit Prompt: Shared Ending Ritual for Conversations
+
+Goal:
+Update the current “End Conversation” flow to support shared closure when two users are present in a Loveslices conversation. This ensures that emotional connections are not abruptly interrupted by one person ending the session unilaterally.
+
+⸻
+
+🛠️ Functionality Requirements
+	1.	Detect if two users are currently active in the conversation.
+	2.	When one user clicks “End Conversation,” show the following modal:
+
+Header: “Are you ready to wrap up together?”
+
+Body:  
+Let [Partner's Name] know you’re thinking of ending the conversation.  
+They’ll receive a gentle nudge so you can both leave the moment feeling heard.
+
+Options:
+✅ Notify Them & Wait  
+(Sends a soft notification or visual pulse to the other user)
+
+or
+
+🕊️ End Anyway  
+(Ends the conversation immediately and brings this user into the reflection flow)
+
+
+
+⸻
+
+💬 If “Notify Them & Wait” is selected:
+	•	The other user sees:
+“[Name] is thinking of ending the conversation. Ready to wrap up together?”
+
+	•	They can choose: Yes, let’s end or Not yet
+	•	If both say “Yes,” trigger the shared reflection popup (or a visual that shows the moment has been mutually marked as a “Spoken Loveslice”).
+
+⸻
+
+🌱 Shared Reflection Flow (Optional Enhancement)
+	•	If both users confirm ending, show a slightly different version of the current popup:
+	•	A shared quote
+	•	Theme tag (pre-filled)
+	•	“Garden +1 Blossom” visual (animation optional)
+	•	Option to write a final note or gratitude (visible to both)
+
+⸻
+
+🖋 Tone & Style
+
+Keep the voice gentle, poetic, and emotionally intelligent. Examples:
+	•	“A leaf trembles… is this a pause or a goodbye?”
+	•	“Let’s leave this space as we entered it—with intention.”
+	•	“Spoken Loveslice saved. This moment helped your garden grow.”
+
+⸻
+
+Let me know if you want this written in pure React code, or if you’d like me to sketch the modal UI text layout as a Figma-style frame too.
