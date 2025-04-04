@@ -280,6 +280,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to submit response" });
     }
   });
+  
+  // Get a specific question by ID
+  app.get("/api/questions/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const questionId = parseInt(req.params.id);
+      const question = await storage.getQuestion(questionId);
+      
+      if (!question) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      
+      res.status(200).json(question);
+    } catch (error) {
+      console.error("Failed to fetch question:", error);
+      res.status(500).json({ message: "Failed to fetch question" });
+    }
+  });
 
   // Get loveslices for the user
   app.get("/api/loveslices", async (req, res) => {

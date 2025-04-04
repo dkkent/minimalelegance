@@ -1,29 +1,51 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { MainLayout } from "@/components/layouts/main-layout";
 import { ThemeBadge } from "@/components/theme-badge";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, SkipForward } from "lucide-react";
+import { Loader2, SkipForward, ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function QuestionPage() {
   const [_, navigate] = useLocation();
+  const params = useParams();
+  const questionId = params?.id ? parseInt(params.id) : null;
+  
   const [response, setResponse] = useState("");
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [questionData, setQuestionData] = useState<any>(null);
+  
+  // If we have a specific questionId from the URL, fetch that question directly
+  const {
+    data: specificQuestionData,
+    isLoading: isSpecificQuestionLoading,
+    error: specificQuestionError,
+  } = useQuery({
+    queryKey: ["/api/questions", questionId],
+    enabled: !!questionId,
+    queryFn: async () => {
+      const res = await fetch(`/api/questions/${questionId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Failed to fetch question');
+      return res.json();
+    }
+  });
 
-  // Fetch active question - force a refetch by adding referer to URL
+  // If no questionId in URL, use the active question
   const {
     data: activeQuestionData,
-    isLoading,
-    error,
-    refetch,
+    isLoading: isActiveQuestionLoading,
+    error: activeQuestionError,
+    refetch: refetchActiveQuestion,
   } = useQuery({
     queryKey: ["/api/active-question", "question-page"],
+    enabled: !questionId,
     refetchInterval: false,
     queryFn: async () => {
       const res = await fetch(`/api/active-question?referer=question-page`, {
@@ -34,11 +56,31 @@ export default function QuestionPage() {
     }
   });
   
+  // Consolidate question data from either source
+  useEffect(() => {
+    if (questionId && specificQuestionData) {
+      // For specific question, create a structure similar to activeQuestionData
+      setQuestionData({
+        question: specificQuestionData,
+        userHasAnswered: false, // Assume not answered yet
+        partnerHasAnswered: true, // Since this is likely coming from a partner response
+      });
+      setCurrentQuestionId(questionId);
+    } else if (!questionId && activeQuestionData) {
+      setQuestionData(activeQuestionData);
+      
+      // Set current question ID when active question data is first loaded
+      if (activeQuestionData?.question?.id && !currentQuestionId) {
+        setCurrentQuestionId(activeQuestionData.question.id);
+      }
+    }
+  }, [questionId, specificQuestionData, activeQuestionData, currentQuestionId]);
+  
   // Watch for question changes and trigger animation
   useEffect(() => {
-    if (activeQuestionData?.question?.id && 
+    if (questionData?.question?.id && 
         currentQuestionId !== null && 
-        activeQuestionData.question.id !== currentQuestionId) {
+        questionData.question.id !== currentQuestionId) {
       setIsAnimating(true);
       // Reset animation state after animation completes
       const timer = setTimeout(() => {
@@ -46,17 +88,14 @@ export default function QuestionPage() {
       }, 1000); // Match this with animation duration
       return () => clearTimeout(timer);
     }
-    
-    // Set current question ID when data is first loaded
-    if (activeQuestionData?.question?.id && !currentQuestionId) {
-      setCurrentQuestionId(activeQuestionData.question.id);
-    }
-  }, [activeQuestionData, currentQuestionId]);
+  }, [questionData, currentQuestionId]);
   
-  // Force refetch on mount
+  // Force refetch of active question on mount (if not using a specific question)
   useEffect(() => {
-    refetch();
-  }, []);
+    if (!questionId) {
+      refetchActiveQuestion();
+    }
+  }, [questionId, refetchActiveQuestion]);
 
   // Submit response mutation
   const submitResponseMutation = useMutation({
@@ -73,30 +112,32 @@ export default function QuestionPage() {
         navigate(`/reveal/${data.lovesliceId}`);
       } else {
         // Otherwise, navigate back to home
-        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/pending-responses"] });
         navigate("/");
       }
     },
   });
 
   const handleSubmitResponse = () => {
-    if (!activeQuestionData?.question?.id || !response.trim()) return;
+    if (!questionData?.question?.id || !response.trim()) return;
     
     // Store the current question ID before submitting
-    setCurrentQuestionId(activeQuestionData.question.id);
+    setCurrentQuestionId(questionData.question.id);
     
     submitResponseMutation.mutate({
-      questionId: activeQuestionData.question.id,
+      questionId: questionData.question.id,
       content: response.trim(),
     });
   };
 
   const handleSkip = () => {
-    // In a real app, we'd have an API endpoint to skip a question
-    // For now, we'll just navigate back to home
+    // Just navigate back to home
     navigate("/");
   };
+
+  const isLoading = questionId ? isSpecificQuestionLoading : isActiveQuestionLoading;
+  const error = questionId ? specificQuestionError : activeQuestionError;
 
   if (isLoading) {
     return (
@@ -108,7 +149,7 @@ export default function QuestionPage() {
     );
   }
 
-  if (error || !activeQuestionData) {
+  if (error || !questionData) {
     return (
       <MainLayout>
         <div className="text-center py-8">
@@ -128,12 +169,24 @@ export default function QuestionPage() {
   return (
     <MainLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
+        {/* Back button for questions from URL */}
+        {questionId && (
+          <Button
+            variant="ghost"
+            className="mb-6 text-sage hover:text-sage-dark hover:bg-transparent flex items-center"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back to home
+          </Button>
+        )}
+        
         <div className="mb-10 text-center">
-          <ThemeBadge theme={activeQuestionData.question.theme} size="large" className="inline-block mb-4" />
+          <ThemeBadge theme={questionData.question.theme} size="large" className="inline-block mb-4" />
           <div className="overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.h2 
-                key={activeQuestionData.question.id}
+                key={questionData.question.id}
                 className="font-serif text-2xl md:text-3xl lg:text-4xl mb-4 leading-relaxed"
                 initial={isAnimating ? { y: 50, opacity: 0 } : { y: 0, opacity: 1 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -145,7 +198,7 @@ export default function QuestionPage() {
                   duration: 0.6 
                 }}
               >
-                "{activeQuestionData.question.content}"
+                "{questionData.question.content}"
               </motion.h2>
             </AnimatePresence>
           </div>
@@ -154,7 +207,8 @@ export default function QuestionPage() {
             animate={{ opacity: isAnimating ? 0 : 1 }}
             transition={{ duration: 0.3 }}
           >
-            This question explores the boundaries and trust in your relationship
+            {questionId ? "Your partner has already answered this question" : 
+              "This question explores the boundaries and trust in your relationship"}
           </motion.p>
         </div>
         
