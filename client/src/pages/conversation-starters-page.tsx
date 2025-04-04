@@ -211,6 +211,8 @@ export default function ConversationStartersPage() {
     console.log("Starting conversation with starter ID:", starterId);
     console.log("Current user:", user);
     
+    // Comment out partner check for testing purposes
+    /*
     if (!user?.partnerId) {
       console.log("No partner found - showing toast message");
       toast({
@@ -219,6 +221,16 @@ export default function ConversationStartersPage() {
         variant: "destructive"
       });
       return;
+    }
+    */
+    
+    // Instead, show an informational toast that we're proceeding without partner
+    if (!user?.partnerId) {
+      console.log("No partner found - proceeding anyway for testing");
+      toast({
+        title: "Test Mode",
+        description: "Starting conversation without a partner for testing purposes",
+      });
     }
     
     console.log("Initiating startConversationMutation with ID:", starterId);
