@@ -41,8 +41,14 @@ export default function HomePage() {
   }, []);
 
   // Fetch loveslices for relationship view
-  const { data: loveslices } = useQuery({
+  const { data: loveslices = [] } = useQuery<any[]>({
     queryKey: ["/api/loveslices"],
+    refetchInterval: false,
+  });
+  
+  // Fetch pending responses (questions the user has answered but partner hasn't)
+  const { data: pendingResponses = [] } = useQuery<any[]>({
+    queryKey: ["/api/pending-responses"],
     refetchInterval: false,
   });
 
@@ -60,9 +66,10 @@ export default function HomePage() {
         // If a loveslice was created, navigate to the reveal page
         navigate(`/reveal/${data.lovesliceId}`);
       } else {
-        // Otherwise just refetch the active question
+        // Otherwise just refetch the active question and pending responses
         queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
         queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/pending-responses"] });
         setResponse("");
       }
     },
@@ -196,6 +203,50 @@ export default function HomePage() {
             </div>
           </HandDrawnBorder>
         </section>
+        
+        {/* Pending Responses Section */}
+        {pendingResponses && pendingResponses.length > 0 && (
+          <section className="mb-12">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-serif text-2xl">Pending Partner Responses</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {pendingResponses.map((pendingItem: any) => (
+                <HandDrawnBorder
+                  key={`pending-${pendingItem.question.id}`}
+                  className="bg-white rounded-lg shadow-sm overflow-hidden transition duration-300 hover:shadow-md"
+                >
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-4">
+                      <ThemeBadge theme={pendingItem.question.theme} size="small" />
+                      <span className="text-xs text-gray-400">
+                        {formatDistanceToNow(new Date(pendingItem.answeredAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <blockquote className="font-serif text-lg mb-4">
+                      "{pendingItem.question.content}"
+                    </blockquote>
+                    <div className="border-t border-gray-100 pt-4 mt-2">
+                      <div className="flex items-center mb-2">
+                        <Avatar className="h-6 w-6 rounded-full mr-2">
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {user?.name.split(' ').map((n: string) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="text-sm font-medium">Your response</p>
+                      </div>
+                      <p className="text-sm text-gray-600 italic">"{pendingItem.userResponse.content}"</p>
+                    </div>
+                    <div className="mt-4 bg-lavender-light bg-opacity-30 rounded p-3 text-center">
+                      <p className="text-sm text-lavender-dark">Waiting for partner to respond</p>
+                    </div>
+                  </div>
+                </HandDrawnBorder>
+              ))}
+            </div>
+          </section>
+        )}
         
         {/* Recent Loveslices Section */}
         <section>
