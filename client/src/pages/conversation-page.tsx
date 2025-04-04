@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
-import { Loader2, Send, Clock, Check, ArrowLeft, MessageSquare } from "lucide-react";
+import { Loader2, Send, Clock, Check, ArrowLeft, MessageSquare, AlertCircle, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -44,6 +44,13 @@ type Conversation = {
   outcome: "connected" | "tried_and_listened" | "hard_but_honest" | "no_outcome";
   createdSpokenLoveslice: boolean;
   
+  // Shared ending flow fields
+  endInitiatedByUserId: number | null;
+  endInitiatedAt: string | null;
+  endConfirmedByUserId: number | null;
+  endConfirmedAt: string | null;
+  finalNote: string | null;
+  
   // Additional fields that may be included
   starter?: {
     id: number;
@@ -75,12 +82,19 @@ export default function ConversationPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [isEndDialogOpen, setIsEndDialogOpen] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState<string>("connected");
   const [selectedTheme, setSelectedTheme] = useState<string>("Trust");
   const [createSpokenLoveslice, setCreateSpokenLoveslice] = useState(true);
   const [continueOffline, setContinueOffline] = useState(false);
+  
+  // State for the shared conversation ending flow
+  const [sharedEndingModalOpen, setSharedEndingModalOpen] = useState(false);
+  const [endRequestedBy, setEndRequestedBy] = useState<string | null>(null);
+  const [endingNote, setEndingNote] = useState("");
+  const [waitingForPartner, setWaitingForPartner] = useState(false);
   
   // Fetch the conversation and its messages
   const { data: conversation, isLoading, error } = useQuery({
@@ -107,6 +121,137 @@ export default function ConversationPage() {
       }
     }
   }, [conversation]);
+  
+  // WebSocket connection setup
+  useEffect(() => {
+    if (!user) return;
+    
+    // Set up WebSocket connection
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+    
+    socket.onopen = () => {
+      console.log("WebSocket connection established");
+      // Authenticate with user ID
+      socket.send(JSON.stringify({
+        type: 'auth',
+        userId: user.id
+      }));
+      socketRef.current = socket;
+    };
+    
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message received:", data);
+        
+        // Update conversion to number to ensure consistent comparison
+        const messageConversationId = parseInt(data.conversationId);
+        
+        // Only process messages for this conversation
+        if (messageConversationId === conversationId) {
+          // Handle direct initiate ending message
+          if (data.type === 'initiate_ending') {
+            const requesterName = data.userName || "Your partner";
+            setEndRequestedBy(requesterName);
+            setSharedEndingModalOpen(true);
+            
+            toast({
+              title: "Conversation ending requested",
+              description: `${requesterName} would like to end this conversation.`,
+            });
+          }
+          
+          // Handle direct confirm ending message
+          else if (data.type === 'confirm_ending') {
+            setWaitingForPartner(false);
+            
+            toast({
+              title: "Conversation ended",
+              description: `${data.userName || "Your partner"} has confirmed the end of this conversation.`,
+            });
+            
+            // Refresh conversation data
+            queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
+          }
+          
+          // Handle direct cancel ending message
+          else if (data.type === 'cancel_ending') {
+            setSharedEndingModalOpen(false);
+            
+            toast({
+              title: "Request cancelled",
+              description: `${data.userName || "Your partner"} has cancelled their request to end the conversation.`,
+            });
+            
+            // Refresh conversation data
+            queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
+          }
+          
+          // Legacy server-side message handling (keeping for backward compatibility)
+          // Handle conversation ending request from partner
+          else if (data.type === 'ending_requested') {
+            const requesterName = data.requestedBy?.name || "Your partner";
+            setEndRequestedBy(requesterName);
+            setSharedEndingModalOpen(true);
+          }
+          
+          // Handle conversation ending confirmation from partner
+          else if (data.type === 'ending_confirmed') {
+            setWaitingForPartner(false);
+            
+            toast({
+              title: "Conversation ended",
+              description: "Your partner has confirmed the end of this conversation.",
+            });
+            
+            // Refresh conversation data
+            queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
+          }
+          
+          // Handle conversation ending cancellation from partner
+          else if (data.type === 'ending_cancelled') {
+            setSharedEndingModalOpen(false);
+            
+            toast({
+              title: "Request cancelled",
+              description: "Your partner has cancelled their request to end the conversation.",
+            });
+          }
+          
+          // Handle final note added by partner
+          else if (data.type === 'final_note_added') {
+            toast({
+              title: "Final note added",
+              description: "Your partner has added a final reflection to this conversation.",
+            });
+            
+            // Refresh conversation data to see the final note
+            queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
+          }
+        }
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+      }
+    };
+    
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+    
+    socket.onclose = (event) => {
+      console.log("WebSocket connection closed:", event.code, event.reason);
+      socketRef.current = null;
+    };
+    
+    // Clean up WebSocket connection when component unmounts
+    return () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
+    };
+  }, [user, conversationId, toast]);
 
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
@@ -127,6 +272,152 @@ export default function ConversationPage() {
     },
   });
 
+  // Mutation to initiate the shared conversation ending
+  const initiateEndingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-initiate`, { 
+        userId: user?.id 
+      });
+      
+      // Also send real-time notification via WebSocket if connected
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
+        socketRef.current.send(JSON.stringify({
+          type: 'initiate_ending',
+          conversationId,
+          partnerId: user.partnerId,
+          userName: user.name
+        }));
+        console.log('Sent WebSocket end request notification to partner');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsEndDialogOpen(false);
+      setWaitingForPartner(true);
+      
+      toast({
+        title: "Request sent",
+        description: "Your partner has been notified that you'd like to end this conversation.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send ending request",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation to confirm the conversation ending
+  const confirmEndingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-confirm`, { 
+        userId: user?.id 
+      });
+      
+      // Also send real-time notification via WebSocket if connected
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
+        socketRef.current.send(JSON.stringify({
+          type: 'confirm_ending',
+          conversationId,
+          partnerId: user.partnerId,
+          userName: user.name
+        }));
+        console.log('Sent WebSocket end confirmation to partner');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      setSharedEndingModalOpen(false);
+      
+      toast({
+        title: "Ending confirmed",
+        description: "You've confirmed the end of this conversation.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to confirm ending",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation to add a final note to the conversation
+  const addFinalNoteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/conversations/${conversationId}/final-note`, { 
+        note: endingNote 
+      });
+      
+      // Also send real-time notification via WebSocket if connected
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
+        socketRef.current.send(JSON.stringify({
+          type: 'final_note_added',
+          conversationId,
+          partnerId: user.partnerId,
+          userName: user.name,
+          note: endingNote
+        }));
+        console.log('Sent WebSocket final note notification to partner');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
+      toast({
+        title: "Note added",
+        description: "Your reflection has been added to this conversation.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to add note",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation to cancel the conversation ending
+  const cancelEndingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-cancel`, {});
+      
+      // Also send real-time notification via WebSocket if connected
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
+        socketRef.current.send(JSON.stringify({
+          type: 'cancel_ending',
+          conversationId,
+          partnerId: user.partnerId,
+          userName: user.name
+        }));
+        console.log('Sent WebSocket cancel request notification to partner');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      setWaitingForPartner(false);
+      toast({
+        title: "Ending canceled",
+        description: "The conversation ending has been canceled.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to cancel ending",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Mutation to end the conversation
   const endConversationMutation = useMutation({
     mutationFn: async () => {
@@ -171,10 +462,53 @@ export default function ConversationPage() {
     }
   };
 
-  const handleEndConversation = () => {
-    endConversationMutation.mutate();
+  const handleInitiateEnding = () => {
+    initiateEndingMutation.mutate();
+  };
+  
+  const handleConfirmEnding = () => {
+    confirmEndingMutation.mutate();
+  };
+  
+  const handleCancelEnding = () => {
+    cancelEndingMutation.mutate();
+  };
+  
+  const handleSubmitFinalNote = () => {
+    if (endingNote.trim()) {
+      addFinalNoteMutation.mutate();
+    }
   };
 
+  const handleEndConversation = () => {
+    // Use shared flow if partner is available, otherwise just end
+    if (user?.partnerId) {
+      handleInitiateEnding();
+    } else {
+      endConversationMutation.mutate();
+    }
+  };
+
+  // Update state based on conversation status changes
+  useEffect(() => {
+    // If we initiated the ending and it's not ended yet, show waiting state
+    if (conversation?.endInitiatedAt && !conversation?.endedAt && 
+        conversation.endInitiatedByUserId === user?.id && !waitingForPartner) {
+      setWaitingForPartner(true);
+    }
+    
+    // If the conversation was ended, make sure we're not in waiting state
+    if (conversation?.endedAt && waitingForPartner) {
+      setWaitingForPartner(false);
+    }
+    
+    // Send WebSocket messages when needed
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user && user.partnerId) {
+      // Handle any WebSocket messaging needs based on conversation state
+      // This will be used for conversation sync messages like ending requests
+    }
+  }, [conversation, user, waitingForPartner]);
+  
   // Scroll to bottom of messages whenever messages change
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -205,7 +539,6 @@ export default function ConversationPage() {
   }
 
   const isEnded = !!conversation.endedAt;
-  const otherUserId = user?.partnerId;
   const conversationSource = conversation.loveslice 
     ? "Loveslice" 
     : conversation.starter 
@@ -483,23 +816,145 @@ export default function ConversationPage() {
               </Button>
               <Button 
                 onClick={handleEndConversation}
-                disabled={endConversationMutation.isPending}
+                disabled={endConversationMutation.isPending || initiateEndingMutation.isPending}
               >
-                {endConversationMutation.isPending ? (
+                {(endConversationMutation.isPending || initiateEndingMutation.isPending) ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Ending...
+                    {user?.partnerId ? "Notifying partner..." : "Ending..."}
                   </>
                 ) : (
                   <>
                     <Clock className="mr-2 h-4 w-4" />
-                    End Conversation
+                    {user?.partnerId ? "Notify partner & end" : "End conversation"}
                   </>
                 )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
+        {/* Partner end request dialog */}
+        <Dialog open={sharedEndingModalOpen} onOpenChange={setSharedEndingModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2 text-orange-500" />
+                Conversation ending requested
+              </DialogTitle>
+              <DialogDescription>
+                {endRequestedBy} would like to end this conversation. Would you like to confirm?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <p className="text-sm">
+                By confirming, you'll both have a chance to reflect on this conversation together.
+              </p>
+              
+              <div className="p-3 bg-sage/10 rounded-md space-y-3">
+                <h4 className="text-sm font-medium">Add a final reflection (optional)</h4>
+                <Textarea
+                  value={endingNote}
+                  onChange={(e) => setEndingNote(e.target.value)}
+                  placeholder="What will you remember from this conversation?"
+                  className="min-h-[80px]"
+                />
+                <p className="text-xs text-gray-500">
+                  This note will be shared with your partner and saved with this conversation.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={handleSubmitFinalNote}
+                disabled={addFinalNoteMutation.isPending || !endingNote.trim()}
+                variant="outline"
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                {addFinalNoteMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving note...
+                  </>
+                ) : "Save note"}
+              </Button>
+              <Button 
+                onClick={handleConfirmEnding}
+                disabled={confirmEndingMutation.isPending}
+                className="w-full sm:w-auto order-1 sm:order-2"
+              >
+                {confirmEndingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Confirming...
+                  </>
+                ) : "Confirm ending"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Waiting for partner dialog */}
+        {waitingForPartner && !isEnded && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-sage/20 p-3">
+                    <Bell className="h-6 w-6 text-sage animate-pulse" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-medium">Waiting for partner</h3>
+                <p className="text-gray-600">
+                  You've requested to end this conversation. Waiting for your partner to respond...
+                </p>
+                
+                <div className="p-3 bg-sage/10 rounded-md space-y-3">
+                  <h4 className="text-sm font-medium">Add a final reflection (optional)</h4>
+                  <Textarea
+                    value={endingNote}
+                    onChange={(e) => setEndingNote(e.target.value)}
+                    placeholder="What will you remember from this conversation?"
+                    className="min-h-[80px]"
+                  />
+                  <p className="text-xs text-gray-500">
+                    This note will be shared with your partner and saved with this conversation.
+                  </p>
+                </div>
+                
+                <div className="pt-4 flex gap-3 flex-col sm:flex-row">
+                  <Button 
+                    onClick={handleCancelEnding}
+                    disabled={cancelEndingMutation.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {cancelEndingMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : "Cancel request"}
+                  </Button>
+                  <Button 
+                    onClick={handleSubmitFinalNote}
+                    disabled={addFinalNoteMutation.isPending || !endingNote.trim()}
+                    className="w-full"
+                  >
+                    {addFinalNoteMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving note...
+                      </>
+                    ) : "Save note"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
