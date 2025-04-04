@@ -25,7 +25,13 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 
   try {
-    const fromEmail = 'notifications@loveslices.app';
+    // Use the verified sender email from environment variables
+    if (!process.env.SENDGRID_VERIFIED_SENDER) {
+      console.warn("Email not sent: SENDGRID_VERIFIED_SENDER is not set");
+      return false;
+    }
+    
+    const fromEmail = process.env.SENDGRID_VERIFIED_SENDER;
     const fromName = params.fromName || 'Loveslices';
     
     await mailService.send({
