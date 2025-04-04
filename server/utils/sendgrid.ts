@@ -127,7 +127,7 @@ ${personalMessage ? `Their message to you: "${personalMessage}"` : ''}
 
 Here's your invitation code: ${inviteCode}
 
-To accept the invitation, create an account at https://loveslices.app/auth and then enter this code on your profile.
+To accept the invitation, create an account at the Loveslices application and then enter this code on your profile.
 
 Warm regards,
 The Loveslices Team
@@ -223,7 +223,7 @@ The Loveslices Team
     </ol>
     
     <center>
-      <a href="https://loveslices.app/auth" class="button">Create Your Account</a>
+      <div class="button">Enter invite code: ${inviteCode}</div>
     </center>
     
     <div class="footer">

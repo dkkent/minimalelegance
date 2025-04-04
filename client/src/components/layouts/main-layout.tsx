@@ -114,10 +114,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <UserIcon className="w-4 h-4 mr-2" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
+                    <Link href="/profile">
+                      <DropdownMenuItem>
+                        <UserIcon className="w-4 h-4 mr-2" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                    </Link>
                     {!user.partnerId && (
                       <Link href="/invite">
                         <DropdownMenuItem>
@@ -152,6 +154,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       </a>
                     </Link>
                   ))}
+                  
+                  <Link href="/profile">
+                    <a className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
+                      Profile
+                    </a>
+                  </Link>
                   
                   {!user?.partnerId && (
                     <Link href="/invite">

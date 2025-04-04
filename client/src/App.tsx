@@ -9,6 +9,7 @@ import GardenPage from "@/pages/garden-page";
 import QuestionPage from "@/pages/question-page";
 import RevealPage from "@/pages/reveal-page";
 import InvitePartnerPage from "@/pages/invite-partner-page";
+import ProfilePage from "@/pages/profile-page";
 import ConversationStartersPage from "@/pages/conversation-starters-page";
 import ConversationPage from "@/pages/conversation-page";
 import SpokenLoveslicePage from "@/pages/spoken-loveslice-page";
@@ -25,6 +26,7 @@ function Router() {
       <ProtectedRoute path="/question" component={QuestionPage} />
       <ProtectedRoute path="/reveal/:id" component={RevealPage} />
       <ProtectedRoute path="/invite" component={InvitePartnerPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/conversation-starters" component={ConversationStartersPage} />
       <ProtectedRoute path="/conversation/:id" component={ConversationPage} />
       <ProtectedRoute path="/spoken-loveslice/:id" component={SpokenLoveslicePage} />
