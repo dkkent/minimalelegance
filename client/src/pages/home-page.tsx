@@ -27,7 +27,7 @@ export default function HomePage() {
     refetchInterval: false,
   });
 
-  // Fetch loveslices for garden view
+  // Fetch loveslices for relationship view
   const { data: loveslices } = useQuery({
     queryKey: ["/api/loveslices"],
     refetchInterval: false,
@@ -74,7 +74,7 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-10">
           <h2 className="font-serif text-3xl mb-2">
-            Welcome to your garden, <span className="font-handwritten text-sage">{user?.name.split(' ')[0]}</span>
+            Welcome back, <span className="font-handwritten text-sage">{user?.name.split(' ')[0]}</span>
           </h2>
           <p className="text-gray-600">Let's nurture your relationship today</p>
         </div>
@@ -183,10 +183,10 @@ export default function HomePage() {
           </HandDrawnBorder>
         </section>
         
-        {/* Garden View Section */}
+        {/* Recent Loveslices Section */}
         <section>
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-serif text-2xl">Your Garden</h3>
+            <h3 className="font-serif text-2xl">Recent Loveslices</h3>
             <Button
               variant="link"
               className="text-sage hover:text-sage-dark"
@@ -236,7 +236,7 @@ export default function HomePage() {
             ) : (
               <div className="col-span-3 text-center py-8">
                 <p className="text-gray-500">
-                  You haven't created any Loveslices yet. Answer questions together with your partner to grow your garden.
+                  You haven't created any Loveslices yet. Answer questions together with your partner to nurture your relationship.
                 </p>
               </div>
             )}
@@ -249,7 +249,7 @@ export default function HomePage() {
                 className="inline-flex items-center text-sage hover:text-sage-dark"
                 onClick={() => navigate("/garden")}
               >
-                Explore your garden
+                See all loveslices
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>

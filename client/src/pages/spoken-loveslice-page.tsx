@@ -119,9 +119,9 @@ export default function SpokenLoveslicePage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate("/garden")} className="p-0 mb-4">
+          <Button variant="ghost" onClick={() => navigate("/journal")} className="p-0 mb-4">
             <ArrowLeft className="h-5 w-5 mr-1" />
-            <span>Back to Garden</span>
+            <span>Back to Journal</span>
           </Button>
           
           <div className="text-center mb-6">
@@ -214,14 +214,14 @@ export default function SpokenLoveslicePage() {
         
         <div className="text-center mt-8">
           <p className="text-gray-500 mb-4">
-            This Spoken Loveslice is now part of your Garden, showing your relationship's growth.
+            This Spoken Loveslice is now part of your Journal, showing your relationship's growth.
           </p>
           <div className="flex justify-center gap-4">
             <Button 
               variant="outline" 
-              onClick={() => navigate("/garden")}
+              onClick={() => navigate("/journal")}
             >
-              Visit Garden
+              Visit Journal
             </Button>
             <Button 
               onClick={() => navigate("/conversation-starters")}
