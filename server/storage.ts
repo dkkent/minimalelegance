@@ -286,28 +286,82 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLoveslices(userId: number): Promise<any[]> {
+    // First, get the user to check if they have a partner
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+      
     // This query is more complex, as we need to join multiple tables and create a custom result
-    const queryResults = await db.execute(sql`
-      WITH user_loveslices AS (
-        SELECT 
-          l.*, 
-          q.content as question_content, 
-          q.theme as question_theme,
-          CASE WHEN l.user1_id = ${userId} THEN r1.content ELSE r2.content END as user_response_content,
-          CASE WHEN l.user1_id = ${userId} THEN r2.content ELSE r1.content END as partner_response_content,
-          CASE WHEN l.user1_id = ${userId} THEN u2.id ELSE u1.id END as partner_id,
-          CASE WHEN l.user1_id = ${userId} THEN u2.name ELSE u1.name END as partner_name
-        FROM loveslices l
-        JOIN questions q ON l.question_id = q.id
-        JOIN responses r1 ON l.response1_id = r1.id
-        JOIN responses r2 ON l.response2_id = r2.id
-        JOIN users u1 ON l.user1_id = u1.id
-        JOIN users u2 ON l.user2_id = u2.id
-        WHERE l.user1_id = ${userId} OR l.user2_id = ${userId}
-      )
-      SELECT * FROM user_loveslices
-      ORDER BY created_at DESC
-    `);
+    let queryResults;
+    
+    if (!user || !user.partnerId) {
+      // If user has no partner, only show their own loveslices
+      queryResults = await db.execute(sql`
+        WITH user_loveslices AS (
+          SELECT 
+            l.*, 
+            q.content as question_content, 
+            q.theme as question_theme,
+            CASE WHEN l.user1_id = ${userId} THEN r1.content ELSE r2.content END as user_response_content,
+            CASE WHEN l.user1_id = ${userId} THEN r2.content ELSE r1.content END as partner_response_content,
+            CASE WHEN l.user1_id = ${userId} THEN u2.id ELSE u1.id END as partner_id,
+            CASE WHEN l.user1_id = ${userId} THEN u2.name ELSE u1.name END as partner_name
+          FROM loveslices l
+          JOIN questions q ON l.question_id = q.id
+          JOIN responses r1 ON l.response1_id = r1.id
+          JOIN responses r2 ON l.response2_id = r2.id
+          JOIN users u1 ON l.user1_id = u1.id
+          JOIN users u2 ON l.user2_id = u2.id
+          WHERE l.user1_id = ${userId} OR l.user2_id = ${userId}
+        )
+        SELECT * FROM user_loveslices
+        ORDER BY created_at DESC
+      `);
+    } else {
+      // If user has a partner, also show loveslices where their partner is a participant
+      queryResults = await db.execute(sql`
+        WITH user_loveslices AS (
+          SELECT 
+            l.*, 
+            q.content as question_content, 
+            q.theme as question_theme,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN r1.content 
+              WHEN l.user2_id = ${userId} THEN r2.content
+              WHEN l.user1_id = ${user.partnerId} THEN r1.content
+              ELSE r2.content 
+            END as user_response_content,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN r2.content 
+              WHEN l.user2_id = ${userId} THEN r1.content
+              WHEN l.user1_id = ${user.partnerId} THEN r2.content
+              ELSE r1.content 
+            END as partner_response_content,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN u2.id 
+              WHEN l.user2_id = ${userId} THEN u1.id
+              WHEN l.user1_id = ${user.partnerId} THEN u2.id
+              ELSE u1.id 
+            END as partner_id,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN u2.name 
+              WHEN l.user2_id = ${userId} THEN u1.name
+              WHEN l.user1_id = ${user.partnerId} THEN u2.name
+              ELSE u1.name 
+            END as partner_name
+          FROM loveslices l
+          JOIN questions q ON l.question_id = q.id
+          JOIN responses r1 ON l.response1_id = r1.id
+          JOIN responses r2 ON l.response2_id = r2.id
+          JOIN users u1 ON l.user1_id = u1.id
+          JOIN users u2 ON l.user2_id = u2.id
+          WHERE l.user1_id = ${userId} OR l.user2_id = ${userId} OR l.user1_id = ${user.partnerId} OR l.user2_id = ${user.partnerId}
+        )
+        SELECT * FROM user_loveslices
+        ORDER BY created_at DESC
+      `);
+    }
     
     return queryResults as any[];
   }
@@ -1047,14 +1101,35 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getSpokenLoveslicesByUserId(userId: number): Promise<SpokenLoveslice[]> {
-    return db
+    // First, get the user to check if they have a partner
+    const [user] = await db
       .select()
-      .from(spokenLoveslices)
-      .where(or(
-        eq(spokenLoveslices.user1Id, userId),
-        eq(spokenLoveslices.user2Id, userId)
-      ))
-      .orderBy(desc(spokenLoveslices.createdAt));
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user || !user.partnerId) {
+      // If user has no partner, only show their own loveslices
+      return db
+        .select()
+        .from(spokenLoveslices)
+        .where(or(
+          eq(spokenLoveslices.user1Id, userId),
+          eq(spokenLoveslices.user2Id, userId)
+        ))
+        .orderBy(desc(spokenLoveslices.createdAt));
+    } else {
+      // If user has a partner, also show loveslices where their partner is a participant
+      return db
+        .select()
+        .from(spokenLoveslices)
+        .where(or(
+          eq(spokenLoveslices.user1Id, userId),
+          eq(spokenLoveslices.user2Id, userId),
+          eq(spokenLoveslices.user1Id, user.partnerId),
+          eq(spokenLoveslices.user2Id, user.partnerId)
+        ))
+        .orderBy(desc(spokenLoveslices.createdAt));
+    }
   }
   
   async getSpokenLovesliceById(id: number): Promise<SpokenLoveslice | undefined> {
