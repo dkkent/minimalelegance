@@ -65,7 +65,9 @@ export default function ConversationStartersPage() {
       const url = selectedTheme === "All" 
         ? '/api/conversation-starters'
         : `/api/conversation-starters?theme=${selectedTheme}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include' // Include authentication cookies
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch conversation starters');
@@ -82,7 +84,9 @@ export default function ConversationStartersPage() {
       const url = selectedTheme === "All" 
         ? '/api/conversation-starters/random'
         : `/api/conversation-starters/random?theme=${selectedTheme}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include' // Include authentication cookies
+      });
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -100,7 +104,9 @@ export default function ConversationStartersPage() {
   const { data: activityStats } = useQuery({
     queryKey: ['/api/user-activity/stats'],
     queryFn: async () => {
-      const response = await fetch('/api/user-activity/stats');
+      const response = await fetch('/api/user-activity/stats', {
+        credentials: 'include' // Include authentication cookies
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch activity stats');
