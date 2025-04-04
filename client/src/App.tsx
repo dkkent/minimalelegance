@@ -10,6 +10,9 @@ import QuestionPage from "@/pages/question-page";
 import RevealPage from "@/pages/reveal-page";
 import InvitePartnerPage from "@/pages/invite-partner-page";
 import ConversationStartersPage from "@/pages/conversation-starters-page";
+import ConversationPage from "@/pages/conversation-page";
+import SpokenLoveslicePage from "@/pages/spoken-loveslice-page";
+import JournalPage from "@/pages/journal-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 
@@ -23,6 +26,9 @@ function Router() {
       <ProtectedRoute path="/reveal/:id" component={RevealPage} />
       <ProtectedRoute path="/invite" component={InvitePartnerPage} />
       <ProtectedRoute path="/conversation-starters" component={ConversationStartersPage} />
+      <ProtectedRoute path="/conversation/:id" component={ConversationPage} />
+      <ProtectedRoute path="/spoken-loveslice/:id" component={SpokenLoveslicePage} />
+      <ProtectedRoute path="/journal" component={JournalPage} />
       <Route component={NotFound} />
     </Switch>
   );
