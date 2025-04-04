@@ -1049,7 +1049,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.type === 'auth') {
           userId = data.userId;
           console.log(`User ${userId} connected to WebSocket`);
-          userConnections.set(userId, ws);
+          // Ensure userId is a number before using it as a key
+          if (typeof userId === 'number') {
+            userConnections.set(userId, ws);
+          }
         }
         
         // Handle conversation ending initiation
