@@ -320,13 +320,13 @@ export default function HomePage() {
                 >
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-4">
-                      <ThemeBadge theme={slice.question.theme} size="small" />
+                      <ThemeBadge theme={slice.question_id ? slice.question.theme : slice.theme} size="small" />
                       <span className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(slice.createdAt), { addSuffix: true })}
                       </span>
                     </div>
                     <blockquote className="font-serif text-lg mb-4">
-                      "{slice.question.content}"
+                      "{slice.question_id ? slice.question.content : slice.content}"
                     </blockquote>
                     <div className="border-t border-gray-100 pt-4 mt-2">
                       <div className="grid grid-cols-2 gap-4">
