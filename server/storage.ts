@@ -85,8 +85,9 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true
     });
 
-    // Seed questions (only run this once)
+    // Seed questions and conversation starters (only run this once)
     this.seedQuestionsIfNeeded();
+    this.seedConversationStartersIfNeeded();
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -570,8 +571,34 @@ export class DatabaseStorage implements IStorage {
     });
 
     console.log("Seeding questions complete.");
+  }
+  
+  private async seedConversationStartersIfNeeded() {
+    // Check if we already have conversation starters
+    const existingStarters = await db.select().from(conversationStarters).limit(1);
+    if (existingStarters.length > 0) {
+      console.log("Conversation starters already exist, checking for money theme starters...");
+      
+      // Check if we have Money theme starters
+      const moneyStarters = await db
+        .select()
+        .from(conversationStarters)
+        .where(eq(conversationStarters.theme, "Money"))
+        .limit(1);
+      
+      // If Money theme starters exist, we're done
+      if (moneyStarters.length > 0) {
+        console.log("Money theme starters already exist, skipping seed.");
+        return;
+      }
+      
+      // Otherwise, just add the Money theme starters
+      console.log("Adding Money theme conversation starters...");
+      await this.seedMoneyThemeStarters();
+      console.log("Money theme conversation starters added.");
+      return;
+    }
     
-    // Now that we have questions, let's seed some conversation starters
     console.log("Seeding conversation starters...");
     
     // Trust theme
@@ -644,7 +671,74 @@ export class DatabaseStorage implements IStorage {
       lovesliceId: null
     });
     
+    // Money theme
+    await this.seedMoneyThemeStarters();
+    
     console.log("Seeding conversation starters complete.");
+  }
+  
+  private async seedMoneyThemeStarters() {
+    // Money theme starters
+    await this.createConversationStarter({
+      content: "What's one financial goal we could work toward together?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "How do our different spending habits affect our relationship?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What financial decisions should we make together versus individually?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What does financial security mean to you?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "How do you think our upbringing has shaped our views on money?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What's one money habit you wish we could improve together?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "If we had a financial windfall, how would you want us to use it?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "How open should we be with each other about our individual finances?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "What are your thoughts on saving versus spending for experiences?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
+    await this.createConversationStarter({
+      content: "How should we balance individual financial freedom with shared goals?",
+      theme: "Money",
+      baseQuestionId: null,
+      lovesliceId: null
+    });
   }
 }
 
