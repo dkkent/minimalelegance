@@ -19,6 +19,7 @@ export function FirebaseDomainHelper() {
           (errorMessage.includes('unauthorized-domain') || 
            errorMessage.includes('auth/unauthorized-domain'))) {
         setShowHelper(true);
+        localStorage.setItem('firebase_unauthorized_domain', 'true');
       }
     };
     
@@ -30,12 +31,13 @@ export function FirebaseDomainHelper() {
       setShowHelper(true);
     }
     
+    // For testing, let's always show the helper temporarily
+    setShowHelper(true);
+    
     return () => {
       window.removeEventListener('error', handleError);
     };
   }, []);
-  
-  if (!showHelper) return null;
   
   return (
     <Card className="mt-6 border-amber-500">
@@ -66,8 +68,9 @@ export function FirebaseDomainHelper() {
               <li>Select your project</li>
               <li>Go to <strong>Authentication</strong> → <strong>Settings</strong> → <strong>Authorized domains</strong></li>
               <li>Add the domain shown above</li>
-              <li>Add your development domain: <code className="bg-muted p-1 rounded">minimalelegance.dickonkent.repl.co</code></li>
-              <li>If you're going to deploy the app, also add your potential Replit.app domain: <code className="bg-muted p-1 rounded">minimalelegance.dickonkent.replit.app</code></li>
+              <li>Add the domain you see right now in your URL bar</li>
+              <li>Add your development domain: <code className="bg-muted p-1 rounded">{currentDomain}</code></li>
+              <li>Also add your Replit.app domain: <code className="bg-muted p-1 rounded">minimal-elegance-dickonkent.replit.app</code> (with hyphens)</li>
               <li>Save changes and refresh this page</li>
             </ol>
           </div>
