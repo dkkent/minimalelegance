@@ -63,7 +63,10 @@ export default function ProfilePage() {
   
   return (
     <div className="container max-w-4xl py-10">
-      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      <div className="mb-10">
+        <h2 className="font-serif text-3xl mb-2">Your Profile</h2>
+        <p className="text-gray-600">Manage your account and partnership settings</p>
+      </div>
       
       <div className="grid gap-6">
         <HandDrawnBorder>
