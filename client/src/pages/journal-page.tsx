@@ -231,7 +231,9 @@ export default function JournalPage() {
                             <Avatar className="h-6 w-6 rounded-full mr-2">
                               {response.user.profilePicture ? (
                                 <img 
-                                  src={response.user.profilePicture.startsWith('/') ? response.user.profilePicture : `/${response.user.profilePicture}`} 
+                                  src={response.user.profilePicture.startsWith('/') ? 
+                                    response.user.profilePicture : 
+                                    `/uploads/profile_pictures/${response.user.profilePicture}`} 
                                   alt={response.user.name} 
                                 />
                               ) : (

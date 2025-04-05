@@ -392,11 +392,20 @@ export default function HomePage() {
                       <div className="border-t border-gray-100 pt-4 mt-2">
                         <div className="flex items-center mb-2">
                           <Avatar className="h-6 w-6 rounded-full mr-2">
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {pendingItem.partnerResponse.user?.name ? 
-                                pendingItem.partnerResponse.user.name.split(' ').map((n: string) => n[0]).join('') 
-                                : 'P'}
-                            </AvatarFallback>
+                            {pendingItem.partnerResponse.user?.profilePicture ? (
+                              <img 
+                                src={pendingItem.partnerResponse.user.profilePicture.startsWith('/') ? 
+                                  pendingItem.partnerResponse.user.profilePicture : 
+                                  `/uploads/profile_pictures/${pendingItem.partnerResponse.user.profilePicture}`} 
+                                alt={pendingItem.partnerResponse.user.name || 'Partner'}
+                              />
+                            ) : (
+                              <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                {pendingItem.partnerResponse.user?.name ? 
+                                  pendingItem.partnerResponse.user.name.split(' ').map((n: string) => n[0]).join('') 
+                                  : 'P'}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                           <p className="text-sm font-medium">Partner's response</p>
                         </div>
