@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Upload, Camera } from "lucide-react";
 import { User } from "@shared/schema";
+import { ImageCropper } from "./image-cropper";
 
 interface ProfilePictureUploadProps {
   user: User;
@@ -15,6 +16,8 @@ interface ProfilePictureUploadProps {
 export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
   const { toast } = useToast();
   const [isHovering, setIsHovering] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const uploadMutation = useMutation({
@@ -64,10 +67,38 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
       return;
     }
 
+    // Create a URL for the image to be used by the cropper
+    const imageUrl = URL.createObjectURL(file);
+    setImageToEdit(imageUrl);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Convert name to match the original file
+    const originalFileName = fileInputRef.current?.files?.[0]?.name || "profile.jpg";
+    const fileExtension = originalFileName.split('.').pop() || "jpg";
+    
+    // Create a new file object from the blob with a properly mapped mime type
+    const mimeMap: Record<string, string> = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp'
+    };
+    
+    const contentType = mimeMap[fileExtension.toLowerCase()] || 'image/jpeg';
+    const croppedFile = new File([croppedBlob], originalFileName, { type: contentType });
+    
     const formData = new FormData();
-    formData.append("profilePicture", file);
+    formData.append("profilePicture", croppedFile);
     
     uploadMutation.mutate(formData);
+    
+    // Clean up the object URL to prevent memory leaks
+    if (imageToEdit) {
+      URL.revokeObjectURL(imageToEdit);
+    }
   };
 
   const triggerFileInput = () => {
@@ -140,6 +171,23 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
           )}
         </Button>
       </div>
+      
+      {/* Image Cropper Dialog */}
+      {imageToEdit && (
+        <ImageCropper
+          image={imageToEdit}
+          open={cropperOpen}
+          onClose={() => {
+            setCropperOpen(false);
+            setImageToEdit(null);
+            if (imageToEdit) {
+              URL.revokeObjectURL(imageToEdit);
+            }
+          }}
+          onCropComplete={handleCropComplete}
+          aspectRatio={1} // 1:1 aspect ratio for profile pictures
+        />
+      )}
     </div>
   );
 }
