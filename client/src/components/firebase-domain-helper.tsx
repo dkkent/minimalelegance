@@ -31,13 +31,15 @@ export function FirebaseDomainHelper() {
       setShowHelper(true);
     }
     
-    // For testing, let's always show the helper temporarily
-    setShowHelper(true);
+    // Only show the helper when there's an error
+    // setShowHelper(true);
     
     return () => {
       window.removeEventListener('error', handleError);
     };
   }, []);
+  
+  if (!showHelper) return null;
   
   return (
     <Card className="mt-6 border-amber-500">
