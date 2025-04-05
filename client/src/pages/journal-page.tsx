@@ -82,8 +82,17 @@ export default function JournalPage() {
       if (data && data.length > 0) {
         data.forEach((entry: JournalEntry) => {
           if (entry.spokenLovesliceId && entry.spokenLoveslice) {
+            console.log('Spoken Loveslice Entry:', entry);
             console.log('Spoken Loveslice User1:', entry.spokenLoveslice.user1);
             console.log('Spoken Loveslice User2:', entry.spokenLoveslice.user2);
+            
+            // Add explicit log to check if current user's data is properly populated
+            const currentUserId = user?.id;
+            if (entry.spokenLoveslice.user1?.id === currentUserId) {
+              console.log('Current User (User1) Profile Picture:', entry.spokenLoveslice.user1?.profilePicture);
+            } else if (entry.spokenLoveslice.user2?.id === currentUserId) {
+              console.log('Current User (User2) Profile Picture:', entry.spokenLoveslice.user2?.profilePicture);
+            }
           }
         });
       }
