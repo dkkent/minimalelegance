@@ -14,6 +14,7 @@ import { FirebaseAuthButton } from "@/components/firebase-auth-button";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 import { FirebaseLinkAccountDialog } from "@/components/firebase-link-account-dialog";
+import { FirebaseDomainHelper } from "@/components/firebase-domain-helper";
 
 export default function AuthPage() {
   const [location, setLocation] = useLocation();
@@ -345,6 +346,9 @@ export default function AuthPage() {
               </TabsContent>
             </Tabs>
           </HandDrawnBorder>
+          
+          {/* Firebase domain helper to assist with configuration */}
+          <FirebaseDomainHelper />
         </div>
       </div>
       
