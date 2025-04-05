@@ -220,25 +220,6 @@ export default function JournalPage() {
                 className="bg-white p-5 rounded-lg transition-all duration-200 hover:shadow-md"
               >
                 <div className="font-serif text-2xl md:text-3xl mb-4">"{entry.writtenLoveslice?.question?.content || ''}"</div>
-                <div className="flex items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <ThemeBadge theme={entry.theme as Theme} size="small" />
-                    {entry.spokenLovesliceId ? (
-                      <Badge className="bg-lavender text-lavender-dark flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        Spoken
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-sage-light text-sage-dark flex items-center gap-1">
-                        <BookOpen className="h-3 w-3" />
-                        Written
-                      </Badge>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
-                  </span>
-                </div>
 
                 {entry.writtenLovesliceId && entry.writtenLoveslice && (
                   <div>
