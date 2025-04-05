@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user: {
               id: messageUser.id,
               name: messageUser.name,
-              profilePicture: messageUser.profilePicture
+              profilePicture: messageUser.profilePicture // Will be used directly, don't add /uploads/ prefix
             }
           };
         }
@@ -1714,7 +1714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 user: {
                   id: messageUser.id,
                   name: messageUser.name,
-                  profilePicture: messageUser.profilePicture
+                  profilePicture: messageUser.profilePicture // Will be used directly, don't add /uploads/ prefix
                 }
               };
             }
