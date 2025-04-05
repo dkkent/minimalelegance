@@ -237,7 +237,12 @@ export default function AuthPage() {
                             value={registerForm.passwordConfirm}
                             onChange={handleRegisterChange}
                             required
-                            className={passwordMismatch ? "border-destructive" : ""}
+                            className={passwordMismatch 
+                              ? "border-destructive" 
+                              : (registerForm.passwordConfirm && registerForm.password === registerForm.passwordConfirm) 
+                                ? "border-green-500" 
+                                : ""
+                            }
                           />
                           <button
                             type="button"
@@ -253,6 +258,12 @@ export default function AuthPage() {
                         </div>
                         {passwordMismatch && (
                           <p className="text-destructive text-sm">Passwords do not match</p>
+                        )}
+                        {registerForm.passwordConfirm && registerForm.password === registerForm.passwordConfirm && (
+                          <div className="flex items-center text-green-500 text-sm mt-1">
+                            <div className="w-full bg-green-500 h-1 rounded-full"></div>
+                            <p className="ml-2">Passwords match</p>
+                          </div>
                         )}
                       </div>
                     </CardContent>

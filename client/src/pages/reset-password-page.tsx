@@ -169,7 +169,12 @@ export default function ResetPasswordPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
-                        className={passwordMismatch ? "border-destructive" : ""}
+                        className={passwordMismatch 
+                          ? "border-destructive" 
+                          : (confirmPassword && newPassword === confirmPassword) 
+                            ? "border-green-500" 
+                            : ""
+                        }
                       />
                       <button
                         type="button"
@@ -185,6 +190,12 @@ export default function ResetPasswordPage() {
                     </div>
                     {passwordMismatch && (
                       <p className="text-destructive text-sm">Passwords do not match</p>
+                    )}
+                    {confirmPassword && newPassword === confirmPassword && (
+                      <div className="flex items-center text-green-500 text-sm mt-1">
+                        <div className="w-full bg-green-500 h-1 rounded-full"></div>
+                        <p className="ml-2">Passwords match</p>
+                      </div>
                     )}
                   </div>
                 </CardContent>
