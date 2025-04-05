@@ -28,26 +28,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
+      console.log(`Password reset requested for email: ${email}`);
+      
       if (!email) {
+        console.log('Password reset request rejected: No email provided');
         return res.status(400).json({ message: "Email address is required" });
       }
 
       // Create a password reset token
+      console.log(`Creating password reset token for: ${email}`);
       const token = await storage.createPasswordResetToken(email);
       
       if (!token) {
+        console.log(`Password reset token not created for: ${email} (likely user not found)`);
         // Return 200 even when email is not found to prevent email enumeration
         return res.status(200).json({ message: "If your email is in our system, you will receive a password reset link shortly" });
       }
 
+      console.log(`Password reset token created for ${email}: ${token.substring(0, 3)}...`);
+      
       // Import the sendgrid helper to avoid circular dependencies
+      console.log('Importing sendgrid module...');
       const { sendPasswordResetEmail } = await import('./utils/sendgrid');
+      console.log('SendGrid module imported successfully');
       
       // Send the password reset email
-      await sendPasswordResetEmail(email, token);
+      console.log(`Attempting to send password reset email to: ${email}`);
+      const emailSent = await sendPasswordResetEmail(email, token);
+      console.log(`Password reset email sent? ${emailSent ? 'Yes' : 'No'}`);
       
       return res.status(200).json({ message: "Password reset email sent" });
     } catch (error) {
+      console.error('Error in forgot-password route:', error);
       console.error("Password reset request error:", error);
       return res.status(500).json({ message: "An error occurred while processing your request" });
     }

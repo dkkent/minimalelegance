@@ -154,7 +154,12 @@ export function ChangePasswordForm() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className={passwordMismatch ? "border-destructive" : ""}
+                className={passwordMismatch 
+                  ? "border-destructive" 
+                  : (formData.confirmPassword && formData.newPassword === formData.confirmPassword) 
+                    ? "border-green-500" 
+                    : ""
+                }
               />
               <button
                 type="button"
@@ -170,6 +175,12 @@ export function ChangePasswordForm() {
             </div>
             {passwordMismatch && (
               <p className="text-destructive text-sm">Passwords do not match</p>
+            )}
+            {formData.confirmPassword && formData.newPassword === formData.confirmPassword && (
+              <div className="flex items-center text-green-500 text-sm mt-1">
+                <div className="w-full bg-green-500 h-1 rounded-full"></div>
+                <p className="ml-2">Passwords match</p>
+              </div>
             )}
           </div>
         </CardContent>
