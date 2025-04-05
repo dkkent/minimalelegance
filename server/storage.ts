@@ -53,6 +53,8 @@ export interface IStorage {
   resetPassword(token: string, newPassword: string): Promise<boolean>;
   linkPartner(userId: number, partnerId: number): Promise<boolean>;
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
+  getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
+  linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined>;
   
   // Question related methods
   getQuestions(): Promise<Question[]>;
@@ -243,6 +245,29 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
+    return user;
+  }
+  
+  async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
+    return user;
+  }
+  
+  async linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined> {
+    // First, check if this Firebase UID is already linked to another account
+    const existingUser = await this.getUserByFirebaseUid(firebaseUid);
+    if (existingUser && existingUser.id !== userId) {
+      // This Firebase account is already linked to a different user
+      throw new Error("This social account is already linked to another Loveslices account");
+    }
+    
+    // Update the user with the Firebase UID
+    const [user] = await db
+      .update(users)
+      .set({ firebaseUid })
+      .where(eq(users.id, userId))
+      .returning();
+    
     return user;
   }
 

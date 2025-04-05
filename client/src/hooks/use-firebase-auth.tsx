@@ -1,0 +1,237 @@
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+  OAuthProvider,
+  FacebookAuthProvider,
+  UserCredential,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { User } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+interface FirebaseAuthContextType {
+  currentUser: FirebaseUser | null;
+  isLoading: boolean;
+  error: Error | null;
+  signInWithGoogle: () => Promise<UserCredential | null>;
+  signInWithApple: () => Promise<UserCredential | null>;
+  signInWithMeta: () => Promise<UserCredential | null>;
+  firebaseLogout: () => Promise<void>;
+  linkUserAccount: (firebaseUid: string) => Promise<User | null>;
+}
+
+export const FirebaseAuthContext = createContext<FirebaseAuthContextType | null>(null);
+
+export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Listen for Firebase auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsLoading(false);
+    }, (error) => {
+      setError(error as Error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  async function handleFirebaseAuthentication(userCredential: UserCredential): Promise<User | null> {
+    const user = userCredential.user;
+    
+    try {
+      // Exchange Firebase token for session authentication
+      const isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+      
+      const response = await apiRequest("POST", "/api/auth/firebase", {
+        firebaseUid: user.uid,
+        email: user.email || "",
+        name: user.displayName || user.email?.split("@")[0] || "User",
+        isNewUser
+      });
+      
+      if (response.status === 200 || response.status === 201) {
+        // Successfully authenticated/registered
+        const userData = await response.json();
+        // Update query cache with the user data
+        queryClient.setQueryData(["/api/user"], userData);
+        return userData;
+      } else if (response.status === 202) {
+        // Account exists but needs linking
+        const { message, user: existingUser } = await response.json();
+        toast({
+          title: "Account found",
+          description: "Please log in to link your accounts",
+          variant: "default",
+        });
+        return null;
+      } else {
+        throw new Error("Authentication failed");
+      }
+    } catch (error) {
+      console.error("Firebase auth error:", error);
+      toast({
+        title: "Authentication error",
+        description: error instanceof Error ? error.message : "Failed to authenticate with Firebase",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+
+  async function signInWithGoogle(): Promise<UserCredential | null> {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleFirebaseAuthentication(result);
+      return result;
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      setError(error as Error);
+      toast({
+        title: "Sign in failed",
+        description: error instanceof Error ? error.message : "Failed to sign in with Google",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function signInWithApple(): Promise<UserCredential | null> {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const provider = new OAuthProvider("apple.com");
+      const result = await signInWithPopup(auth, provider);
+      await handleFirebaseAuthentication(result);
+      return result;
+    } catch (error) {
+      console.error("Apple sign-in error:", error);
+      setError(error as Error);
+      toast({
+        title: "Sign in failed",
+        description: error instanceof Error ? error.message : "Failed to sign in with Apple",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function signInWithMeta(): Promise<UserCredential | null> {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const provider = new FacebookAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleFirebaseAuthentication(result);
+      return result;
+    } catch (error) {
+      console.error("Meta sign-in error:", error);
+      setError(error as Error);
+      toast({
+        title: "Sign in failed",
+        description: error instanceof Error ? error.message : "Failed to sign in with Facebook",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function firebaseLogout(): Promise<void> {
+    try {
+      setIsLoading(true);
+      await signOut(auth);
+      // We don't logout the user from the session here
+      // That should be done through the regular logout process
+    } catch (error) {
+      console.error("Logout error:", error);
+      setError(error as Error);
+      toast({
+        title: "Logout failed",
+        description: error instanceof Error ? error.message : "Failed to sign out",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function linkUserAccount(firebaseUid: string): Promise<User | null> {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiRequest("POST", "/api/auth/link-firebase", {
+        firebaseUid
+      });
+      
+      if (response.status === 200) {
+        const userData = await response.json();
+        // Update query cache with the user data
+        queryClient.setQueryData(["/api/user"], userData);
+        toast({
+          title: "Success",
+          description: "Your accounts have been linked successfully",
+          variant: "default",
+        });
+        return userData;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to link account");
+      }
+    } catch (error) {
+      console.error("Account linking error:", error);
+      setError(error as Error);
+      toast({
+        title: "Account linking failed",
+        description: error instanceof Error ? error.message : "Failed to link your accounts",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <FirebaseAuthContext.Provider
+      value={{
+        currentUser,
+        isLoading,
+        error,
+        signInWithGoogle,
+        signInWithApple,
+        signInWithMeta,
+        firebaseLogout,
+        linkUserAccount,
+      }}
+    >
+      {children}
+    </FirebaseAuthContext.Provider>
+  );
+}
+
+export function useFirebaseAuth() {
+  const context = useContext(FirebaseAuthContext);
+  if (!context) {
+    throw new Error("useFirebaseAuth must be used within a FirebaseAuthProvider");
+  }
+  return context;
+}

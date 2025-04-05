@@ -23,41 +23,178 @@ import { eq, and, or, isNull, not } from "drizzle-orm";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Debug endpoint to check environment variables (TEMPORARY)
+  app.get("/api/debug/env", (req, res) => {
+    // Check if request is from localhost for security
+    const ip = req.ip || req.connection.remoteAddress;
+    if (ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1') {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    console.log("======== ENVIRONMENT VARIABLES DEBUG ========");
+    console.log("VITE_APP_URL:", process.env.VITE_APP_URL);
+    console.log("SENDGRID_VERIFIED_SENDER:", process.env.SENDGRID_VERIFIED_SENDER);
+    console.log("SENDGRID_API_KEY exists:", !!process.env.SENDGRID_API_KEY);
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("==========================================");
+    
+    return res.json({
+      VITE_APP_URL: process.env.VITE_APP_URL,
+      SENDGRID_VERIFIED_SENDER: process.env.SENDGRID_VERIFIED_SENDER,
+      SENDGRID_API_KEY_EXISTS: !!process.env.SENDGRID_API_KEY,
+      NODE_ENV: process.env.NODE_ENV
+    });
+  });
+  
+  // Debug endpoint to test sendgrid email directly (TEMPORARY)
+  app.get("/api/debug/email-test", async (req, res) => {
+    // Allow all requests to this endpoint during development
+    // (We'll remove this endpoint before production)
+    
+    // Set content-type to ensure proper JSON response
+    res.setHeader('Content-Type', 'application/json');
+    
+    const { to, type } = req.query;
+    
+    if (!to) {
+      return res.status(400).json({ message: "Email address is required via 'to' query parameter" });
+    }
+    
+    console.log(`======== EMAIL TEST DEBUG ========`);
+    console.log(`Test type: ${type || 'basic'}`);
+    console.log(`Sending test email to: ${to}`);
+    
+    try {
+      const { sendEmail, sendPartnerInvitationEmail, sendPasswordResetEmail } = await import('./utils/sendgrid');
+      
+      // Test results for the different email functions
+      let basicResult = false;
+      let inviteResult = false;
+      let resetResult = false;
+      
+      // 1. Test the basic sendEmail function
+      try {
+        basicResult = await sendEmail({
+          to: to as string,
+          subject: "Loveslices Test Email",
+          text: "This is a test email to debug the SendGrid integration.",
+          html: "<p>This is a test email to debug the <strong>SendGrid integration</strong>.</p>",
+          fromName: "Loveslices Test"
+        });
+        console.log(`Basic sendEmail test result: ${basicResult ? 'SUCCESS' : 'FAILED'}`);
+      } catch (error) {
+        console.error("Basic sendEmail error:", error);
+      }
+      
+      // 2. Test the partner invitation email
+      try {
+        inviteResult = await sendPartnerInvitationEmail({
+          to: to as string,
+          inviterName: "Test User",
+          inviteCode: "TEST123",
+          personalMessage: "This is a test to check if partner invitations work."
+        });
+        console.log(`Partner invitation test result: ${inviteResult ? 'SUCCESS' : 'FAILED'}`);
+      } catch (error) {
+        console.error("Partner invitation error:", error);
+      }
+      
+      // 3. Test the password reset email
+      try {
+        resetResult = await sendPasswordResetEmail(
+          to as string,
+          "TEST-TOKEN-XYZ-123456789"
+        );
+        console.log(`Password reset test result: ${resetResult ? 'SUCCESS' : 'FAILED'}`);
+      } catch (error) {
+        console.error("Password reset error:", error);
+      }
+      
+      return res.json({
+        basicEmailResult: basicResult,
+        invitationEmailResult: inviteResult,
+        passwordResetResult: resetResult,
+        message: `Test email(s) attempted to ${to}`
+      });
+    } catch (error) {
+      console.error("Email test error:", error);
+      return res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Unknown error", 
+        message: "Failed to run email test" 
+      });
+    }
+  });
 
   // Forgot password - Request a password reset
   app.post("/api/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
-      console.log(`Password reset requested for email: ${email}`);
+      console.log(`====================================================`);
+      console.log(`PASSWORD RESET DEBUG: Request received for email: ${email}`);
       
       if (!email) {
-        console.log('Password reset request rejected: No email provided');
+        console.log('PASSWORD RESET DEBUG: Request rejected: No email provided');
         return res.status(400).json({ message: "Email address is required" });
       }
 
+      // Log environment variables (without exposing full API key)
+      console.log('PASSWORD RESET DEBUG: Environment check:');
+      console.log(`- SENDGRID_API_KEY exists: ${process.env.SENDGRID_API_KEY ? 'Yes (starts with ' + process.env.SENDGRID_API_KEY.substring(0, 5) + '...)' : 'NO!'}`);
+      console.log(`- SENDGRID_VERIFIED_SENDER exists: ${process.env.SENDGRID_VERIFIED_SENDER ? 'Yes (' + process.env.SENDGRID_VERIFIED_SENDER + ')' : 'NO!'}`);
+      console.log(`- VITE_APP_URL exists: ${process.env.VITE_APP_URL ? 'Yes (' + process.env.VITE_APP_URL + ')' : 'NO!'}`);
+      
       // Create a password reset token
-      console.log(`Creating password reset token for: ${email}`);
+      console.log(`PASSWORD RESET DEBUG: Creating password reset token for: ${email}`);
       const token = await storage.createPasswordResetToken(email);
       
       if (!token) {
-        console.log(`Password reset token not created for: ${email} (likely user not found)`);
+        console.log(`PASSWORD RESET DEBUG: Token not created for: ${email} (likely user not found)`);
         // Return 200 even when email is not found to prevent email enumeration
         return res.status(200).json({ message: "If your email is in our system, you will receive a password reset link shortly" });
       }
 
-      console.log(`Password reset token created for ${email}: ${token.substring(0, 3)}...`);
+      console.log(`PASSWORD RESET DEBUG: Token created: ${token.substring(0, 3)}...${token.substring(token.length - 3)}`);
       
       // Import the sendgrid helper to avoid circular dependencies
-      console.log('Importing sendgrid module...');
-      const { sendPasswordResetEmail } = await import('./utils/sendgrid');
-      console.log('SendGrid module imported successfully');
+      console.log('PASSWORD RESET DEBUG: Importing sendgrid module...');
+      const sendgridModule = await import('./utils/sendgrid');
+      console.log('PASSWORD RESET DEBUG: SendGrid module imported successfully');
+      console.log('PASSWORD RESET DEBUG: sendPasswordResetEmail function exists:', !!sendgridModule.sendPasswordResetEmail);
       
-      // Send the password reset email
-      console.log(`Attempting to send password reset email to: ${email}`);
-      const emailSent = await sendPasswordResetEmail(email, token);
-      console.log(`Password reset email sent? ${emailSent ? 'Yes' : 'No'}`);
-      
-      return res.status(200).json({ message: "Password reset email sent" });
+      try {
+        // Send the password reset email
+        console.log(`PASSWORD RESET DEBUG: Attempting to send email to: ${email}`);
+        
+        // Check if the partner invitation function works for comparison
+        console.log(`PASSWORD RESET DEBUG: Testing if partner invitation works for comparison...`);
+        const inviteTestResult = await sendgridModule.sendPartnerInvitationEmail({
+          to: email,
+          inviterName: "Test User",
+          inviteCode: "test123",
+          personalMessage: "This is a test to see if partner invitations work while password resets don't."
+        });
+        console.log(`PASSWORD RESET DEBUG: Partner invitation test result: ${inviteTestResult ? 'SUCCESS' : 'FAILED'}`);
+        
+        // Try the actual password reset email
+        const emailSent = await sendgridModule.sendPasswordResetEmail(email, token);
+        console.log(`PASSWORD RESET DEBUG: Password reset email result: ${emailSent ? 'SUCCESS' : 'FAILED'}`);
+        
+        return res.status(200).json({ 
+          message: "Password reset request processed", 
+          debug: {
+            emailSent,
+            inviteTestResult
+          }
+        });
+      } catch (error) {
+        const emailError = error as Error;
+        console.error('PASSWORD RESET DEBUG: Email sending error:', emailError);
+        return res.status(200).json({ 
+          message: "If your email is in our system, you will receive a password reset link shortly",
+          debug: { error: emailError.message }
+        });
+      }
     } catch (error) {
       console.error('Error in forgot-password route:', error);
       console.error("Password reset request error:", error);
@@ -139,6 +276,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       return res.status(500).json({ message: "An error occurred while changing your password" });
+    }
+  });
+  
+  // Firebase Authentication Integration
+  app.post("/api/auth/link-firebase", async (req, res) => {
+    // Ensure user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    // Validate request body
+    const linkFirebaseSchema = z.object({
+      firebaseUid: z.string().min(1)
+    });
+    
+    try {
+      const { firebaseUid } = linkFirebaseSchema.parse(req.body);
+      
+      // Link the Firebase account to the user
+      const updatedUser = await storage.linkFirebaseAccount(req.user.id, firebaseUid);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to link Firebase account" });
+      }
+      
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error linking Firebase account:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      
+      // Handle case where Firebase UID is already linked to another account
+      if (error.message?.includes("already linked")) {
+        return res.status(409).json({ message: error.message });
+      }
+      
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Firebase Authentication Login/Registration
+  app.post("/api/auth/firebase", async (req, res) => {
+    // Validate request body
+    const firebaseAuthSchema = z.object({
+      firebaseUid: z.string().min(1),
+      email: z.string().email(),
+      name: z.string().min(1),
+      isNewUser: z.boolean().optional()
+    });
+    
+    try {
+      const { firebaseUid, email, name, isNewUser } = firebaseAuthSchema.parse(req.body);
+      
+      // Check if user exists with this Firebase UID
+      let user = await storage.getUserByFirebaseUid(firebaseUid);
+      
+      if (user) {
+        // Existing user, log them in
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Error logging in Firebase user:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          return res.status(200).json(user);
+        });
+      } else {
+        // Check if user exists with this email
+        user = await storage.getUserByEmail(email);
+        
+        if (user) {
+          // User exists but isn't linked to Firebase yet
+          if (isNewUser) {
+            // Link the existing account
+            try {
+              const updatedUser = await storage.linkFirebaseAccount(user.id, firebaseUid);
+              
+              // Log the user in
+              req.login(updatedUser, (err) => {
+                if (err) {
+                  console.error("Error logging in Firebase user:", err);
+                  return res.status(500).json({ message: "Login failed" });
+                }
+                return res.status(200).json(updatedUser);
+              });
+            } catch (linkError) {
+              console.error("Error linking Firebase account:", linkError);
+              return res.status(500).json({ message: "Failed to link account" });
+            }
+          } else {
+            // User exists but hasn't linked their account - tell frontend to prompt for linking
+            return res.status(202).json({ 
+              message: "User exists but not linked to Firebase",
+              user: {
+                id: user.id,
+                email: user.email,
+                name: user.name
+              }
+            });
+          }
+        } else {
+          // New user, create account with a random password
+          const randomPassword = randomBytes(16).toString('hex');
+          const { hashPassword } = await import("./auth");
+          const hashedPassword = await hashPassword(randomPassword);
+          
+          try {
+            // Create the user first
+            const newUser = await storage.createUser({
+              name,
+              email,
+              password: hashedPassword,
+              isIndividual: true
+            });
+            
+            // Then link Firebase account
+            const userWithFirebase = await storage.linkFirebaseAccount(newUser.id, firebaseUid);
+            
+            // Log the user in
+            req.login(userWithFirebase, (err) => {
+              if (err) {
+                console.error("Error logging in new Firebase user:", err);
+                return res.status(500).json({ message: "User created but login failed" });
+              }
+              return res.status(201).json(userWithFirebase);
+            });
+          } catch (createError) {
+            console.error("Error creating user from Firebase auth:", createError);
+            return res.status(500).json({ message: "Failed to create user" });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error processing Firebase authentication:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,16 @@ import { Logo } from "@/components/logo";
 import { useLocation } from "wouter";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { FirebaseAuthButton } from "@/components/firebase-auth-button";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+
+import { FirebaseLinkAccountDialog } from "@/components/firebase-link-account-dialog";
 
 export default function AuthPage() {
   const [location, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const { currentUser } = useFirebaseAuth();
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -27,6 +33,15 @@ export default function AuthPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+
+  // Effect to detect when a Firebase user needs to link their account
+  useEffect(() => {
+    // If there's a Firebase user but no session, show the link dialog
+    if (currentUser && !user) {
+      setShowLinkDialog(true);
+    }
+  }, [currentUser, user]);
 
   // If the user is already authenticated, redirect to the home page
   if (user) {
@@ -165,6 +180,25 @@ export default function AuthPage() {
                           </>
                         ) : "Login"}
                       </Button>
+                      
+                      <div className="mt-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 space-y-2">
+                          <FirebaseAuthButton provider="google" />
+                          <FirebaseAuthButton provider="apple" />
+                          <FirebaseAuthButton provider="meta" />
+                        </div>
+                      </div>
                     </CardFooter>
                   </form>
                 </Card>
@@ -280,6 +314,25 @@ export default function AuthPage() {
                           </>
                         ) : "Register"}
                       </Button>
+                      
+                      <div className="mt-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or sign up with
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 space-y-2">
+                          <FirebaseAuthButton provider="google" />
+                          <FirebaseAuthButton provider="apple" />
+                          <FirebaseAuthButton provider="meta" />
+                        </div>
+                      </div>
                     </CardFooter>
                   </form>
                 </Card>
@@ -330,6 +383,15 @@ export default function AuthPage() {
           </HandDrawnBorder>
         </div>
       </div>
+      
+      {/* Firebase account linking dialog */}
+      {currentUser && (
+        <FirebaseLinkAccountDialog
+          open={showLinkDialog}
+          onOpenChange={setShowLinkDialog}
+          firebaseUid={currentUser.uid}
+        />
+      )}
     </div>
   );
 }
