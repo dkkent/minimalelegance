@@ -37,7 +37,7 @@ type JournalEntry = {
   theme: Theme;
   searchableContent: string;
   createdAt: string;
-  
+
   // Expanded data that might be included
   writtenLoveslice?: any;
   spokenLoveslice?: any;
@@ -52,26 +52,26 @@ export default function JournalPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [activeTab, setActiveTab] = useState("all");
-  
+
   // Fetch journal entries
   const { data: journalEntries, isLoading } = useQuery({
     queryKey: ['/api/journal', selectedTheme, debouncedQuery],
     queryFn: async () => {
       let url = '/api/journal';
       const params = new URLSearchParams();
-      
+
       if (selectedTheme !== "All") {
         params.append('theme', selectedTheme);
       }
-      
+
       if (debouncedQuery) {
         params.append('search', debouncedQuery);
       }
-      
+
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
+
       const res = await fetch(url);
       if (!res.ok) {
         throw new Error('Failed to fetch journal entries');
@@ -83,16 +83,16 @@ export default function JournalPage() {
 
   // Add timeout ref
   const searchTimeoutRef = useRef<number | null>(null);
-  
+
   // Handle search input with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    
+
     // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     // Set a new timeout
     searchTimeoutRef.current = window.setTimeout(() => {
       setDebouncedQuery(e.target.value);
@@ -104,11 +104,11 @@ export default function JournalPage() {
     setSearchQuery("");
     setDebouncedQuery("");
   };
-  
+
   // Filter entries by type
   const getFilteredEntries = () => {
     if (!journalEntries) return [];
-    
+
     switch (activeTab) {
       case 'written':
         return journalEntries.filter((entry: JournalEntry) => entry.writtenLovesliceId);
@@ -118,9 +118,9 @@ export default function JournalPage() {
         return journalEntries;
     }
   };
-  
+
   const filteredEntries = getFilteredEntries();
-  
+
   // Helper for rendering user initials
   const getInitials = (name: string = "User") => {
     return name.split(' ').map(n => n[0]).join('');
@@ -136,7 +136,7 @@ export default function JournalPage() {
               A collection of your relationship's beautiful moments and conversations
             </p>
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               onClick={() => navigate("/conversation-starters")}
@@ -145,7 +145,7 @@ export default function JournalPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-4 mb-8">
           <div className="relative w-full sm:w-auto flex-1 max-w-md">
@@ -165,7 +165,7 @@ export default function JournalPage() {
               </button>
             )}
           </div>
-          
+
           <div className="flex gap-3">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
               <TabsList>
@@ -174,7 +174,7 @@ export default function JournalPage() {
                 <TabsTrigger value="spoken">Spoken</TabsTrigger>
               </TabsList>
             </Tabs>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-1">
@@ -195,7 +195,7 @@ export default function JournalPage() {
             </DropdownMenu>
           </div>
         </div>
-        
+
         {/* Search Results Message */}
         {debouncedQuery && (
           <div className="mb-4">
@@ -206,7 +206,7 @@ export default function JournalPage() {
             </p>
           </div>
         )}
-        
+
         {/* Journal Entries */}
         {isLoading ? (
           <div className="flex justify-center items-center py-16">
@@ -219,7 +219,8 @@ export default function JournalPage() {
                 key={entry.id}
                 className="bg-white p-5 rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex justify-between items-start mb-3">
+                <div className="font-serif text-2xl md:text-3xl mb-4">"{entry.writtenLoveslice?.question?.content || ''}"</div>
+                <div className="flex items-center mb-4">
                   <div className="flex items-center gap-2">
                     <ThemeBadge theme={entry.theme as Theme} size="small" />
                     {entry.spokenLovesliceId ? (
@@ -238,12 +239,9 @@ export default function JournalPage() {
                     {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
                   </span>
                 </div>
-                
+
                 {entry.writtenLovesliceId && entry.writtenLoveslice && (
                   <div>
-                    <blockquote className="font-serif text-lg mb-4">
-                      "{entry.writtenLoveslice.question.content}"
-                    </blockquote>
                     <Separator className="my-3" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {entry.writtenLoveslice.responses.map((response: any, index: number) => (
@@ -262,7 +260,7 @@ export default function JournalPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {entry.spokenLovesliceId && entry.spokenLoveslice && (
                   <div>
                     <p className="font-serif text-lg mb-3">
@@ -283,7 +281,7 @@ export default function JournalPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {!entry.writtenLoveslice && !entry.spokenLoveslice && (
                   <div>
                     <p className="text-gray-600">
