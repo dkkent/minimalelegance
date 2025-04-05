@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function FirebaseDomainHelper() {
   const [currentDomain, setCurrentDomain] = useState<string>('');
@@ -38,6 +39,12 @@ export function FirebaseDomainHelper() {
       window.removeEventListener('error', handleError);
     };
   }, []);
+  
+  const clearWarningAndRefresh = () => {
+    localStorage.removeItem('firebase_unauthorized_domain');
+    setShowHelper(false);
+    window.location.reload();
+  };
   
   if (!showHelper) return null;
   
@@ -78,6 +85,16 @@ export function FirebaseDomainHelper() {
           </div>
         </div>
       </CardContent>
+      <CardFooter>
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={clearWarningAndRefresh}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          I've added my domain - Refresh
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
