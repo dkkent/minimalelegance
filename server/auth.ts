@@ -257,8 +257,16 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    // Remove password from response
+    // Remove password from response and ensure profile picture path is formatted
     const { password, ...userWithoutPassword } = req.user;
+    
+    // Format profile picture path if it exists
+    if (userWithoutPassword.profilePicture) {
+      userWithoutPassword.profilePicture = userWithoutPassword.profilePicture.startsWith('/') 
+        ? userWithoutPassword.profilePicture 
+        : `/uploads/profile_pictures/${userWithoutPassword.profilePicture}`;
+    }
+    
     res.json(userWithoutPassword);
   });
   
@@ -275,6 +283,13 @@ export function setupAuth(app: Express) {
       
       // Remove sensitive information from partner data
       const { password, resetToken, resetTokenExpiry, ...safePartnerData } = partner;
+      
+      // Format profile picture path if it exists
+      if (safePartnerData.profilePicture) {
+        safePartnerData.profilePicture = safePartnerData.profilePicture.startsWith('/') 
+          ? safePartnerData.profilePicture 
+          : `/uploads/profile_pictures/${safePartnerData.profilePicture}`;
+      }
       
       res.json(safePartnerData);
     } catch (error) {

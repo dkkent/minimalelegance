@@ -1260,11 +1260,70 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getConversationsByUserId(userId: number): Promise<Conversation[]> {
-    return db
+    // Get user info to include with conversations
+    const user = await this.getUser(userId);
+    
+    // Simple select to get all conversations for this user
+    const conversationList = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.initiatedByUserId, userId))
+      .where(
+        eq(conversations.initiatedByUserId, userId)
+      )
       .orderBy(desc(conversations.startedAt));
+      
+    // For each conversation, fetch the initiator and partner info
+    const results = await Promise.all(conversationList.map(async (conversation) => {
+      const initiatorId = conversation.initiatedByUserId;
+      const initiator = await this.getUser(initiatorId);
+      
+      const partnerId = initiator?.partnerId;
+      const partner = partnerId ? await this.getUser(partnerId) : null;
+      
+      return {
+        conversation,
+        initiatedBy: initiator ? {
+          id: initiator.id,
+          name: initiator.name,
+          email: initiator.email,
+          profilePicture: initiator.profilePicture
+        } : null,
+        partner: partner ? {
+          id: partner.id,
+          name: partner.name,
+          email: partner.email,
+          profilePicture: partner.profilePicture
+        } : null
+      };
+    }));
+    
+    // Format profile picture paths and return processed conversations
+    return results.map(result => {
+      const conversation = result.conversation;
+      const initiatedBy = result.initiatedBy ? {
+        ...result.initiatedBy,
+        profilePicture: result.initiatedBy.profilePicture ? 
+          (result.initiatedBy.profilePicture.startsWith('/') ? 
+            result.initiatedBy.profilePicture : 
+            `/uploads/profile_pictures/${result.initiatedBy.profilePicture}`) : 
+          null
+      } : null;
+      
+      const partnerInfo = result.partner ? {
+        ...result.partner,
+        profilePicture: result.partner.profilePicture ? 
+          (result.partner.profilePicture.startsWith('/') ? 
+            result.partner.profilePicture : 
+            `/uploads/profile_pictures/${result.partner.profilePicture}`) : 
+          null
+      } : null;
+      
+      return {
+        ...conversation,
+        initiatedBy,
+        partner: partnerInfo
+      };
+    });
   }
   
   async updateConversationOutcome(id: number, outcome: string, durationSeconds: number): Promise<Conversation | undefined> {
@@ -1388,14 +1447,14 @@ export class DatabaseStorage implements IStorage {
     // Process the results to add the properly formatted profile picture path
     return messages.map(result => ({
       ...result.message,
-      user: {
+      user: result.user ? {
         ...result.user,
         profilePicture: result.user.profilePicture ? 
           (result.user.profilePicture.startsWith('/') ? 
             result.user.profilePicture : 
             `/uploads/profile_pictures/${result.user.profilePicture}`) : 
           null
-      }
+      } : null
     }));
   }
   
