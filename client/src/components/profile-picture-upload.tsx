@@ -67,10 +67,38 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
       return;
     }
 
-    // Create a URL for the image to be used by the cropper
-    const imageUrl = URL.createObjectURL(file);
-    setImageToEdit(imageUrl);
-    setCropperOpen(true);
+    // Use FileReader instead of URL.createObjectURL for better compatibility
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        const imageDataUrl = event.target.result as string;
+        console.log("Image loaded successfully", { 
+          size: file.size, 
+          type: file.type,
+          dataUrlLength: imageDataUrl.length
+        });
+        setImageToEdit(imageDataUrl);
+        setCropperOpen(true);
+      } else {
+        console.error("Failed to load image data");
+        toast({
+          title: "Image Loading Error",
+          description: "Failed to prepare image for cropping. Please try another image.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    reader.onerror = () => {
+      console.error("FileReader error:", reader.error);
+      toast({
+        title: "Image Loading Error",
+        description: "Failed to read the image file. Please try another image.",
+        variant: "destructive",
+      });
+    };
+    
+    reader.readAsDataURL(file);
   };
 
   const handleCropComplete = (croppedBlob: Blob) => {
@@ -95,10 +123,9 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
     
     uploadMutation.mutate(formData);
     
-    // Clean up the object URL to prevent memory leaks
-    if (imageToEdit) {
-      URL.revokeObjectURL(imageToEdit);
-    }
+    // We're now using FileReader + data URLs, so no need for revokeObjectURL
+    // Just clear the state
+    setImageToEdit(null);
   };
 
   const triggerFileInput = () => {
@@ -180,9 +207,7 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
           onClose={() => {
             setCropperOpen(false);
             setImageToEdit(null);
-            if (imageToEdit) {
-              URL.revokeObjectURL(imageToEdit);
-            }
+            // No need to revoke object URL with FileReader
           }}
           onCropComplete={handleCropComplete}
           aspectRatio={1} // 1:1 aspect ratio for profile pictures
