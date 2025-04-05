@@ -672,7 +672,7 @@ export default function ConversationPage() {
                             <>
                               <Avatar className="h-5 w-5 rounded-full mr-2">
                                 {message.user?.profilePicture ? (
-                                  <img src={`/uploads/${message.user.profilePicture}`} alt={message.user?.name || "Partner"} />
+                                  <img src={message.user.profilePicture} alt={message.user?.name || "Partner"} />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-lavender-light text-lavender-dark">
                                     {getInitials(message.user?.name || "Partner")}
@@ -690,7 +690,7 @@ export default function ConversationPage() {
                               </span>
                               <Avatar className="h-5 w-5 rounded-full">
                                 {user?.profilePicture ? (
-                                  <img src={`/uploads/${user.profilePicture}`} alt={user?.name || "You"} />
+                                  <img src={user.profilePicture} alt={user?.name || "You"} />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
                                     {getInitials(user?.name || "You")}
