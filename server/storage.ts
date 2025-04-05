@@ -32,7 +32,10 @@ import {
   journalEntries,
   type JournalEntry,
   type InsertJournalEntry,
-  conversationOutcomeEnum
+  conversationOutcomeEnum,
+  partnerships,
+  type Partnership,
+  type InsertPartnership
 } from "@shared/schema";
 import { db } from "./db";
 import { and, eq, desc, gte, lte, sql, or } from "drizzle-orm";
@@ -58,6 +61,9 @@ export interface IStorage {
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined>;
   getPartner(userId: number): Promise<User | undefined>;
+  getUserPartnerships(userId: number): Promise<Partnership[]>;
+  getCurrentPartnership(userId: number): Promise<Partnership | undefined>;
+  getActivePartnership(userId: number, partnerId: number): Promise<Partnership | undefined>;
   
   // Question related methods
   getQuestions(): Promise<Question[]>;
@@ -228,13 +234,27 @@ export class DatabaseStorage implements IStorage {
 
   async linkPartner(userId: number, partnerId: number): Promise<boolean> {
     try {
-      // Update the user
+      // Create a new partnership entry
+      const [partnership] = await db
+        .insert(partnerships)
+        .values({
+          user1Id: userId,
+          user2Id: partnerId,
+          isActive: true,
+        })
+        .returning();
+      
+      if (!partnership) {
+        console.error("Failed to create partnership record");
+        return false;
+      }
+      
+      // Update both users with their partner's ID and set isIndividual to false
       await db
         .update(users)
         .set({ partnerId, isIndividual: false })
         .where(eq(users.id, userId));
       
-      // Update the partner
       await db
         .update(users)
         .set({ partnerId: userId, isIndividual: false })
@@ -247,22 +267,58 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getActivePartnership(userId: number, partnerId: number): Promise<Partnership | undefined> {
+    const [partnership] = await db
+      .select()
+      .from(partnerships)
+      .where(
+        and(
+          eq(partnerships.isActive, true),
+          or(
+            and(
+              eq(partnerships.user1Id, userId),
+              eq(partnerships.user2Id, partnerId)
+            ),
+            and(
+              eq(partnerships.user1Id, partnerId),
+              eq(partnerships.user2Id, userId)
+            )
+          )
+        )
+      );
+    
+    return partnership;
+  }
+  
   async disconnectPartners(userId: number, partnerId: number): Promise<boolean> {
     try {
-      // Update the first user, setting partnerId to null and isIndividual to true
+      // Find the active partnership
+      const partnership = await this.getActivePartnership(userId, partnerId);
+      
+      if (!partnership) {
+        console.error("No active partnership found between users");
+        return false;
+      }
+      
+      // Mark the partnership as inactive and set end date
+      await db
+        .update(partnerships)
+        .set({ 
+          isActive: false,
+          endedAt: new Date()
+        })
+        .where(eq(partnerships.id, partnership.id));
+      
+      // Update both users - set partnerId to null and isIndividual to true
       await db
         .update(users)
         .set({ partnerId: null, isIndividual: true })
         .where(eq(users.id, userId));
       
-      // Update the second user (partner)
       await db
         .update(users)
         .set({ partnerId: null, isIndividual: true })
         .where(eq(users.id, partnerId));
-      
-      // Note: In a real app, we might want to update loveslices, conversations, etc.
-      // to reflect the disconnection, but for now we keep them as-is to preserve history
       
       return true;
     } catch (error) {
@@ -319,6 +375,40 @@ export class DatabaseStorage implements IStorage {
     
     // Now get the partner's information
     return this.getUser(user.partnerId);
+  }
+  
+  async getUserPartnerships(userId: number): Promise<Partnership[]> {
+    // Get all partnerships where the user is either user1 or user2
+    const partnershipList = await db
+      .select()
+      .from(partnerships)
+      .where(
+        or(
+          eq(partnerships.user1Id, userId),
+          eq(partnerships.user2Id, userId)
+        )
+      )
+      .orderBy(desc(partnerships.startedAt));
+    
+    return partnershipList;
+  }
+  
+  async getCurrentPartnership(userId: number): Promise<Partnership | undefined> {
+    // Get the current active partnership if any
+    const [partnership] = await db
+      .select()
+      .from(partnerships)
+      .where(
+        and(
+          eq(partnerships.isActive, true),
+          or(
+            eq(partnerships.user1Id, userId),
+            eq(partnerships.user2Id, userId)
+          )
+        )
+      );
+    
+    return partnership;
   }
 
   async getQuestions(): Promise<Question[]> {
@@ -619,16 +709,28 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined> {
-    // Start with a base query that only selects unused starters
-    let query = db.select().from(conversationStarters).where(eq(conversationStarters.used, false));
+    let results;
     
-    // Add theme filter if provided
     if (theme) {
-      query = query.where(eq(conversationStarters.theme, theme));
+      // If theme is provided, filter by theme and unused
+      results = await db
+        .select()
+        .from(conversationStarters)
+        .where(and(
+          eq(conversationStarters.used, false),
+          eq(conversationStarters.theme, theme)
+        ))
+        .orderBy(sql`RANDOM()`)
+        .limit(1);
+    } else {
+      // Otherwise just filter by unused
+      results = await db
+        .select()
+        .from(conversationStarters)
+        .where(eq(conversationStarters.used, false))
+        .orderBy(sql`RANDOM()`)
+        .limit(1);
     }
-    
-    // Order by random and limit to 1
-    const results = await query.orderBy(sql`RANDOM()`).limit(1);
     
     return results.length > 0 ? results[0] : undefined;
   }
@@ -1085,32 +1187,9 @@ export class DatabaseStorage implements IStorage {
     
     if (!conversation) return undefined;
     
-    // If this conversation has a starter, fetch the starter details
-    if (conversation.starterId) {
-      const [starter] = await db
-        .select()
-        .from(conversationStarters)
-        .where(eq(conversationStarters.id, conversation.starterId));
-      
-      if (starter) {
-        return {
-          ...conversation,
-          starter
-        };
-      }
-    }
-    
-    // If this conversation has a loveslice, fetch the loveslice details
-    if (conversation.lovesliceId) {
-      const loveslice = await this.getLovesliceById(conversation.lovesliceId);
-      
-      if (loveslice) {
-        return {
-          ...conversation,
-          loveslice
-        };
-      }
-    }
+    // Since we can't directly add custom fields to the Conversation type,
+    // we'll just return the conversation object as is.
+    // The related data would need to be fetched separately using the IDs
     
     return conversation;
   }

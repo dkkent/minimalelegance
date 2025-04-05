@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  partnerId: integer("partner_id").references(() => users.id),
+  partnerId: integer("partner_id"),
   inviteCode: text("invite_code"),
   isIndividual: boolean("is_individual").notNull().default(true),
   resetToken: text("reset_token"),
@@ -16,6 +16,24 @@ export const users = pgTable("users", {
   firebaseUid: text("firebase_uid").unique(),
   profilePicture: text("profile_picture"),
 });
+
+// Partnerships table to track unique relationships between users
+export const partnerships = pgTable("partnerships", {
+  id: serial("id").primaryKey(),
+  user1Id: integer("user1_id").notNull().references(() => users.id),
+  user2Id: integer("user2_id").notNull().references(() => users.id),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertPartnershipSchema = createInsertSchema(partnerships).pick({
+  user1Id: true,
+  user2Id: true,
+});
+
+export type InsertPartnership = z.infer<typeof insertPartnershipSchema>;
+export type Partnership = typeof partnerships.$inferSelect;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
@@ -68,6 +86,7 @@ export const loveslices = pgTable("loveslices", {
   user2Id: integer("user2_id").notNull().references(() => users.id),
   response1Id: integer("response1_id").notNull().references(() => responses.id),
   response2Id: integer("response2_id").notNull().references(() => responses.id),
+  partnershipId: integer("partnership_id").references(() => partnerships.id),
   privateNote: text("private_note"),
   type: text("type").notNull().default("written"), // 'written' or 'spoken'
   hasStartedConversation: boolean("has_started_conversation").default(false),
@@ -80,6 +99,7 @@ export const insertLovesliceSchema = createInsertSchema(loveslices).pick({
   user2Id: true,
   response1Id: true,
   response2Id: true,
+  partnershipId: true,
   privateNote: true,
   type: true,
   hasStartedConversation: true,
@@ -101,6 +121,7 @@ export const conversations = pgTable("conversations", {
   lovesliceId: integer("loveslice_id").references(() => loveslices.id),
   starterId: integer("starter_id").references(() => conversationStarters.id),
   initiatedByUserId: integer("initiated_by_user_id").notNull().references(() => users.id),
+  partnershipId: integer("partnership_id").references(() => partnerships.id),
   startedAt: timestamp("started_at").notNull().defaultNow(),
   endedAt: timestamp("ended_at"),
   durationSeconds: integer("duration_seconds"),
@@ -117,6 +138,7 @@ export const insertConversationSchema = createInsertSchema(conversations).pick({
   lovesliceId: true,
   starterId: true,
   initiatedByUserId: true,
+  partnershipId: true,
 });
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
@@ -146,6 +168,7 @@ export const spokenLoveslices = pgTable("spoken_loveslices", {
   conversationId: integer("conversation_id").notNull().references(() => conversations.id),
   user1Id: integer("user1_id").notNull().references(() => users.id),
   user2Id: integer("user2_id").notNull().references(() => users.id),
+  partnershipId: integer("partnership_id").references(() => partnerships.id),
   outcome: conversationOutcomeEnum("outcome").notNull(),
   theme: text("theme").notNull(),
   durationSeconds: integer("duration_seconds").notNull(),
@@ -157,6 +180,7 @@ export const insertSpokenLovesliceSchema = createInsertSchema(spokenLoveslices).
   conversationId: true,
   user1Id: true,
   user2Id: true,
+  partnershipId: true,
   outcome: true,
   theme: true,
   durationSeconds: true,
@@ -212,6 +236,7 @@ export const journalEntries = pgTable("journal_entries", {
   id: serial("id").primaryKey(),
   user1Id: integer("user1_id").notNull().references(() => users.id),
   user2Id: integer("user2_id").notNull().references(() => users.id),
+  partnershipId: integer("partnership_id").references(() => partnerships.id),
   writtenLovesliceId: integer("written_loveslice_id").references(() => loveslices.id),
   spokenLovesliceId: integer("spoken_loveslice_id").references(() => spokenLoveslices.id),
   theme: text("theme").notNull(),
@@ -222,6 +247,7 @@ export const journalEntries = pgTable("journal_entries", {
 export const insertJournalEntrySchema = createInsertSchema(journalEntries).pick({
   user1Id: true,
   user2Id: true,
+  partnershipId: true,
   writtenLovesliceId: true,
   spokenLovesliceId: true,
   theme: true,
