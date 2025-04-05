@@ -654,6 +654,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Disconnect from partner
+  app.post("/api/disconnect-partner", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { partnerId: requestedPartnerId } = req.body;
+      
+      if (!req.user.partnerId) {
+        return res.status(400).json({ message: "You are not connected with a partner" });
+      }
+      
+      // Get the partner before disconnecting
+      const partnerId = req.user.partnerId;
+      
+      // Verify the requested partner ID matches the actual partner ID
+      if (requestedPartnerId && parseInt(requestedPartnerId) !== partnerId) {
+        return res.status(400).json({ message: "Invalid partner ID" });
+      }
+      
+      const partner = await storage.getUser(partnerId);
+      
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      // Disconnect both users from each other
+      const success = await storage.disconnectPartners(req.user.id, partnerId);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to disconnect partnership" });
+      }
+      
+      // Get the updated user
+      const updatedUser = await storage.getUser(req.user.id);
+      
+      if (updatedUser) {
+        const { password, resetToken, resetTokenExpiry, ...userWithoutPassword } = updatedUser;
+        res.status(200).json(userWithoutPassword);
+      } else {
+        res.status(500).json({ message: "Failed to retrieve updated user information" });
+      }
+      
+      // TODO: In a production app, we would notify the partner here
+      // through a notification or email system
+      
+    } catch (error) {
+      console.error("Error disconnecting partnership:", error);
+      res.status(500).json({ message: "Failed to disconnect partnership" });
+    }
+  });
+
   // Get the current active question for the user
   app.get("/api/active-question", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
