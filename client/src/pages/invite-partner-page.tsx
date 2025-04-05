@@ -67,7 +67,7 @@ export default function InvitePartnerPage() {
 
   return (
     <MainLayout>
-      <div className="container max-w-3xl py-10">
+      <div className="container max-w-3xl py-10 mx-auto">
         <div className="mb-10">
           <h2 className="font-serif text-3xl mb-2">Invite Your Partner</h2>
           <p className="text-gray-600">Share Loveslices with your partner to start growing your relationship garden together</p>
