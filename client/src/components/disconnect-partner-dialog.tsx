@@ -81,7 +81,7 @@ export function DisconnectPartnerDialog({ partner, trigger }: DisconnectPartnerD
           <ul className="list-disc pl-5 space-y-1">
             <li>You will no longer see each other's answers to new questions</li>
             <li>Your partner will lose access to new entries in your journal</li>
-            <li>You'll still keep access to loveslices you created together in the past</li>
+            <li>Loveslices you created together will be archived and not shown in future connections</li>
             <li>Your partner will receive a notification that you've ended the connection</li>
           </ul>
           <p className="mt-2 font-medium">This action cannot be undone without creating a new connection.</p>
