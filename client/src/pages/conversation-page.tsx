@@ -72,12 +72,13 @@ type Message = {
   user?: {
     id: number;
     name: string;
+    profilePicture?: string;
   };
 };
 
 export default function ConversationPage() {
   const { id: conversationIdStr } = useParams();
-  const conversationId = parseInt(conversationIdStr);
+  const conversationId = conversationIdStr ? parseInt(conversationIdStr) : 0;
   const [_, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -648,7 +649,7 @@ export default function ConversationPage() {
           <CardContent>
             <div className="space-y-4 max-h-[50vh] overflow-y-auto p-1">
               {conversation.messages && conversation.messages.length > 0 ? (
-                conversation.messages.map((message) => {
+                conversation.messages.map((message: Message) => {
                   const isCurrentUser = message.userId === user?.id;
                   return (
                     <div 
@@ -667,19 +668,38 @@ export default function ConversationPage() {
                         )}
                       >
                         <div className="flex items-center mb-1">
-                          {!isCurrentUser && (
+                          {!isCurrentUser ? (
                             <>
                               <Avatar className="h-5 w-5 rounded-full mr-2">
-                                <AvatarFallback className="text-xs bg-lavender-light text-lavender-dark">
-                                  {getInitials(message.user?.name || "Partner")}
-                                </AvatarFallback>
+                                {message.user?.profilePicture ? (
+                                  <img src={`/uploads/${message.user.profilePicture}`} alt={message.user?.name || "Partner"} />
+                                ) : (
+                                  <AvatarFallback className="text-xs bg-lavender-light text-lavender-dark">
+                                    {getInitials(message.user?.name || "Partner")}
+                                  </AvatarFallback>
+                                )}
                               </Avatar>
                               <span className="text-xs font-medium mr-2">
                                 {message.user?.name || "Partner"}
                               </span>
                             </>
+                          ) : (
+                            <>
+                              <span className="text-xs font-medium ml-auto mr-2">
+                                {user?.name || "You"}
+                              </span>
+                              <Avatar className="h-5 w-5 rounded-full">
+                                {user?.profilePicture ? (
+                                  <img src={`/uploads/${user.profilePicture}`} alt={user?.name || "You"} />
+                                ) : (
+                                  <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                    {getInitials(user?.name || "You")}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                            </>
                           )}
-                          <span className="text-xs opacity-70">
+                          <span className="text-xs opacity-70 ml-2">
                             {format(new Date(message.createdAt), 'h:mm a')}
                           </span>
                         </div>
