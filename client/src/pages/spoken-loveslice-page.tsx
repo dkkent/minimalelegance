@@ -191,7 +191,11 @@ export default function SpokenLoveslicePage() {
                             <>
                               <Avatar className="h-5 w-5 rounded-full mr-2">
                                 {message.user?.profilePicture ? (
-                                  <img src={message.user.profilePicture} alt={message.user?.name || "Partner"} />
+                                  <img 
+                                    src={message.user.profilePicture} 
+                                    alt={message.user?.name || "Partner"} 
+                                    className="object-cover w-full h-full"
+                                  />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-lavender-light text-lavender-dark">
                                     {getInitials(message.user?.name || "Partner")}
@@ -209,7 +213,11 @@ export default function SpokenLoveslicePage() {
                               </span>
                               <Avatar className="h-5 w-5 rounded-full">
                                 {user?.profilePicture ? (
-                                  <img src={user.profilePicture} alt={user?.name || "You"} />
+                                  <img 
+                                    src={user.profilePicture} 
+                                    alt={user?.name || "You"} 
+                                    className="object-cover w-full h-full"
+                                  />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
                                     {getInitials(user?.name || "You")}
