@@ -258,6 +258,25 @@ export default function JournalPage() {
                         </div>
                       ))}
                     </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <ThemeBadge theme={entry.theme as Theme} size="small" />
+                        {entry.spokenLovesliceId ? (
+                          <Badge className="bg-lavender text-lavender-dark flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Spoken
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-sage-light text-sage-dark flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            Written
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 )}
 
