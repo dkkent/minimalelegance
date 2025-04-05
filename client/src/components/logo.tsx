@@ -34,17 +34,27 @@ export const Logo: React.FC<LogoProps> = ({
       <div className="text-sage mr-2">
         <svg
           className={sizeClasses[size]}
+          viewBox="0 0 100 100"
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          style={{ width: size === 'small' ? '24px' : size === 'medium' ? '32px' : '64px', height: 'auto' }}
         >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          <path d="M12 8c1.5 2.5 2 5 .5 7.5"></path>
-          <path d="M11.5 8C10 10.5 9.5 13 11 15.5"></path>
+          {/* Garden circle base */}
+          <circle cx="50" cy="50" r="45" fill="#f5f5f0" stroke="#7C9A92" strokeWidth="2" />
+          
+          {/* Heart shaped paths that form plant stems */}
+          <path d="M35,75 C20,55 30,30 50,45 C70,30 80,55 65,75 Q50,90 35,75" 
+                fill="none" stroke="#7C9A92" strokeWidth="2.5" strokeLinecap="round" />
+          
+          {/* Leaf elements */}
+          <path d="M30,60 Q40,55 38,65" fill="none" stroke="#7C9A92" strokeWidth="2" strokeLinecap="round" />
+          <path d="M70,60 Q60,55 62,65" fill="none" stroke="#7C9A92" strokeWidth="2" strokeLinecap="round" />
+          <path d="M42,40 Q48,35 52,42" fill="none" stroke="#7C9A92" strokeWidth="2" strokeLinecap="round" />
+          <path d="M58,40 Q52,35 48,42" fill="none" stroke="#7C9A92" strokeWidth="2" strokeLinecap="round" />
+          
+          {/* Small flourish dots */}
+          <circle cx="35" cy="48" r="2" fill="#7C9A92" />
+          <circle cx="65" cy="48" r="2" fill="#7C9A92" />
+          <circle cx="50" cy="75" r="2" fill="#7C9A92" />
         </svg>
       </div>
       {withText && (
