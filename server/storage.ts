@@ -56,6 +56,7 @@ export interface IStorage {
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined>;
+  getPartner(userId: number): Promise<User | undefined>;
   
   // Question related methods
   getQuestions(): Promise<Question[]>;
@@ -281,6 +282,18 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return user;
+  }
+  
+  async getPartner(userId: number): Promise<User | undefined> {
+    // First get the user to find their partnerId
+    const user = await this.getUser(userId);
+    
+    if (!user || !user.partnerId) {
+      return undefined;
+    }
+    
+    // Now get the partner's information
+    return this.getUser(user.partnerId);
   }
 
   async getQuestions(): Promise<Question[]> {

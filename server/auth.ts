@@ -262,6 +262,27 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
   
+  // Get partner information
+  app.get("/api/partner", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const partner = await storage.getPartner(req.user.id);
+      
+      if (!partner) {
+        return res.status(404).json({ message: "No partner found" });
+      }
+      
+      // Remove sensitive information from partner data
+      const { password, resetToken, resetTokenExpiry, ...safePartnerData } = partner;
+      
+      res.json(safePartnerData);
+    } catch (error) {
+      console.error("Error fetching partner data:", error);
+      res.status(500).json({ message: "Failed to fetch partner information" });
+    }
+  });
+  
   // Forgot password - request password reset
   app.post("/api/forgot-password", async (req, res, next) => {
     try {
