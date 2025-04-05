@@ -131,6 +131,23 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
+  
+  /**
+   * Helper function to ensure profile picture paths are properly formatted
+   * @param user The user object to format
+   * @returns A user object with properly formatted profile picture path
+   */
+  private formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined {
+    if (!user) return undefined;
+    
+    if (user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
+    
+    return user;
+  }
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -147,28 +164,12 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    
-    // Handle profile picture path
-    if (user && user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
-    }
-    
-    return user;
+    return this.formatUserProfilePicture(user);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    
-    // Handle profile picture path
-    if (user && user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
-    }
-    
-    return user;
+    return this.formatUserProfilePicture(user);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -228,14 +229,7 @@ export class DatabaseStorage implements IStorage {
         sql`${users.resetTokenExpiry} > ${now}`
       ));
     
-    // Handle profile picture path
-    if (user && user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
-    }
-    
-    return user;
+    return this.formatUserProfilePicture(user);
   }
   
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
@@ -352,28 +346,12 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
-    
-    // Handle profile picture path
-    if (user && user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
-    }
-    
-    return user;
+    return this.formatUserProfilePicture(user);
   }
   
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
-    
-    // Handle profile picture path
-    if (user && user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
-    }
-    
-    return user;
+    return this.formatUserProfilePicture(user);
   }
   
   async linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined> {
@@ -702,17 +680,13 @@ export class DatabaseStorage implements IStorage {
           questionId: result.question_id,
           content: result.response1_content,
           createdAt: result.response1_created_at,
-          user: {
+          user: this.formatUserProfilePicture({
             id: result.user1_id,
             name: result.user1_name,
             email: result.user1_email,
             partnerId: result.user1_partner_id,
-            profilePicture: result.user1_profile_picture ? 
-              (result.user1_profile_picture.startsWith('/') ? 
-                result.user1_profile_picture : 
-                `/uploads/profile_pictures/${result.user1_profile_picture}`) : 
-              null
-          }
+            profilePicture: result.user1_profile_picture
+          })
         },
         {
           id: result.response2_id,
@@ -720,17 +694,13 @@ export class DatabaseStorage implements IStorage {
           questionId: result.question_id,
           content: result.response2_content,
           createdAt: result.response2_created_at,
-          user: {
+          user: this.formatUserProfilePicture({
             id: result.user2_id,
             name: result.user2_name,
             email: result.user2_email,
             partnerId: result.user2_partner_id,
-            profilePicture: result.user2_profile_picture ? 
-              (result.user2_profile_picture.startsWith('/') ? 
-                result.user2_profile_picture : 
-                `/uploads/profile_pictures/${result.user2_profile_picture}`) : 
-              null
-          }
+            profilePicture: result.user2_profile_picture
+          })
         }
       ]
     };
@@ -1546,6 +1516,9 @@ export class DatabaseStorage implements IStorage {
   
   async getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
+    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
+    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
+    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
 
@@ -1594,14 +1567,18 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
+          
           // Add the data to the entry 
           // We need to cast entry to JournalEntry type with the extended properties
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: user1 },
-              { ...response2[0], user: user2 }
+              { ...response1[0], user: formattedUser1 },
+              { ...response2[0], user: formattedUser2 }
             ]
           };
         }
@@ -1628,6 +1605,9 @@ export class DatabaseStorage implements IStorage {
   
   async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
+    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
+    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
+    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
     
@@ -1702,6 +1682,9 @@ export class DatabaseStorage implements IStorage {
   
   async getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
+    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
+    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
+    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
     
