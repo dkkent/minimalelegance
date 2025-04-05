@@ -76,7 +76,19 @@ export default function JournalPage() {
       if (!res.ok) {
         throw new Error('Failed to fetch journal entries');
       }
-      return res.json();
+      const data = await res.json();
+      
+      // Debug logging to inspect the structure of spoken loveslices
+      if (data && data.length > 0) {
+        data.forEach(entry => {
+          if (entry.spokenLovesliceId && entry.spokenLoveslice) {
+            console.log('Spoken Loveslice User1:', entry.spokenLoveslice.user1);
+            console.log('Spoken Loveslice User2:', entry.spokenLoveslice.user2);
+          }
+        });
+      }
+      
+      return data;
     },
     enabled: !!user,
   });
