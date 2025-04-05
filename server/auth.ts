@@ -16,13 +16,15 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
+// Export the password hashing function for reuse in other parts of the app
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
-async function comparePasswords(supplied: string, stored: string) {
+// Export the password comparison function for reuse in other parts of the app
+export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
@@ -140,22 +142,10 @@ export function setupAuth(app: Express) {
         return res.status(200).json({ message: "If your email exists in our system, you will receive a password reset link" });
       }
       
-      // Send the reset email
-      const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
-      
-      await sendEmail({
-        to: email,
-        subject: "Reset your Loveslices password",
-        html: `
-          <h1>Reset your password</h1>
-          <p>You requested a password reset for your Loveslices account.</p>
-          <p>Click the link below to reset your password. This link will expire in 1 hour.</p>
-          <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #ef7c8e; color: white; text-decoration: none; border-radius: 4px;">Reset Password</a>
-          <p>If you didn't request this, please ignore this email.</p>
-          <p>The Loveslices Team</p>
-        `,
-        text: `Reset your password: ${resetUrl}. This link will expire in 1 hour.`
-      });
+      // Import and use our dedicated password reset email function 
+      // from sendgrid.ts to ensure consistent email styling
+      const { sendPasswordResetEmail } = require('./utils/sendgrid');
+      await sendPasswordResetEmail(email, resetToken);
       
       res.status(200).json({ message: "If your email exists in our system, you will receive a password reset link" });
     } catch (error) {
