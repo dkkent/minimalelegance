@@ -1524,10 +1524,13 @@ export class DatabaseStorage implements IStorage {
     const user1 = await this.getUser(spokenLoveslice.user1Id);
     const user2 = await this.getUser(spokenLoveslice.user2Id);
     
+    // Format profile picture paths explicitly using helper function
+    const formattedUser1 = this.formatUserProfilePicture(user1);
+    const formattedUser2 = this.formatUserProfilePicture(user2);
+    
     // Add formatted user data to the spokenLoveslice object
-    // getUser already applies the formatUserProfilePicture helper function
-    spokenLoveslice.user1 = user1;
-    spokenLoveslice.user2 = user2;
+    spokenLoveslice.user1 = formattedUser1;
+    spokenLoveslice.user2 = formattedUser2;
     
     // If there's a conversation, also fetch messages with user data
     if (spokenLoveslice.conversationId) {
@@ -1636,26 +1639,12 @@ export class DatabaseStorage implements IStorage {
       
       // If it's a spoken loveslice, fetch the details
       if (entry.spokenLovesliceId) {
+        // Use the method we just fixed which ensures proper profile picture formatting
         const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
         if (spokenLoveslice) {
-          // Get the conversation
-          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
-          
-          // Get user data and format profile pictures for both users
-          const user1 = await this.getUser(spokenLoveslice.user1Id);
-          const user2 = await this.getUser(spokenLoveslice.user2Id);
-          
-          // Format profile picture paths using helper function
-          const formattedUser1 = this.formatUserProfilePicture(user1);
-          const formattedUser2 = this.formatUserProfilePicture(user2);
-          
-          // Add the data to the entry
-          (entry as any).spokenLoveslice = {
-            ...spokenLoveslice,
-            conversation,
-            user1: formattedUser1,
-            user2: formattedUser2
-          };
+          // Since getSpokenLovesliceById already handles user data and formatting,
+          // just assign the result directly
+          (entry as any).spokenLoveslice = spokenLoveslice;
         }
       }
     }
@@ -1728,24 +1717,12 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (entry.spokenLovesliceId) {
+        // Use the method we just fixed which ensures proper profile picture formatting
         const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
         if (spokenLoveslice) {
-          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
-          
-          // Get user data and format profile pictures for both users
-          const user1 = await this.getUser(spokenLoveslice.user1Id);
-          const user2 = await this.getUser(spokenLoveslice.user2Id);
-          
-          // Format profile picture paths using helper function
-          const formattedUser1 = this.formatUserProfilePicture(user1);
-          const formattedUser2 = this.formatUserProfilePicture(user2);
-          
-          (entry as any).spokenLoveslice = {
-            ...spokenLoveslice,
-            conversation,
-            user1: formattedUser1,
-            user2: formattedUser2
-          };
+          // Since getSpokenLovesliceById already handles user data and formatting,
+          // just assign the result directly
+          (entry as any).spokenLoveslice = spokenLoveslice;
         }
       }
     }
@@ -1820,24 +1797,12 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (entry.spokenLovesliceId) {
+        // Use the method we just fixed which ensures proper profile picture formatting
         const spokenLoveslice = await this.getSpokenLovesliceById(entry.spokenLovesliceId);
         if (spokenLoveslice) {
-          const conversation = await this.getConversationById(spokenLoveslice.conversationId);
-          
-          // Get user data and format profile pictures for both users
-          const user1 = await this.getUser(spokenLoveslice.user1Id);
-          const user2 = await this.getUser(spokenLoveslice.user2Id);
-          
-          // Format profile picture paths using helper function
-          const formattedUser1 = this.formatUserProfilePicture(user1);
-          const formattedUser2 = this.formatUserProfilePicture(user2);
-          
-          (entry as any).spokenLoveslice = {
-            ...spokenLoveslice,
-            conversation,
-            user1: formattedUser1,
-            user2: formattedUser2
-          };
+          // Since getSpokenLovesliceById already handles user data and formatting,
+          // just assign the result directly
+          (entry as any).spokenLoveslice = spokenLoveslice;
         }
       }
     }
