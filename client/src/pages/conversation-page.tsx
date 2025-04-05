@@ -632,9 +632,17 @@ export default function ConversationPage() {
                 <div key={index} className="bg-gray-50 p-3 rounded-md">
                   <div className="flex items-center mb-2">
                     <Avatar className="h-6 w-6 rounded-full mr-2">
-                      <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                        {getInitials(response.user.name)}
-                      </AvatarFallback>
+                      {response.user?.profilePicture ? (
+                        <img 
+                          src={response.user.profilePicture} 
+                          alt={response.user.name} 
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                          {getInitials(response.user.name)}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <p className="text-sm font-medium">{response.user.name}</p>
                   </div>
@@ -684,7 +692,11 @@ export default function ConversationPage() {
                             <>
                               <Avatar className="h-5 w-5 rounded-full mr-2">
                                 {message.user?.profilePicture ? (
-                                  <img src={message.user.profilePicture} alt={message.user?.name || "Partner"} />
+                                  <img 
+                                    src={message.user.profilePicture} 
+                                    alt={message.user?.name || "Partner"} 
+                                    className="object-cover w-full h-full"
+                                  />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-lavender-light text-lavender-dark">
                                     {getInitials(message.user?.name || "Partner")}
@@ -702,7 +714,11 @@ export default function ConversationPage() {
                               </span>
                               <Avatar className="h-5 w-5 rounded-full">
                                 {user?.profilePicture ? (
-                                  <img src={user.profilePicture} alt={user?.name || "You"} />
+                                  <img 
+                                    src={user.profilePicture} 
+                                    alt={user?.name || "You"} 
+                                    className="object-cover w-full h-full"
+                                  />
                                 ) : (
                                   <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
                                     {getInitials(user?.name || "You")}

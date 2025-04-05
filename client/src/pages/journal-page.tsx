@@ -78,9 +78,28 @@ export default function JournalPage() {
       }
       const data = await res.json();
       
-      // Debug logging to inspect the structure of spoken loveslices
+      // Enhanced debug logging to inspect the structure of entries and profile pictures
       if (data && data.length > 0) {
+        console.log('All Journal Entries:', data);
+        
+        // Check written loveslices
         data.forEach((entry: JournalEntry) => {
+          if (entry.writtenLovesliceId && entry.writtenLoveslice && entry.writtenLoveslice.responses) {
+            console.log('Written Loveslice Entry:', entry);
+            
+            // Log responses and their profile pictures
+            entry.writtenLoveslice.responses.forEach((response: any, index: number) => {
+              console.log(`Response ${index + 1} User:`, response.user);
+              console.log(`Response ${index + 1} Profile Picture:`, response.user?.profilePicture);
+              
+              // Check if this user is the current user
+              if (response.user?.id === user?.id) {
+                console.log('Found current user in written loveslice responses:', response.user);
+              }
+            });
+          }
+          
+          // Also check spoken loveslices
           if (entry.spokenLovesliceId && entry.spokenLoveslice) {
             console.log('Spoken Loveslice Entry:', entry);
             console.log('Spoken Loveslice User1:', entry.spokenLoveslice.user1);
@@ -250,12 +269,11 @@ export default function JournalPage() {
                         <div key={index}>
                           <div className="flex items-center mb-2">
                             <Avatar className="h-6 w-6 rounded-full mr-2">
-                              {response.user.profilePicture ? (
+                              {response.user?.profilePicture ? (
                                 <img 
-                                  src={response.user.profilePicture.startsWith('/') ? 
-                                    response.user.profilePicture : 
-                                    `/uploads/profile_pictures/${response.user.profilePicture}`} 
+                                  src={response.user.profilePicture} 
                                   alt={response.user.name} 
+                                  className="object-cover w-full h-full"
                                 />
                               ) : (
                                 <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
@@ -297,10 +315,9 @@ export default function JournalPage() {
                       <Avatar className="h-6 w-6 rounded-full">
                         {entry.spokenLoveslice.user1?.profilePicture ? (
                           <img 
-                            src={entry.spokenLoveslice.user1.profilePicture.startsWith('/') ? 
-                              entry.spokenLoveslice.user1.profilePicture : 
-                              `/uploads/profile_pictures/${entry.spokenLoveslice.user1.profilePicture}`} 
-                            alt={entry.spokenLoveslice.user1.name} 
+                            src={entry.spokenLoveslice.user1.profilePicture} 
+                            alt={entry.spokenLoveslice.user1.name}
+                            className="object-cover w-full h-full"
                           />
                         ) : (
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
@@ -311,10 +328,9 @@ export default function JournalPage() {
                       <Avatar className="h-6 w-6 rounded-full">
                         {entry.spokenLoveslice.user2?.profilePicture ? (
                           <img 
-                            src={entry.spokenLoveslice.user2.profilePicture.startsWith('/') ? 
-                              entry.spokenLoveslice.user2.profilePicture : 
-                              `/uploads/profile_pictures/${entry.spokenLoveslice.user2.profilePicture}`} 
-                            alt={entry.spokenLoveslice.user2.name} 
+                            src={entry.spokenLoveslice.user2.profilePicture}
+                            alt={entry.spokenLoveslice.user2.name}
+                            className="object-cover w-full h-full"
                           />
                         ) : (
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
