@@ -316,6 +316,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
+
+  // Unlink Firebase account
+  app.post("/api/auth/unlink-firebase", async (req, res) => {
+    // Ensure user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      // Unlink the Firebase account from the user
+      const updatedUser = await storage.unlinkFirebaseAccount(req.user.id);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to unlink Firebase account" });
+      }
+      
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error unlinking Firebase account:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
   
   // Firebase Authentication Login/Registration
   app.post("/api/auth/firebase", async (req, res) => {

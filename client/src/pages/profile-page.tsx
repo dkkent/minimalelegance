@@ -18,10 +18,11 @@ import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser, firebaseLogout } = useFirebaseAuth();
   const { toast } = useToast();
   const [_, navigate] = useLocation();
   const [inviteCode, setInviteCode] = useState("");
+  const [isUnlinking, setIsUnlinking] = useState(false);
   
   const acceptInvitationMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -61,6 +62,42 @@ export default function ProfilePage() {
     }
     
     acceptInvitationMutation.mutate(inviteCode);
+  };
+  
+  // Mutation for unlinking Firebase account
+  const unlinkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/unlink-firebase");
+      return await res.json();
+    },
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["/api/user"], updatedUser);
+      
+      // Also sign out from Firebase
+      if (currentUser) {
+        firebaseLogout();
+      }
+      
+      toast({
+        title: "Account unlinked",
+        description: "Your Google account has been unlinked successfully.",
+      });
+      
+      setIsUnlinking(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to unlink account",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsUnlinking(false);
+    }
+  });
+  
+  const handleUnlinkAccount = () => {
+    setIsUnlinking(true);
+    unlinkMutation.mutate();
   };
   
   if (!user) return null;
@@ -214,10 +251,29 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     </div>
-                    {user.firebaseUid && (
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle2 className="w-5 h-5 mr-1" />
-                        <span className="text-sm font-medium">Linked</span>
+                    {user.firebaseUid ? (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center text-green-600">
+                          <CheckCircle2 className="w-5 h-5 mr-1" />
+                          <span className="text-sm font-medium">Linked</span>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleUnlinkAccount()}
+                          disabled={isUnlinking || unlinkMutation.isPending}
+                        >
+                          {isUnlinking || unlinkMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Unlinking...
+                            </>
+                          ) : "Unlink"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        Sign in with Google to link
                       </div>
                     )}
                   </div>
