@@ -100,6 +100,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <div className="flex items-center">
                       <span className="text-xs font-medium text-sage-dark mr-2">{partner.name}</span>
                       <Avatar className="h-6 w-6 border border-sage">
+                        <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
                         <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
                           {partner.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
@@ -128,6 +129,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative ml-2 h-8 w-8 rounded-full focus:outline-none">
                       <Avatar className="h-8 w-8 border border-sage">
+                        <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                         <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
                           {user.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>

@@ -7,15 +7,30 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+interface ApiRequestOptions {
+  isFormData?: boolean;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: ApiRequestOptions
 ): Promise<Response> {
+  const isFormData = options?.isFormData || false;
+  
+  const headers: Record<string, string> = {};
+  
+  // Only set Content-Type for non-FormData requests
+  if (data && !isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers,
+    // For FormData, use the data as is; otherwise stringify it
+    body: data ? (isFormData ? data as FormData : JSON.stringify(data)) : undefined,
     credentials: "include",
   });
 
