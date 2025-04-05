@@ -252,16 +252,47 @@ export async function sendPasswordResetEmail(
   token: string
 ): Promise<boolean> {
   console.log(`Preparing password reset email for ${email} with token starting with ${token.substring(0,3)}...`);
-  console.log(`Current APP_URL: ${process.env.VITE_APP_URL || '(not set)'}`);
-  const subject = `Reset Your Loveslices Password`;
-  const resetUrl = `${process.env.VITE_APP_URL || ''}/reset-password/${token}`;
   
-  const text = `
-Hello,
+  // Make sure we have a valid APP_URL
+  let appUrl = process.env.VITE_APP_URL || '';
+  if (!appUrl) {
+    // Fallback to determine URL from environment
+    console.log(`VITE_APP_URL not set, attempting to create URL from REPL variables...`);
+    const replSlug = process.env.REPL_SLUG;
+    const replOwner = process.env.REPL_OWNER;
+    
+    if (replSlug && replOwner) {
+      appUrl = `https://${replSlug}.${replOwner}.repl.co`;
+      console.log(`Created app URL from REPL variables: ${appUrl}`);
+    } else {
+      console.warn(`Could not determine app URL from environment. Using empty string.`);
+    }
+  }
+  
+  console.log(`Using APP_URL: ${appUrl}`);
+  const subject = `Reset Your Loveslices Password`;
+  const resetUrl = `${appUrl}/reset-password/${token}`;
+  console.log(`Reset URL will be: ${resetUrl}`);
+  
+  // Direct approach (bypass our wrapper function to eliminate any potential issues)
+  try {
+    // Initialize a fresh mail service instance
+    const directMailService = new MailService();
+    directMailService.setApiKey(process.env.SENDGRID_API_KEY as string);
+    
+    // Create the email message
+    const msg = {
+      to: email,
+      from: {
+        email: process.env.SENDGRID_VERIFIED_SENDER as string,
+        name: 'Loveslices'
+      },
+      subject,
+      text: `Hello,
 
 You recently requested to reset your password for your Loveslices account.
 
-Click the link below to reset your password:
+Please go to the following link to reset your password:
 ${resetUrl}
 
 If you did not request a password reset, please ignore this email or contact support if you have questions.
@@ -269,11 +300,8 @@ If you did not request a password reset, please ignore this email or contact sup
 This password reset link is only valid for 1 hour.
 
 Warm regards,
-The Loveslices Team
-  `.trim();
-  
-  const html = `
-<!DOCTYPE html>
+The Loveslices Team`,
+      html: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -349,14 +377,126 @@ The Loveslices Team
     </div>
   </div>
 </body>
-</html>
-  `.trim();
-  
-  return sendEmail({
-    to: email,
-    subject,
-    text,
-    html,
-    fromName: 'Loveslices'
-  });
+</html>`
+    };
+    
+    console.log('Sending password reset email directly via SendGrid SDK');
+    const response = await directMailService.send(msg);
+    console.log('Password reset email sent successfully:', response[0].statusCode);
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset email directly:', error);
+    if (error instanceof Error && 'response' in error) {
+      try {
+        const responseBody = (error as any).response.body;
+        console.error('SendGrid API error response:', responseBody);
+      } catch (jsonError) {
+        console.error('Error parsing SendGrid API error response');
+      }
+    }
+    
+    // Fallback to our wrapper function
+    console.log('Falling back to original sendEmail method...');
+    
+    try {
+      return await sendEmail({
+        to: email,
+        subject,
+        text: `Hello,
+
+You recently requested to reset your password for your Loveslices account.
+
+Click the link below to reset your password:
+${resetUrl}
+
+If you did not request a password reset, please ignore this email or contact support if you have questions.
+
+This password reset link is only valid for 1 hour.
+
+Warm regards,
+The Loveslices Team`,
+        html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .container {
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4a6741;
+    }
+    .reset-button {
+      background-color: #4a6741;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .notice {
+      background-color: #eaefea;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Loveslices</div>
+      <p>Nurturing relationships through meaningful connection</p>
+    </div>
+    
+    <p>Hello,</p>
+    
+    <p>You recently requested to reset your password for your Loveslices account.</p>
+    
+    <center>
+      <a href="${resetUrl}" class="reset-button">Reset Your Password</a>
+    </center>
+    
+    <div class="notice">
+      <p>If you did not request a password reset, please ignore this email or contact support if you have questions.</p>
+      <p>This password reset link is only valid for 1 hour.</p>
+    </div>
+    
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} Loveslices. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+        fromName: 'Loveslices'
+      });
+    } catch (fallbackError) {
+      console.error('Both direct and fallback email methods failed:', fallbackError);
+      return false;
+    }
+  }
 }

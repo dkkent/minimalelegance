@@ -18,6 +18,7 @@ import ForgotPasswordPage from "@/pages/forgot-password-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
+import { FirebaseAuthProvider } from "./hooks/use-firebase-auth";
 
 function Router() {
   return (
@@ -44,10 +45,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
+      <FirebaseAuthProvider>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </FirebaseAuthProvider>
     </QueryClientProvider>
   );
 }
