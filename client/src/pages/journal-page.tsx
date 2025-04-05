@@ -276,7 +276,9 @@ export default function JournalPage() {
                       <Avatar className="h-6 w-6 rounded-full">
                         {entry.spokenLoveslice.user1?.profilePicture ? (
                           <img 
-                            src={entry.spokenLoveslice.user1.profilePicture} 
+                            src={entry.spokenLoveslice.user1.profilePicture.startsWith('/') ? 
+                              entry.spokenLoveslice.user1.profilePicture : 
+                              `/uploads/profile_pictures/${entry.spokenLoveslice.user1.profilePicture}`} 
                             alt={entry.spokenLoveslice.user1.name} 
                           />
                         ) : (
@@ -288,7 +290,9 @@ export default function JournalPage() {
                       <Avatar className="h-6 w-6 rounded-full">
                         {entry.spokenLoveslice.user2?.profilePicture ? (
                           <img 
-                            src={entry.spokenLoveslice.user2.profilePicture} 
+                            src={entry.spokenLoveslice.user2.profilePicture.startsWith('/') ? 
+                              entry.spokenLoveslice.user2.profilePicture : 
+                              `/uploads/profile_pictures/${entry.spokenLoveslice.user2.profilePicture}`} 
                             alt={entry.spokenLoveslice.user2.name} 
                           />
                         ) : (
