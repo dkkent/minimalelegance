@@ -80,7 +80,7 @@ export default function JournalPage() {
       
       // Debug logging to inspect the structure of spoken loveslices
       if (data && data.length > 0) {
-        data.forEach(entry => {
+        data.forEach((entry: JournalEntry) => {
           if (entry.spokenLovesliceId && entry.spokenLoveslice) {
             console.log('Spoken Loveslice User1:', entry.spokenLoveslice.user1);
             console.log('Spoken Loveslice User2:', entry.spokenLoveslice.user2);
@@ -196,7 +196,7 @@ export default function JournalPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuRadioGroup value={selectedTheme} onValueChange={setSelectedTheme}>
+                <DropdownMenuRadioGroup value={selectedTheme} onValueChange={(value: string) => setSelectedTheme(value as Theme)}>
                   {ALL_THEMES.map(theme => (
                     <DropdownMenuRadioItem key={theme} value={theme}>
                       {theme}
@@ -356,7 +356,7 @@ export default function JournalPage() {
               <div>
                 <p className="text-gray-500 mb-4">No journal entries found with the current filters.</p>
                 <Button variant="outline" onClick={() => {
-                  setSelectedTheme("All");
+                  setSelectedTheme("All" as Theme);
                   clearSearch();
                 }}>
                   Clear filters
