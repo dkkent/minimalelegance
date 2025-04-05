@@ -12,11 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { currentUser } = useFirebaseAuth();
   const { toast } = useToast();
   const [_, navigate] = useLocation();
   const [inviteCode, setInviteCode] = useState("");
@@ -191,6 +193,39 @@ export default function ProfilePage() {
             </HandDrawnBorder>
           )}
           
+          <HandDrawnBorder>
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected Accounts</CardTitle>
+                <CardDescription>
+                  Manage your linked external accounts
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border rounded-md">
+                    <div className="flex items-center gap-3">
+                      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" 
+                           className="w-6 h-6" alt="Google" />
+                      <div>
+                        <div className="font-medium">Google</div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.firebaseUid ? "Connected" : "Not connected"}
+                        </div>
+                      </div>
+                    </div>
+                    {user.firebaseUid && (
+                      <div className="flex items-center text-green-600">
+                        <CheckCircle2 className="w-5 h-5 mr-1" />
+                        <span className="text-sm font-medium">Linked</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </HandDrawnBorder>
+
           <HandDrawnBorder>
             <Card>
               <CardHeader>
