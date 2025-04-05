@@ -13,6 +13,7 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { FirebaseConfigurationHelp } from "@/components/firebase-configuration-help";
 
 interface FirebaseAuthContextType {
   currentUser: FirebaseUser | null;
@@ -32,6 +33,36 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [showConfigHelp, setShowConfigHelp] = useState(false);
+  
+  // Helper function to handle Firebase auth errors
+  const handleFirebaseError = (error: any, provider: string) => {
+    console.error(`${provider} sign-in error:`, error);
+    setError(error as Error);
+    
+    // Check for specific Firebase errors
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === "auth/configuration-not-found") {
+      toast({
+        title: "Authentication provider not enabled",
+        description: `${provider} sign-in is not currently configured. Please try another method.`,
+        variant: "destructive",
+      });
+    } else if (firebaseError.code === "auth/unauthorized-domain") {
+      setShowConfigHelp(true);
+      toast({
+        title: "Domain not authorized",
+        description: "This domain is not authorized in your Firebase project. See the configuration guide for help.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sign in failed",
+        description: error instanceof Error ? error.message : `Failed to sign in with ${provider}`,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Listen for Firebase auth state changes
   useEffect(() => {
@@ -51,7 +82,9 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     
     try {
       // Exchange Firebase token for session authentication
-      const isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+      // Use type assertion to handle additionalUserInfo which might not be in the type definition
+      const authResult = userCredential as any;
+      const isNewUser = authResult.additionalUserInfo?.isNewUser ?? false;
       
       const response = await apiRequest("POST", "/api/auth/firebase", {
         firebaseUid: user.uid,
@@ -98,23 +131,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       await handleFirebaseAuthentication(result);
       return result;
     } catch (error) {
-      console.error("Google sign-in error:", error);
-      setError(error as Error);
-      // Check for configuration error
-      const firebaseError = error as { code?: string };
-      if (firebaseError.code === "auth/configuration-not-found") {
-        toast({
-          title: "Authentication provider not enabled",
-          description: "Google sign-in is not currently configured. Please try another method.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sign in failed",
-          description: error instanceof Error ? error.message : "Failed to sign in with Google",
-          variant: "destructive",
-        });
-      }
+      handleFirebaseError(error, "Google");
       return null;
     } finally {
       setIsLoading(false);
@@ -130,23 +147,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       await handleFirebaseAuthentication(result);
       return result;
     } catch (error) {
-      console.error("Apple sign-in error:", error);
-      setError(error as Error);
-      // Check for configuration error
-      const firebaseError = error as { code?: string };
-      if (firebaseError.code === "auth/configuration-not-found") {
-        toast({
-          title: "Authentication provider not enabled",
-          description: "Apple sign-in is not currently configured. Please try another method.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sign in failed",
-          description: error instanceof Error ? error.message : "Failed to sign in with Apple",
-          variant: "destructive",
-        });
-      }
+      handleFirebaseError(error, "Apple");
       return null;
     } finally {
       setIsLoading(false);
@@ -162,23 +163,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       await handleFirebaseAuthentication(result);
       return result;
     } catch (error) {
-      console.error("Meta sign-in error:", error);
-      setError(error as Error);
-      // Check for configuration error
-      const firebaseError = error as { code?: string };
-      if (firebaseError.code === "auth/configuration-not-found") {
-        toast({
-          title: "Authentication provider not enabled",
-          description: "Facebook sign-in is not currently configured. Please try another method.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sign in failed",
-          description: error instanceof Error ? error.message : "Failed to sign in with Facebook",
-          variant: "destructive",
-        });
-      }
+      handleFirebaseError(error, "Facebook");
       return null;
     } finally {
       setIsLoading(false);
@@ -192,18 +177,23 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       // We don't logout the user from the session here
       // That should be done through the regular logout process
     } catch (error) {
-      console.error("Logout error:", error);
-      setError(error as Error);
-      toast({
-        title: "Logout failed",
-        description: error instanceof Error ? error.message : "Failed to sign out",
-        variant: "destructive",
-      });
+      handleFirebaseError(error, "Logout");
     } finally {
       setIsLoading(false);
     }
   }
 
+  // This error handler is different since it's not a Firebase auth error
+  const handleAccountLinkingError = (error: any) => {
+    console.error("Account linking error:", error);
+    setError(error as Error);
+    toast({
+      title: "Account linking failed",
+      description: error instanceof Error ? error.message : "Failed to link your accounts",
+      variant: "destructive",
+    });
+  };
+  
   async function linkUserAccount(firebaseUid: string): Promise<User | null> {
     try {
       setIsLoading(true);
@@ -227,13 +217,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errorData.message || "Failed to link account");
       }
     } catch (error) {
-      console.error("Account linking error:", error);
-      setError(error as Error);
-      toast({
-        title: "Account linking failed",
-        description: error instanceof Error ? error.message : "Failed to link your accounts",
-        variant: "destructive",
-      });
+      handleAccountLinkingError(error);
       return null;
     } finally {
       setIsLoading(false);
@@ -253,6 +237,10 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
         linkUserAccount,
       }}
     >
+      <FirebaseConfigurationHelp 
+        open={showConfigHelp} 
+        onClose={() => setShowConfigHelp(false)} 
+      />
       {children}
     </FirebaseAuthContext.Provider>
   );
