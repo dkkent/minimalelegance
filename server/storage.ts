@@ -1591,10 +1591,20 @@ export class DatabaseStorage implements IStorage {
           // Get the conversation
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
+          // Get user data and format profile pictures for both users
+          const user1 = await this.getUser(spokenLoveslice.user1Id);
+          const user2 = await this.getUser(spokenLoveslice.user2Id);
+          
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
+          
           // Add the data to the entry
           (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
-            conversation
+            conversation,
+            user1: formattedUser1,
+            user2: formattedUser2
           };
         }
       }
