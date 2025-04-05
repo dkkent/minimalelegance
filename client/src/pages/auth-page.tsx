@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/logo";
 import { useLocation } from "wouter";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthPage() {
   const [location, setLocation] = useLocation();
@@ -24,6 +24,9 @@ export default function AuthPage() {
     passwordConfirm: "",
   });
   const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
 
   // If the user is already authenticated, redirect to the home page
   if (user) {
@@ -116,14 +119,27 @@ export default function AuthPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          name="password"
-                          type="password"
-                          value={loginForm.password}
-                          onChange={handleLoginChange}
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            name="password"
+                            type={showLoginPassword ? "text" : "password"}
+                            value={loginForm.password}
+                            onChange={handleLoginChange}
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                            onClick={() => setShowLoginPassword(!showLoginPassword)}
+                          >
+                            {showLoginPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </CardContent>
                     <CardFooter>
@@ -179,26 +195,52 @@ export default function AuthPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="register-password">Password</Label>
-                        <Input
-                          id="register-password"
-                          name="password"
-                          type="password"
-                          value={registerForm.password}
-                          onChange={handleRegisterChange}
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            id="register-password"
+                            name="password"
+                            type={showRegisterPassword ? "text" : "password"}
+                            value={registerForm.password}
+                            onChange={handleRegisterChange}
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                            onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                          >
+                            {showRegisterPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="passwordConfirm">Confirm Password</Label>
-                        <Input
-                          id="passwordConfirm"
-                          name="passwordConfirm"
-                          type="password"
-                          value={registerForm.passwordConfirm}
-                          onChange={handleRegisterChange}
-                          required
-                          className={passwordMismatch ? "border-destructive" : ""}
-                        />
+                        <div className="relative">
+                          <Input
+                            id="passwordConfirm"
+                            name="passwordConfirm"
+                            type={showRegisterConfirmPassword ? "text" : "password"}
+                            value={registerForm.passwordConfirm}
+                            onChange={handleRegisterChange}
+                            required
+                            className={passwordMismatch ? "border-destructive" : ""}
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                            onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
+                          >
+                            {showRegisterConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                         {passwordMismatch && (
                           <p className="text-destructive text-sm">Passwords do not match</p>
                         )}
