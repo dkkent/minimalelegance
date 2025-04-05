@@ -24,6 +24,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Forgot password - Request a password reset
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" });
+      }
+
+      // Create a password reset token
+      const token = await storage.createPasswordResetToken(email);
+      
+      if (!token) {
+        // Return 200 even when email is not found to prevent email enumeration
+        return res.status(200).json({ message: "If your email is in our system, you will receive a password reset link shortly" });
+      }
+
+      // Import the sendgrid helper to avoid circular dependencies
+      const { sendPasswordResetEmail } = await import('./utils/sendgrid');
+      
+      // Send the password reset email
+      await sendPasswordResetEmail(email, token);
+      
+      return res.status(200).json({ message: "Password reset email sent" });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      return res.status(500).json({ message: "An error occurred while processing your request" });
+    }
+  });
+  
+  // Verify reset token
+  app.get("/api/reset-password/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      return res.status(200).json({ valid: true });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      return res.status(500).json({ message: "An error occurred while verifying the token" });
+    }
+  });
+  
+  // Reset password with token
+  app.post("/api/reset-password/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: "New password is required" });
+      }
+      
+      const success = await storage.resetPassword(token, password);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      return res.status(200).json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return res.status(500).json({ message: "An error occurred while resetting your password" });
+    }
+  });
+  
+  // Change password (for authenticated users)
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Import the auth helper functions to verify the current password
+      const { comparePasswords, hashPassword } = await import('./auth');
+      
+      // Verify current password
+      const isCorrect = await comparePasswords(currentPassword, req.user.password);
+      if (!isCorrect) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUser(req.user.id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      return res.status(200).json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res.status(500).json({ message: "An error occurred while changing your password" });
+    }
+  });
+
   // Invite a partner
   app.post("/api/invite-partner", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

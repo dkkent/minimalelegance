@@ -243,3 +243,118 @@ The Loveslices Team
     fromName: `${inviterName} via Loveslices`
   });
 }
+
+/**
+ * Sends a password reset email with a token link
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string
+): Promise<boolean> {
+  const subject = `Reset Your Loveslices Password`;
+  const resetUrl = `${process.env.VITE_APP_URL || ''}/reset-password/${token}`;
+  
+  const text = `
+Hello,
+
+You recently requested to reset your password for your Loveslices account.
+
+Click the link below to reset your password:
+${resetUrl}
+
+If you did not request a password reset, please ignore this email or contact support if you have questions.
+
+This password reset link is only valid for 1 hour.
+
+Warm regards,
+The Loveslices Team
+  `.trim();
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .container {
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4a6741;
+    }
+    .reset-button {
+      background-color: #4a6741;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .notice {
+      background-color: #eaefea;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Loveslices</div>
+      <p>Nurturing relationships through meaningful connection</p>
+    </div>
+    
+    <p>Hello,</p>
+    
+    <p>You recently requested to reset your password for your Loveslices account.</p>
+    
+    <center>
+      <a href="${resetUrl}" class="reset-button">Reset Your Password</a>
+    </center>
+    
+    <div class="notice">
+      <p>If you did not request a password reset, please ignore this email or contact support if you have questions.</p>
+      <p>This password reset link is only valid for 1 hour.</p>
+    </div>
+    
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} Loveslices. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+  
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+    fromName: 'Loveslices'
+  });
+}
