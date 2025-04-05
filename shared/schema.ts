@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   partnerId: integer("partner_id").references(() => users.id),
   inviteCode: text("invite_code"),
   isIndividual: boolean("is_individual").notNull().default(true),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

@@ -14,6 +14,8 @@ import ConversationStartersPage from "@/pages/conversation-starters-page";
 import ConversationPage from "@/pages/conversation-page";
 import SpokenLoveslicePage from "@/pages/spoken-loveslice-page";
 import JournalPage from "@/pages/journal-page";
+import ForgotPasswordPage from "@/pages/forgot-password-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 
@@ -21,6 +23,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/garden" component={JournalPage} /> {/* Redirecting garden to journal page */}
       <ProtectedRoute path="/question" component={QuestionPage} />
