@@ -66,7 +66,7 @@ export function FirebaseDomainHelper() {
               <li>Select your project</li>
               <li>Go to <strong>Authentication</strong> → <strong>Settings</strong> → <strong>Authorized domains</strong></li>
               <li>Add the domain shown above</li>
-              <li>If you're going to deploy the app, also add your Replit.app domain: <code className="bg-muted p-1 rounded">minimal-elegance-dickonkent.replit.app</code></li>
+              <li>If you're going to deploy the app, also add your Replit.app domain: <code className="bg-muted p-1 rounded">workspace-dickonkent.replit.app</code></li>
               <li>Save changes and refresh this page</li>
             </ol>
           </div>
