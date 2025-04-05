@@ -36,7 +36,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-charcoal bg-cream">
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         body {
           background-image: radial-gradient(#DAE3E1 0.5px, transparent 0.5px), radial-gradient(#DAE3E1 0.5px, #F5F5F0 0.5px);
           background-size: 20px 20px;
@@ -78,7 +79,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           margin-right: 0.5rem;
           font-size: 0.8rem;
         }
-      `}</style>
+        `
+      }} />
 
       <header className="bg-white border-b border-sage-light py-4 px-6">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
