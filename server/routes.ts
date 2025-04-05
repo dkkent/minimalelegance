@@ -1221,9 +1221,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get messages for this conversation
       const messages = await storage.getConversationMessages(conversationId);
       
+      // Fetch user information for each message to include profile pictures
+      const enhancedMessages = await Promise.all(messages.map(async (message) => {
+        // Get the user for this message
+        const messageUser = await storage.getUser(message.userId);
+        if (messageUser) {
+          // Only return necessary fields to avoid sending sensitive information
+          return {
+            ...message,
+            user: {
+              id: messageUser.id,
+              name: messageUser.name,
+              profilePicture: messageUser.profilePicture
+            }
+          };
+        }
+        return message;
+      }));
+      
       res.status(200).json({
         ...conversation,
-        messages
+        messages: enhancedMessages
       });
     } catch (error) {
       console.error("Failed to fetch conversation:", error);
@@ -1684,7 +1702,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get messages for this conversation if it exists
         if (conversation) {
           const messages = await storage.getConversationMessages(spokenLoveslice.conversationId);
-          conversation = { ...conversation, messages };
+          
+          // Fetch user information for each message to include profile pictures
+          const enhancedMessages = await Promise.all(messages.map(async (message) => {
+            // Get the user for this message
+            const messageUser = await storage.getUser(message.userId);
+            if (messageUser) {
+              // Only return necessary fields to avoid sending sensitive information
+              return {
+                ...message,
+                user: {
+                  id: messageUser.id,
+                  name: messageUser.name,
+                  profilePicture: messageUser.profilePicture
+                }
+              };
+            }
+            return message;
+          }));
+          
+          conversation = { ...conversation, messages: enhancedMessages };
         }
       }
       
