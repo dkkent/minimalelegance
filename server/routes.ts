@@ -1435,6 +1435,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // End a conversation and optionally create a spoken loveslice (legacy direct ending)
+  // Add final note to a conversation
+  app.patch("/api/conversations/:id/final-note", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { note } = req.body;
+      
+      if (!note) {
+        return res.status(400).json({ message: "Note is required" });
+      }
+      
+      // Get the conversation
+      const conversation = await storage.getConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Check if user has access to this conversation
+      if (conversation.initiatedByUserId !== req.user.id && 
+          (!req.user.partnerId || conversation.initiatedByUserId !== req.user.partnerId)) {
+        return res.status(403).json({ message: "You do not have access to this conversation" });
+      }
+      
+      // Add final note
+      const updatedConversation = await storage.addConversationFinalNote(conversationId, note);
+      res.status(200).json(updatedConversation);
+    } catch (error) {
+      console.error("Failed to add final note:", error);
+      res.status(500).json({ message: "Failed to add final note" });
+    }
+  });
+  
   app.patch("/api/conversations/:id/end", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
