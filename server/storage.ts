@@ -147,11 +147,27 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    
+    // Handle profile picture path
+    if (user && user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
+    
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    // Handle profile picture path
+    if (user && user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
+    
     return user;
   }
 
@@ -211,6 +227,13 @@ export class DatabaseStorage implements IStorage {
         // Ensure resetTokenExpiry is after current time (not expired)
         sql`${users.resetTokenExpiry} > ${now}`
       ));
+    
+    // Handle profile picture path
+    if (user && user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
     
     return user;
   }
@@ -329,11 +352,27 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
+    
+    // Handle profile picture path
+    if (user && user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
+    
     return user;
   }
   
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
+    
+    // Handle profile picture path
+    if (user && user.profilePicture) {
+      user.profilePicture = user.profilePicture.startsWith('/') 
+        ? user.profilePicture 
+        : `/uploads/profile_pictures/${user.profilePicture}`;
+    }
+    
     return user;
   }
   
@@ -528,7 +567,9 @@ export class DatabaseStorage implements IStorage {
             CASE WHEN l.user1_id = ${userId} THEN r1.content ELSE r2.content END as user_response_content,
             CASE WHEN l.user1_id = ${userId} THEN r2.content ELSE r1.content END as partner_response_content,
             CASE WHEN l.user1_id = ${userId} THEN u2.id ELSE u1.id END as partner_id,
-            CASE WHEN l.user1_id = ${userId} THEN u2.name ELSE u1.name END as partner_name
+            CASE WHEN l.user1_id = ${userId} THEN u2.name ELSE u1.name END as partner_name,
+            CASE WHEN l.user1_id = ${userId} THEN u1.profile_picture ELSE u2.profile_picture END as user_profile_picture,
+            CASE WHEN l.user1_id = ${userId} THEN u2.profile_picture ELSE u1.profile_picture END as partner_profile_picture
           FROM loveslices l
           JOIN questions q ON l.question_id = q.id
           JOIN responses r1 ON l.response1_id = r1.id
@@ -571,7 +612,19 @@ export class DatabaseStorage implements IStorage {
               WHEN l.user2_id = ${userId} THEN u1.name
               WHEN l.user1_id = ${user.partnerId} THEN u2.name
               ELSE u1.name 
-            END as partner_name
+            END as partner_name,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN u1.profile_picture
+              WHEN l.user2_id = ${userId} THEN u2.profile_picture
+              WHEN l.user1_id = ${user.partnerId} THEN u1.profile_picture
+              ELSE u2.profile_picture 
+            END as user_profile_picture,
+            CASE 
+              WHEN l.user1_id = ${userId} THEN u2.profile_picture
+              WHEN l.user2_id = ${userId} THEN u1.profile_picture
+              WHEN l.user1_id = ${user.partnerId} THEN u2.profile_picture
+              ELSE u1.profile_picture 
+            END as partner_profile_picture
           FROM loveslices l
           JOIN questions q ON l.question_id = q.id
           JOIN responses r1 ON l.response1_id = r1.id
@@ -605,10 +658,12 @@ export class DatabaseStorage implements IStorage {
         u1.name as user1_name,
         u1.email as user1_email,
         u1.partner_id as user1_partner_id,
+        u1.profile_picture as user1_profile_picture,
         u2.id as user2_id,
         u2.name as user2_name,
         u2.email as user2_email,
-        u2.partner_id as user2_partner_id
+        u2.partner_id as user2_partner_id,
+        u2.profile_picture as user2_profile_picture
       FROM loveslices l
       JOIN questions q ON l.question_id = q.id
       JOIN responses r1 ON l.response1_id = r1.id
@@ -651,7 +706,12 @@ export class DatabaseStorage implements IStorage {
             id: result.user1_id,
             name: result.user1_name,
             email: result.user1_email,
-            partnerId: result.user1_partner_id
+            partnerId: result.user1_partner_id,
+            profilePicture: result.user1_profile_picture ? 
+              (result.user1_profile_picture.startsWith('/') ? 
+                result.user1_profile_picture : 
+                `/uploads/profile_pictures/${result.user1_profile_picture}`) : 
+              null
           }
         },
         {
@@ -664,7 +724,12 @@ export class DatabaseStorage implements IStorage {
             id: result.user2_id,
             name: result.user2_name,
             email: result.user2_email,
-            partnerId: result.user2_partner_id
+            partnerId: result.user2_partner_id,
+            profilePicture: result.user2_profile_picture ? 
+              (result.user2_profile_picture.startsWith('/') ? 
+                result.user2_profile_picture : 
+                `/uploads/profile_pictures/${result.user2_profile_picture}`) : 
+              null
           }
         }
       ]
@@ -1304,11 +1369,34 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getConversationMessages(conversationId: number): Promise<ConversationMessage[]> {
-    return db
-      .select()
+    const messages = await db
+      .select({
+        message: conversationMessages,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          partnerId: users.partnerId,
+          profilePicture: users.profilePicture
+        }
+      })
       .from(conversationMessages)
+      .leftJoin(users, eq(conversationMessages.userId, users.id))
       .where(eq(conversationMessages.conversationId, conversationId))
       .orderBy(conversationMessages.createdAt);
+    
+    // Process the results to add the properly formatted profile picture path
+    return messages.map(result => ({
+      ...result.message,
+      user: {
+        ...result.user,
+        profilePicture: result.user.profilePicture ? 
+          (result.user.profilePicture.startsWith('/') ? 
+            result.user.profilePicture : 
+            `/uploads/profile_pictures/${result.user.profilePicture}`) : 
+          null
+      }
+    }));
   }
   
   // Spoken Loveslice methods
