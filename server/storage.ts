@@ -1606,8 +1606,6 @@ export class DatabaseStorage implements IStorage {
   async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
     // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
-    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
-    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
     
@@ -1650,15 +1648,20 @@ export class DatabaseStorage implements IStorage {
             .from(responses)
             .where(eq(responses.id, loveslice.response2Id));
           
+          // Get user info for the responses
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
+          
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
             
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: user1 },
-              { ...response2[0], user: user2 }
+              { ...response1[0], user: formattedUser1 },
+              { ...response2[0], user: formattedUser2 }
             ]
           };
         }
@@ -1669,9 +1672,19 @@ export class DatabaseStorage implements IStorage {
         if (spokenLoveslice) {
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
+          // Get user data and format profile pictures for both users
+          const user1 = await this.getUser(spokenLoveslice.user1Id);
+          const user2 = await this.getUser(spokenLoveslice.user2Id);
+          
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
+          
           (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
-            conversation
+            conversation,
+            user1: formattedUser1,
+            user2: formattedUser2
           };
         }
       }
@@ -1727,15 +1740,20 @@ export class DatabaseStorage implements IStorage {
             .from(responses)
             .where(eq(responses.id, loveslice.response2Id));
           
+          // Get user info for the responses
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
+          
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
             
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: user1 },
-              { ...response2[0], user: user2 }
+              { ...response1[0], user: formattedUser1 },
+              { ...response2[0], user: formattedUser2 }
             ]
           };
         }
@@ -1746,9 +1764,19 @@ export class DatabaseStorage implements IStorage {
         if (spokenLoveslice) {
           const conversation = await this.getConversationById(spokenLoveslice.conversationId);
           
+          // Get user data and format profile pictures for both users
+          const user1 = await this.getUser(spokenLoveslice.user1Id);
+          const user2 = await this.getUser(spokenLoveslice.user2Id);
+          
+          // Format profile picture paths using helper function
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
+          
           (entry as any).spokenLoveslice = {
             ...spokenLoveslice,
-            conversation
+            conversation,
+            user1: formattedUser1,
+            user2: formattedUser2
           };
         }
       }
