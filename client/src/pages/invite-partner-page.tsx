@@ -70,8 +70,6 @@ export default function InvitePartnerPage() {
         <h2 className="font-serif text-3xl mb-2">Invite Your Partner</h2>
         <p className="text-gray-600">Share Loveslices with your partner to start growing your relationship garden together</p>
       </div>
-        Share Loveslices with your partner to start growing your relationship garden together.
-      </p>
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Left side - Invite by email */}
