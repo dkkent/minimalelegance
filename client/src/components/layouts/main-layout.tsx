@@ -91,43 +91,35 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Logo size="medium" />
             </Link>
             
-            {user?.partnerId && (
-              <div className="ml-4 flex items-center">
-                <div 
-                  className="relative group flex items-center"
-                  aria-label={partner ? `You're connected with ${partner.name}` : "Connected with partner"}
-                >
-                  <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                  <div className="relative flex">
-                    {!isPartnerLoading && partner ? (
-                      <>
-                        <Avatar 
-                          className="h-7 w-7 border border-white absolute -right-2 -z-10" 
-                          title={`${partner.name}`}
-                        >
-                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                            {partner.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Avatar className="h-7 w-7 border border-white ml-4">
-                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        {/* Tooltip */}
-                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out bottom-full -left-2 mb-2 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none">
-                          You're connected with {partner.name}
-                          <div className="absolute -bottom-1 left-6 w-2 h-2 bg-sage-dark transform rotate-45"></div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-center px-3 py-1 bg-sage-light/30 rounded-full">
-                        <span className="text-xs text-sage-dark">Partner</span>
-                      </div>
-                    )}
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {user?.partnerId && !isPartnerLoading && partner && (
+              <div 
+                className="relative group flex items-center"
+                aria-label={`You're connected with ${partner.name}`}
+              >
+                <div className="relative flex">
+                  <Avatar 
+                    className="h-7 w-7 border border-white absolute -right-2 -z-10" 
+                    title={`${partner.name}`}
+                  >
+                    <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                    <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                      {partner.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Avatar className="h-7 w-7 border border-white ml-4">
+                    <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                    <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                      {user.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out bottom-full -left-2 mb-2 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none">
+                    You're connected with {partner.name}
+                    <div className="absolute -bottom-1 left-6 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                   </div>
                 </div>
               </div>
@@ -191,9 +183,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <SheetContent>
                 <div className="flex flex-col space-y-4 mt-8">
                   {user?.partnerId && partner && (
-                    <div className="flex items-center px-3 py-2 rounded-md mb-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                      <span className="text-xs text-sage-dark mr-2">Connected with</span>
+                    <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
+                      <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
                       <div className="relative flex">
                         <Avatar 
                           className="h-7 w-7 border border-white absolute -right-2 -z-10" 
