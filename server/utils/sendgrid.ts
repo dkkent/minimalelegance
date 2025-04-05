@@ -251,6 +251,8 @@ export async function sendPasswordResetEmail(
   email: string,
   token: string
 ): Promise<boolean> {
+  console.log(`Preparing password reset email for ${email} with token starting with ${token.substring(0,3)}...`);
+  console.log(`Current APP_URL: ${process.env.VITE_APP_URL || '(not set)'}`);
   const subject = `Reset Your Loveslices Password`;
   const resetUrl = `${process.env.VITE_APP_URL || ''}/reset-password/${token}`;
   
