@@ -90,49 +90,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <Link href="/">
               <Logo size="medium" />
             </Link>
-            
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {user?.partnerId && !isPartnerLoading && partner && (
-              <div 
-                className="relative group flex items-center mr-2"
-                aria-label={`You're connected with ${partner.name}`}
-              >
-                <div className="flex items-center">
-                  {/* Container for overlapping avatars */}
-                  <div className="w-12 h-7 relative">
-                    {/* Partner avatar behind */}
-                    <Avatar 
-                      className="h-7 w-7 border border-white absolute left-0 z-0"
-                      title={partner.name}
-                    >
-                      <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                      <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                        {partner.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    {/* User avatar in front */}
-                    <Avatar 
-                      className="h-7 w-7 border border-white absolute left-4 z-10"
-                      title={user.name}
-                    >
-                      <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                      <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  
-                  {/* Tooltip */}
-                  <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
-                    You're connected with {partner.name}
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           
           <nav>
@@ -146,40 +103,81 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               ))}
               
               {user && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative ml-2 h-8 w-8 rounded-full focus:outline-none">
-                      <Avatar className="h-8 w-8 border border-sage">
-                        <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                        <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                          {user.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <Link href="/profile">
-                      <DropdownMenuItem>
-                        <UserIcon className="w-4 h-4 mr-2" />
-                        <span>Profile</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    {!user.partnerId && (
-                      <Link href="/invite">
+                <div className="flex items-center ml-2">
+                  {/* Connection indicator */}
+                  {user?.partnerId && !isPartnerLoading && partner && (
+                    <div 
+                      className="relative group flex items-center mr-3"
+                      aria-label={`You're connected with ${partner.name}`}
+                    >
+                      <div className="w-12 h-7 relative">
+                        {/* Partner avatar behind */}
+                        <Avatar 
+                          className="h-7 w-7 border border-white absolute left-0 z-0"
+                          title={partner.name}
+                        >
+                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                            {partner.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* User avatar in front */}
+                        <Avatar 
+                          className="h-7 w-7 border border-white absolute left-4 z-10"
+                          title={user.name}
+                        >
+                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
+                          You're connected with {partner.name}
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* User menu dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full focus:outline-none">
+                        <Avatar className="h-8 w-8 border border-sage">
+                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <Link href="/profile">
                         <DropdownMenuItem>
-                          <span>Invite Partner</span>
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          <span>Profile</span>
                         </DropdownMenuItem>
                       </Link>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {!user.partnerId && (
+                        <Link href="/invite">
+                          <DropdownMenuItem>
+                            <span>Invite Partner</span>
+                          </DropdownMenuItem>
+                        </Link>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="w-4 h-4 mr-2" />
+                        <span>Log out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               )}
             </div>
             
