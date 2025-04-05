@@ -84,21 +84,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       <header className="bg-white border-b border-sage-light py-4 px-6">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <Link href="/">
-            <a className="flex items-center">
+          <div className="flex items-center">
+            <Link href="/">
               <Logo size="medium" />
-            </a>
-          </Link>
+            </Link>
+          </div>
           
           <nav>
             <div className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
-                <Link key={item.path} href={item.path}>
-                  <a className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
-                    location === item.path ? 'text-sage font-medium' : ''
-                  }`}>
-                    {item.name}
-                  </a>
+                <Link key={item.path} href={item.path} className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
+                  location === item.path ? 'text-sage font-medium' : ''
+                }`}>
+                  {item.name}
                 </Link>
               ))}
               
@@ -148,26 +146,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <SheetContent>
                 <div className="flex flex-col space-y-4 mt-8">
                   {navItems.map((item) => (
-                    <Link key={item.path} href={item.path}>
-                      <a className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
-                        location === item.path ? 'text-sage font-medium' : ''
-                      }`}>
-                        {item.name}
-                      </a>
+                    <Link key={item.path} href={item.path} className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
+                      location === item.path ? 'text-sage font-medium' : ''
+                    }`}>
+                      {item.name}
                     </Link>
                   ))}
                   
-                  <Link href="/profile">
-                    <a className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
-                      Profile
-                    </a>
+                  <Link href="/profile" className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
+                    Profile
                   </Link>
                   
                   {!user?.partnerId && (
-                    <Link href="/invite">
-                      <a className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
-                        Invite Partner
-                      </a>
+                    <Link href="/invite" className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
+                      Invite Partner
                     </Link>
                   )}
                   
