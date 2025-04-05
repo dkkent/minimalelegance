@@ -190,7 +190,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    const now = new Date();
+    // Format current timestamp as ISO string for proper comparison with DB date
+    const now = new Date().toISOString();
     
     // Find user by reset token and ensure it's not expired
     const [user] = await db
