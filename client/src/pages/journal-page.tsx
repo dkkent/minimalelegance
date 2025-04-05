@@ -272,13 +272,46 @@ export default function JournalPage() {
 
                 {entry.spokenLovesliceId && entry.spokenLoveslice && (
                   <div>
-                    <p className="font-serif text-lg mb-3">
-                      A meaningful conversation about {entry.theme.toLowerCase()}
-                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Avatar className="h-6 w-6 rounded-full">
+                        {entry.spokenLoveslice.user1?.profilePicture ? (
+                          <img 
+                            src={entry.spokenLoveslice.user1.profilePicture} 
+                            alt={entry.spokenLoveslice.user1.name} 
+                          />
+                        ) : (
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {getInitials(entry.spokenLoveslice.user1?.name)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <Avatar className="h-6 w-6 rounded-full">
+                        {entry.spokenLoveslice.user2?.profilePicture ? (
+                          <img 
+                            src={entry.spokenLoveslice.user2.profilePicture} 
+                            alt={entry.spokenLoveslice.user2.name} 
+                          />
+                        ) : (
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {getInitials(entry.spokenLoveslice.user2?.name)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <p className="font-serif text-lg">
+                        A meaningful conversation about {entry.theme.toLowerCase()}
+                      </p>
+                    </div>
                     <p className="text-gray-600">
                       {entry.searchableContent}
                     </p>
-                    <div className="flex justify-end mt-4">
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="flex items-center gap-2">
+                        <ThemeBadge theme={entry.theme as Theme} size="small" />
+                        <Badge className="bg-lavender text-lavender-dark flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          Spoken
+                        </Badge>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
