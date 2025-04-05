@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
+import { usePartner } from "@/hooks/use-partner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ type MainLayoutProps = {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logoutMutation } = useAuth();
+  const { partner, isLoading: isPartnerLoading } = usePartner();
   const [location] = useLocation();
 
   const handleLogout = () => {
@@ -88,6 +90,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <Link href="/">
               <Logo size="medium" />
             </Link>
+            
+            {user?.partnerId && (
+              <div className="ml-4 flex items-center">
+                <div className="flex items-center px-3 py-1 bg-sage-light/30 rounded-full">
+                  <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                  <span className="text-xs text-sage-dark mr-2">Connected with</span>
+                  {!isPartnerLoading && partner ? (
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium text-sage-dark mr-2">{partner.name}</span>
+                      <Avatar className="h-6 w-6 border border-sage">
+                        <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                          {partner.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-sage-dark">Partner</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           
           <nav>
@@ -145,6 +168,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col space-y-4 mt-8">
+                  {user?.partnerId && partner && (
+                    <div className="flex items-center px-3 py-2 bg-sage-light/30 rounded-md mb-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                      <span className="text-xs text-sage-dark mr-2">Connected with</span>
+                      <span className="text-xs font-medium text-sage-dark">{partner.name}</span>
+                    </div>
+                  )}
+                
                   {navItems.map((item) => (
                     <Link key={item.path} href={item.path} className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
                       location === item.path ? 'text-sage font-medium' : ''
