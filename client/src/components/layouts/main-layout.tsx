@@ -104,57 +104,60 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               
               {user && (
                 <div className="flex items-center ml-2">
-                  {/* User menu dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none">
-                        <Avatar className="h-10 w-10 border border-sage">
-                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <Link href="/profile">
-                        <DropdownMenuItem>
-                          <UserIcon className="w-4 h-4 mr-2" />
-                          <span>Profile</span>
-                        </DropdownMenuItem>
-                      </Link>
-                      {!user.partnerId && (
-                        <Link href="/invite">
-                          <DropdownMenuItem>
-                            <span>Invite Partner</span>
-                          </DropdownMenuItem>
-                        </Link>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="w-4 h-4 mr-2" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  
-                  {/* Connection indicator */}
+                  {/* Connection indicator with overlapping avatars */}
                   {user?.partnerId && !isPartnerLoading && partner && (
                     <div 
-                      className="relative group ml-1"
+                      className="relative group"
                       aria-label={`You're connected with ${partner.name}`}
                     >
-                      <Avatar 
-                        className="h-10 w-10 border border-sage rounded-full"
-                        title={partner.name}
-                      >
-                        <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                        <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                          {partner.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="w-[72px] h-10 relative">
+                        {/* Partner avatar behind */}
+                        <Avatar 
+                          className="h-10 w-10 border border-white absolute left-0 z-0"
+                          title={partner.name}
+                        >
+                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {partner.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* User avatar in front (with dropdown) */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
+                              <Avatar className="h-10 w-10 border border-white">
+                                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                                <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                  {user.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <Link href="/profile">
+                              <DropdownMenuItem>
+                                <UserIcon className="w-4 h-4 mr-2" />
+                                <span>Profile</span>
+                              </DropdownMenuItem>
+                            </Link>
+                            {!user.partnerId && (
+                              <Link href="/invite">
+                                <DropdownMenuItem>
+                                  <span>Invite Partner</span>
+                                </DropdownMenuItem>
+                              </Link>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout}>
+                              <LogOut className="w-4 h-4 mr-2" />
+                              <span>Log out</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
@@ -162,6 +165,44 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                       </div>
                     </div>
+                  )}
+                  
+                  {/* Standalone user avatar if no partner */}
+                  {(!user?.partnerId || isPartnerLoading || !partner) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none">
+                          <Avatar className="h-10 w-10 border border-sage">
+                            <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {user.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <Link href="/profile">
+                          <DropdownMenuItem>
+                            <UserIcon className="w-4 h-4 mr-2" />
+                            <span>Profile</span>
+                          </DropdownMenuItem>
+                        </Link>
+                        {!user.partnerId && (
+                          <Link href="/invite">
+                            <DropdownMenuItem>
+                              <span>Invite Partner</span>
+                            </DropdownMenuItem>
+                          </Link>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout}>
+                          <LogOut className="w-4 h-4 mr-2" />
+                          <span>Log out</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
               )}
@@ -178,15 +219,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {user?.partnerId && partner && (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
-                      <Avatar 
-                        className="h-10 w-10 border border-sage rounded-full"
-                        title={partner.name}
-                      >
-                        <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                        <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                          {partner.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="w-[72px] h-10 relative">
+                        {/* Partner avatar behind */}
+                        <Avatar 
+                          className="h-10 w-10 border border-white absolute left-0 z-0"
+                          title={partner.name}
+                        >
+                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {partner.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* User avatar in front */}
+                        <Avatar 
+                          className="h-10 w-10 border border-white absolute left-6 z-10"
+                          title={user.name}
+                        >
+                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                     </div>
                   )}
                 
