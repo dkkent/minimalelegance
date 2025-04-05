@@ -270,6 +270,16 @@ export class DatabaseStorage implements IStorage {
     
     return user;
   }
+  
+  async unlinkFirebaseAccount(userId: number): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ firebaseUid: null })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return user;
+  }
 
   async getQuestions(): Promise<Question[]> {
     return db.select().from(questions);
