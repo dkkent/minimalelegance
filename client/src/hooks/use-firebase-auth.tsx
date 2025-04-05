@@ -49,6 +49,8 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     } else if (firebaseError.code === "auth/unauthorized-domain") {
+      // Set a localStorage flag to indicate this error
+      localStorage.setItem('firebase_unauthorized_domain', 'true');
       setShowConfigHelp(true);
       toast({
         title: "Domain not authorized",
