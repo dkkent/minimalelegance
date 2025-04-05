@@ -351,23 +351,34 @@ export default function ConversationPage() {
   // Mutation to add a final note to the conversation
   const addFinalNoteMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/final-note`, { 
-        note: endingNote 
-      });
-      
-      // Also send real-time notification via WebSocket if connected
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
-        socketRef.current.send(JSON.stringify({
-          type: 'final_note_added',
-          conversationId,
-          partnerId: user.partnerId,
-          userName: user.name,
-          note: endingNote
-        }));
-        console.log('Sent WebSocket final note notification to partner');
+      try {
+        const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/final-note`, { 
+          note: endingNote 
+        });
+        
+        // Also send real-time notification via WebSocket if connected
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
+          socketRef.current.send(JSON.stringify({
+            type: 'final_note_added',
+            conversationId,
+            partnerId: user.partnerId,
+            userName: user.name,
+            note: endingNote
+          }));
+          console.log('Sent WebSocket final note notification to partner');
+        }
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Final note error response:', errorText);
+          throw new Error(`Failed to add final note: ${res.status} ${res.statusText}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error('Error adding final note:', error);
+        throw error;
       }
-      
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId] });
@@ -377,10 +388,11 @@ export default function ConversationPage() {
       });
     },
     onError: (error: Error) => {
+      console.error('Final note mutation error:', error);
       toast({
         title: "Failed to add note",
-        description: error.message,
-        variant: "destructive",
+        description: error.message || "There was a problem saving your note. Please try again.",
+        variant: "destructive"
       });
     },
   });
