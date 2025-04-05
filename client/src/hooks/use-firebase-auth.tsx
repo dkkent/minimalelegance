@@ -100,11 +100,21 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Google sign-in error:", error);
       setError(error as Error);
-      toast({
-        title: "Sign in failed",
-        description: error instanceof Error ? error.message : "Failed to sign in with Google",
-        variant: "destructive",
-      });
+      // Check for configuration error
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code === "auth/configuration-not-found") {
+        toast({
+          title: "Authentication provider not enabled",
+          description: "Google sign-in is not currently configured. Please try another method.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sign in failed",
+          description: error instanceof Error ? error.message : "Failed to sign in with Google",
+          variant: "destructive",
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -122,11 +132,21 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Apple sign-in error:", error);
       setError(error as Error);
-      toast({
-        title: "Sign in failed",
-        description: error instanceof Error ? error.message : "Failed to sign in with Apple",
-        variant: "destructive",
-      });
+      // Check for configuration error
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code === "auth/configuration-not-found") {
+        toast({
+          title: "Authentication provider not enabled",
+          description: "Apple sign-in is not currently configured. Please try another method.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sign in failed",
+          description: error instanceof Error ? error.message : "Failed to sign in with Apple",
+          variant: "destructive",
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -144,11 +164,21 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Meta sign-in error:", error);
       setError(error as Error);
-      toast({
-        title: "Sign in failed",
-        description: error instanceof Error ? error.message : "Failed to sign in with Facebook",
-        variant: "destructive",
-      });
+      // Check for configuration error
+      const firebaseError = error as { code?: string };
+      if (firebaseError.code === "auth/configuration-not-found") {
+        toast({
+          title: "Authentication provider not enabled",
+          description: "Facebook sign-in is not currently configured. Please try another method.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sign in failed",
+          description: error instanceof Error ? error.message : "Failed to sign in with Facebook",
+          variant: "destructive",
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
