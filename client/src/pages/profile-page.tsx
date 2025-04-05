@@ -17,6 +17,7 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 import { ProfilePictureUpload } from "@/components/profile-picture-upload";
+import { DisconnectPartnerDialog } from "@/components/disconnect-partner-dialog";
 import { usePartner } from "@/hooks/use-partner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -213,7 +214,7 @@ export default function ProfilePage() {
                       Together you'll cultivate your relationship through meaningful conversations and 
                       shared reflections.
                     </p>
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-sage-light/30">
                       <Button
                         variant="outline"
                         size="sm"
@@ -222,6 +223,15 @@ export default function ProfilePage() {
                       >
                         Visit your shared garden
                       </Button>
+                      
+                      {partner && (
+                        <DisconnectPartnerDialog
+                          partner={{
+                            id: partner.id,
+                            name: partner.name
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (

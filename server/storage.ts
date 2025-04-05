@@ -53,6 +53,7 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User | undefined>;
   resetPassword(token: string, newPassword: string): Promise<boolean>;
   linkPartner(userId: number, partnerId: number): Promise<boolean>;
+  disconnectPartners(userId: number, partnerId: number): Promise<boolean>;
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   linkFirebaseAccount(userId: number, firebaseUid: string): Promise<User | undefined>;
@@ -242,6 +243,30 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error("Error linking partners:", error);
+      return false;
+    }
+  }
+  
+  async disconnectPartners(userId: number, partnerId: number): Promise<boolean> {
+    try {
+      // Update the first user, setting partnerId to null and isIndividual to true
+      await db
+        .update(users)
+        .set({ partnerId: null, isIndividual: true })
+        .where(eq(users.id, userId));
+      
+      // Update the second user (partner)
+      await db
+        .update(users)
+        .set({ partnerId: null, isIndividual: true })
+        .where(eq(users.id, partnerId));
+      
+      // Note: In a real app, we might want to update loveslices, conversations, etc.
+      // to reflect the disconnection, but for now we keep them as-is to preserve history
+      
+      return true;
+    } catch (error) {
+      console.error("Error disconnecting partners:", error);
       return false;
     }
   }
