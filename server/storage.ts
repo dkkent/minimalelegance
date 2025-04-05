@@ -1569,9 +1569,6 @@ export class DatabaseStorage implements IStorage {
   
   async getJournalEntriesByUserId(userId: number): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
-    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
-    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
-    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
 
@@ -1620,18 +1617,23 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          // Format profile picture paths using helper function
+          // Always explicitly format profile picture paths
           const formattedUser1 = this.formatUserProfilePicture(user1);
           const formattedUser2 = this.formatUserProfilePicture(user2);
           
-          // Add the data to the entry 
-          // We need to cast entry to JournalEntry type with the extended properties
+          // Add the data to the entry with formatted user objects for responses
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: formattedUser1 },
-              { ...response2[0], user: formattedUser2 }
+              { 
+                ...response1[0], 
+                user: formattedUser1 
+              },
+              { 
+                ...response2[0], 
+                user: formattedUser2
+              }
             ]
           };
         }
@@ -1654,7 +1656,6 @@ export class DatabaseStorage implements IStorage {
   
   async searchJournalEntries(userId: number, query: string): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
-    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
     
@@ -1701,7 +1702,7 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
           
-          // Format profile picture paths using helper function
+          // Always explicitly format profile picture paths
           const formattedUser1 = this.formatUserProfilePicture(user1);
           const formattedUser2 = this.formatUserProfilePicture(user2);
             
@@ -1709,8 +1710,14 @@ export class DatabaseStorage implements IStorage {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: formattedUser1 },
-              { ...response2[0], user: formattedUser2 }
+              { 
+                ...response1[0], 
+                user: formattedUser1 
+              },
+              { 
+                ...response2[0], 
+                user: formattedUser2
+              }
             ]
           };
         }
@@ -1732,9 +1739,6 @@ export class DatabaseStorage implements IStorage {
   
   async getJournalEntriesByTheme(userId: number, theme: string): Promise<JournalEntry[]> {
     // Get the user to check if they have a partner
-    // This also ensures proper formatting of profile picture paths through formatUserProfilePicture
-    // NOTE: Throughout this method, getUser() calls apply formatUserProfilePicture automatically,
-    // ensuring consistent profile picture path formatting for all user objects
     const user = await this.getUser(userId);
     const partnerId = user?.partnerId;
     
@@ -1781,7 +1785,7 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
           
-          // Format profile picture paths using helper function
+          // Always explicitly format profile picture paths
           const formattedUser1 = this.formatUserProfilePicture(user1);
           const formattedUser2 = this.formatUserProfilePicture(user2);
             
@@ -1789,8 +1793,14 @@ export class DatabaseStorage implements IStorage {
             ...loveslice,
             question,
             responses: [
-              { ...response1[0], user: formattedUser1 },
-              { ...response2[0], user: formattedUser2 }
+              { 
+                ...response1[0], 
+                user: formattedUser1 
+              },
+              { 
+                ...response2[0], 
+                user: formattedUser2
+              }
             ]
           };
         }
