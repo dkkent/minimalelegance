@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { WebSocketServer, WebSocket } from 'ws';
+import { validatePasswordStrength, comparePasswords, hashPassword } from "./utils/password-utils";
 import { 
   insertResponseSchema, 
   insertConversationSchema, 
@@ -253,9 +254,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Current password and new password are required" });
       }
       
-      // Import the auth helper functions to verify the current password
-      const { comparePasswords, hashPassword } = await import('./auth');
-      
       // Verify current password
       const isCorrect = await comparePasswords(currentPassword, req.user.password);
       if (!isCorrect) {
@@ -276,6 +274,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       return res.status(500).json({ message: "An error occurred while changing your password" });
+    }
+  });
+  
+  // Delete account (permanently remove user and all their data)
+  app.post("/api/delete-account", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: "Password is required to delete account" });
+      }
+      
+      // Verify the password first
+      const isCorrect = await comparePasswords(password, req.user.password);
+      if (!isCorrect) {
+        return res.status(400).json({ message: "Password is incorrect" });
+      }
+      
+      // Delete the user account and all associated data
+      const deleted = await storage.deleteUser(req.user.id);
+      
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete account" });
+      }
+      
+      // Logout the user after successful account deletion
+      req.logout((err) => {
+        if (err) {
+          console.error("Error logging out after account deletion:", err);
+          return res.status(500).json({ message: "Account deleted but failed to log out" });
+        }
+        
+        return res.status(200).json({ message: "Account successfully deleted" });
+      });
+    } catch (error) {
+      console.error("Delete account error:", error);
+      return res.status(500).json({ message: "An error occurred while deleting your account" });
     }
   });
   
@@ -401,7 +438,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // New user, create account with a random password
           const randomPassword = randomBytes(16).toString('hex');
-          const { hashPassword } = await import("./auth");
           const hashedPassword = await hashPassword(randomPassword);
           
           try {

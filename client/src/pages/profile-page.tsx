@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -292,6 +293,17 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <ChangePasswordForm />
+                
+                {/* Separator between change password form and delete account button */}
+                <div className="mt-8 pt-2 border-t border-border">
+                  <h3 className="text-lg font-medium text-destructive mb-2">
+                    Danger Zone
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    These actions are irreversible. Please proceed with caution.
+                  </p>
+                  <DeleteAccountDialog />
+                </div>
               </CardContent>
             </Card>
           </HandDrawnBorder>
