@@ -13,6 +13,7 @@ import { User } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
+import { ChangePasswordForm } from "@/components/change-password-form";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -189,6 +190,20 @@ export default function ProfilePage() {
               </Card>
             </HandDrawnBorder>
           )}
+          
+          <HandDrawnBorder>
+            <Card>
+              <CardHeader>
+                <CardTitle>Security</CardTitle>
+                <CardDescription>
+                  Manage your password and account security
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChangePasswordForm />
+              </CardContent>
+            </Card>
+          </HandDrawnBorder>
         </div>
       </div>
     </MainLayout>

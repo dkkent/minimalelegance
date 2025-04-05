@@ -48,6 +48,9 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  createPasswordResetToken(email: string): Promise<string | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  resetPassword(token: string, newPassword: string): Promise<boolean>;
   linkPartner(userId: number, partnerId: number): Promise<boolean>;
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
   
@@ -161,6 +164,60 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return user;
+  }
+  
+  async createPasswordResetToken(email: string): Promise<string | undefined> {
+    // Find the user by email
+    const user = await this.getUserByEmail(email);
+    if (!user) return undefined;
+    
+    // Generate a random token
+    const resetToken = Math.random().toString(36).substring(2, 15) + 
+                       Math.random().toString(36).substring(2, 15);
+    
+    // Set token expiry to 1 hour from now
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    
+    // Save the token to the user record
+    await db
+      .update(users)
+      .set({ resetToken, resetTokenExpiry })
+      .where(eq(users.id, user.id));
+    
+    return resetToken;
+  }
+  
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const now = new Date();
+    
+    // Find user by reset token and ensure it's not expired
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.resetToken, token),
+        // Ensure resetTokenExpiry is after current time (not expired)
+        sql`${users.resetTokenExpiry} > ${now}`
+      ));
+    
+    return user;
+  }
+  
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    const user = await this.getUserByResetToken(token);
+    if (!user) return false;
+    
+    // Update the user's password and clear the reset token
+    await db
+      .update(users)
+      .set({ 
+        password: newPassword, // Note: The password should be hashed by the caller
+        resetToken: null,
+        resetTokenExpiry: null
+      })
+      .where(eq(users.id, user.id));
+    
+    return true;
   }
 
   async linkPartner(userId: number, partnerId: number): Promise<boolean> {

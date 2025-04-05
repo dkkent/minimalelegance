@@ -141,6 +141,16 @@ export default function AuthPage() {
                           </button>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <Button 
+                          variant="link" 
+                          className="px-0 font-normal h-auto"
+                          onClick={() => setLocation("/forgot-password")}
+                          type="button"
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
                     </CardContent>
                     <CardFooter>
                       <Button 
