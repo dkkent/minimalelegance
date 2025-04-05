@@ -122,8 +122,9 @@ export default function AuthPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <FirebaseAuthButton provider="google" />
-                        <FirebaseAuthButton provider="apple" />
-                        <FirebaseAuthButton provider="meta" />
+                        {/* Apple and Meta authentication will be enabled in the future */}
+                        {/* <FirebaseAuthButton provider="apple" />
+                        <FirebaseAuthButton provider="meta" /> */}
                       </div>
                       
                       <div className="relative">
@@ -218,8 +219,9 @@ export default function AuthPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <FirebaseAuthButton provider="google" />
-                        <FirebaseAuthButton provider="apple" />
-                        <FirebaseAuthButton provider="meta" />
+                        {/* Apple and Meta authentication will be enabled in the future */}
+                        {/* <FirebaseAuthButton provider="apple" />
+                        <FirebaseAuthButton provider="meta" /> */}
                       </div>
                       
                       <div className="relative">
