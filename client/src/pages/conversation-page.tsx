@@ -276,7 +276,7 @@ export default function ConversationPage() {
   // Mutation to initiate the shared conversation ending
   const initiateEndingMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-initiate`, { 
+      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/initiate-end`, { 
         userId: user?.id 
       });
       
@@ -314,7 +314,7 @@ export default function ConversationPage() {
   // Mutation to confirm the conversation ending
   const confirmEndingMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-confirm`, { 
+      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/confirm-end`, { 
         userId: user?.id 
       });
       
@@ -351,7 +351,7 @@ export default function ConversationPage() {
   // Mutation to add a final note to the conversation
   const addFinalNoteMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', `/api/conversations/${conversationId}/final-note`, { 
+      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/final-note`, { 
         note: endingNote 
       });
       
@@ -388,7 +388,7 @@ export default function ConversationPage() {
   // Mutation to cancel the conversation ending
   const cancelEndingMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', `/api/conversations/${conversationId}/end-cancel`, {});
+      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/cancel-end`, {});
       
       // Also send real-time notification via WebSocket if connected
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user?.partnerId) {
