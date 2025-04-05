@@ -17,9 +17,12 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 import { ProfilePictureUpload } from "@/components/profile-picture-upload";
+import { usePartner } from "@/hooks/use-partner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { partner, isLoading: isPartnerLoading } = usePartner(); 
   const { currentUser, firebaseLogout } = useFirebaseAuth();
   const { toast } = useToast();
   const [_, navigate] = useLocation();
@@ -154,14 +157,57 @@ export default function ProfilePage() {
               <CardContent>
                 {user.partnerId ? (
                   <div className="bg-sage-light/30 p-4 rounded-md border border-sage-light">
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-4">
                       <div className="bg-sage-light text-sage-dark px-3 py-1 text-xs rounded-full font-medium">
                         Connected
                       </div>
                     </div>
-                    <div className="font-medium mb-2">
-                      You are now connected with your partner!
-                    </div>
+                    
+                    {isPartnerLoading ? (
+                      <div className="flex justify-center items-center py-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-sage" />
+                      </div>
+                    ) : partner ? (
+                      <div className="flex items-center gap-4 mb-4 p-3 bg-white/50 rounded-md border border-sage-light/50">
+                        <div className="w-[72px] h-10 relative">
+                          {/* Partner avatar behind */}
+                          <Avatar 
+                            className="h-10 w-10 border border-white absolute left-0 z-0"
+                            title={partner.name}
+                          >
+                            <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {partner.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          {/* User avatar in front */}
+                          <Avatar 
+                            className="h-10 w-10 border border-white absolute left-6 z-10"
+                            title={user.name}
+                          >
+                            <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {user.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        
+                        <div>
+                          <div className="font-medium text-sage-dark">
+                            Connected with {partner.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            You are growing your relationship garden together
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="font-medium mb-2">
+                        You are now connected with your partner!
+                      </div>
+                    )}
+                    
                     <p className="text-sm text-gray-600 mb-4">
                       You can now see each other's responses and loveslices in your shared garden.
                       Together you'll cultivate your relationship through meaningful conversations and 
