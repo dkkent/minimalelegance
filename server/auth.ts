@@ -6,7 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { sendEmail } from "./utils/sendgrid";
+import { sendEmail, sendPasswordResetEmail } from "./utils/sendgrid";
 
 declare global {
   namespace Express {
@@ -142,9 +142,8 @@ export function setupAuth(app: Express) {
         return res.status(200).json({ message: "If your email exists in our system, you will receive a password reset link" });
       }
       
-      // Import and use our dedicated password reset email function 
+      // Use our dedicated password reset email function
       // from sendgrid.ts to ensure consistent email styling
-      const { sendPasswordResetEmail } = require('./utils/sendgrid');
       await sendPasswordResetEmail(email, resetToken);
       
       res.status(200).json({ message: "If your email exists in our system, you will receive a password reset link" });
