@@ -243,7 +243,7 @@ export default function JournalPage() {
                 {entry.writtenLovesliceId && entry.writtenLoveslice && (
                   <div>
                     <Separator className="my-3" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       {entry.writtenLoveslice.responses.map((response: any, index: number) => (
                         <div key={index}>
                           <div className="flex items-center mb-2">
@@ -257,6 +257,25 @@ export default function JournalPage() {
                           <p className="text-gray-600 italic">"{response.content}"</p>
                         </div>
                       ))}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <ThemeBadge theme={entry.theme as Theme} size="small" />
+                        {entry.spokenLovesliceId ? (
+                          <Badge className="bg-lavender text-lavender-dark flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Spoken
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-sage-light text-sage-dark flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            Written
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                      </span>
                     </div>
                   </div>
                 )}
