@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 
 // Create a canvas to create our cropped image
@@ -109,18 +109,41 @@ export function ImageCropper({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Crop Profile Picture</DialogTitle>
+          <DialogDescription>
+            Adjust your image to get the perfect profile picture
+          </DialogDescription>
         </DialogHeader>
-        <div className="relative w-full h-64 mt-4">
-          <Cropper
-            image={image}
-            crop={crop}
-            zoom={zoom}
-            aspect={aspectRatio}
-            onCropChange={onCropChange}
-            onCropComplete={onCropCompleteHandler}
-            onZoomChange={(z) => setZoom(z)}
-            cropShape="round"
-          />
+        <div className="relative w-full h-64 mt-4" style={{ overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <Cropper
+              image={image}
+              crop={crop}
+              zoom={zoom}
+              aspect={aspectRatio}
+              onCropChange={onCropChange}
+              onCropComplete={onCropCompleteHandler}
+              onZoomChange={(z) => setZoom(z)}
+              cropShape="round"
+              objectFit="contain"
+              showGrid={false}
+              style={{
+                containerStyle: {
+                  width: '100%', 
+                  height: '100%', 
+                  position: 'relative'
+                },
+                cropAreaStyle: {
+                  width: '100%',
+                  height: '100%'
+                },
+                mediaStyle: {
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }
+              }}
+            />
+          </div>
         </div>
         <div className="mt-4">
           <p className="text-sm text-muted-foreground mb-2">Zoom</p>
