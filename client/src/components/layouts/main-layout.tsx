@@ -96,35 +96,39 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="flex items-center space-x-4">
             {user?.partnerId && !isPartnerLoading && partner && (
               <div 
-                className="relative group flex items-center"
+                className="relative group flex items-center mr-2"
                 aria-label={`You're connected with ${partner.name}`}
               >
-                <div className="relative flex items-center">
-                  {/* Partner avatar positioned behind */}
-                  <div className="absolute right-3 -z-10">
+                <div className="flex items-center">
+                  {/* Container for overlapping avatars */}
+                  <div className="w-12 h-7 relative">
+                    {/* Partner avatar behind */}
                     <Avatar 
-                      className="h-7 w-7 border border-white" 
-                      title={`${partner.name}`}
+                      className="h-7 w-7 border border-white absolute left-0 z-0"
+                      title={partner.name}
                     >
                       <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
                       <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
                         {partner.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
+                    
+                    {/* User avatar in front */}
+                    <Avatar 
+                      className="h-7 w-7 border border-white absolute left-4 z-10"
+                      title={user.name}
+                    >
+                      <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                      <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                        {user.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
                   
-                  {/* User avatar on top */}
-                  <Avatar className="h-7 w-7 border border-white relative z-10">
-                    <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                    <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                      {user.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  
                   {/* Tooltip */}
-                  <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out bottom-full -left-2 mb-2 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none">
+                  <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
                     You're connected with {partner.name}
-                    <div className="absolute -bottom-1 left-6 w-2 h-2 bg-sage-dark transform rotate-45"></div>
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                   </div>
                 </div>
               </div>
@@ -190,22 +194,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {user?.partnerId && partner && (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
-                      <div className="relative flex items-center">
-                        {/* Partner avatar positioned behind */}
-                        <div className="absolute right-3 -z-10">
-                          <Avatar 
-                            className="h-7 w-7 border border-white" 
-                            title={`${partner.name}`}
-                          >
-                            <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                            <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                              {partner.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
+                      <div className="w-12 h-7 relative">
+                        {/* Partner avatar behind */}
+                        <Avatar 
+                          className="h-7 w-7 border border-white absolute left-0 z-0"
+                          title={partner.name}
+                        >
+                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                            {partner.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
                         
-                        {/* User avatar on top */}
-                        <Avatar className="h-7 w-7 border border-white relative z-10">
+                        {/* User avatar in front */}
+                        <Avatar 
+                          className="h-7 w-7 border border-white absolute left-4 z-10"
+                          title={user.name}
+                        >
                           <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                           <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
                             {user.name.split(' ').map(n => n[0]).join('')}
