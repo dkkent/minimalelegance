@@ -99,17 +99,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 className="relative group flex items-center"
                 aria-label={`You're connected with ${partner.name}`}
               >
-                <div className="relative flex">
-                  <Avatar 
-                    className="h-7 w-7 border border-white absolute -right-2 -z-10" 
-                    title={`${partner.name}`}
-                  >
-                    <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                    <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                      {partner.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Avatar className="h-7 w-7 border border-white ml-4">
+                <div className="relative flex items-center">
+                  {/* Partner avatar positioned behind */}
+                  <div className="absolute right-3 -z-10">
+                    <Avatar 
+                      className="h-7 w-7 border border-white" 
+                      title={`${partner.name}`}
+                    >
+                      <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                      <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                        {partner.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  
+                  {/* User avatar on top */}
+                  <Avatar className="h-7 w-7 border border-white relative z-10">
                     <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                     <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
                       {user.name.split(' ').map(n => n[0]).join('')}
@@ -185,17 +190,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {user?.partnerId && partner && (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
-                      <div className="relative flex">
-                        <Avatar 
-                          className="h-7 w-7 border border-white absolute -right-2 -z-10" 
-                          title={`${partner.name}`}
-                        >
-                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                          <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
-                            {partner.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Avatar className="h-7 w-7 border border-white ml-4">
+                      <div className="relative flex items-center">
+                        {/* Partner avatar positioned behind */}
+                        <div className="absolute right-3 -z-10">
+                          <Avatar 
+                            className="h-7 w-7 border border-white" 
+                            title={`${partner.name}`}
+                          >
+                            <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                            <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
+                              {partner.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        
+                        {/* User avatar on top */}
+                        <Avatar className="h-7 w-7 border border-white relative z-10">
                           <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                           <AvatarFallback className="text-[10px] bg-sage-light text-sage-dark">
                             {user.name.split(' ').map(n => n[0]).join('')}
