@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
   firebaseUid: text("firebase_uid").unique(),
+  profilePicture: text("profile_picture"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

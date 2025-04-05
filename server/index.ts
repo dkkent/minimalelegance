@@ -6,6 +6,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurityMiddleware } from "./middleware/security";
+import { setupFileUpload, ensureUploadDirs } from "./middleware/upload";
+import path from "path";
 
 const app = express();
 app.use(express.json());
@@ -13,6 +15,13 @@ app.use(express.urlencoded({ extended: false }));
 
 // Set up security middleware (rate limiting, helmet, etc.)
 setupSecurityMiddleware(app);
+
+// Set up file upload middleware
+setupFileUpload(app);
+ensureUploadDirs();
+
+// Serve the uploads directory statically
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { WebSocketServer, WebSocket } from 'ws';
 import { validatePasswordStrength, comparePasswords, hashPassword } from "./utils/password-utils";
+import { saveProfilePicture } from "./middleware/upload";
 import { 
   insertResponseSchema, 
   insertConversationSchema, 
@@ -17,6 +18,33 @@ import {
   responses,
   questions
 } from "@shared/schema";
+// We're importing the UploadedFile type from our declaration file, but
+// we need to handle as a 'Request' with 'files' property
+interface RequestWithFiles extends Request {
+  files?: {
+    [fieldname: string]: {
+      name: string;
+      encoding: string;
+      mimetype: string;
+      mv: (path: string) => Promise<void>;
+      data: Buffer;
+      truncated: boolean;
+      size: number;
+      md5: string;
+      tempFilePath: string;
+    } | Array<{
+      name: string;
+      encoding: string;
+      mimetype: string;
+      mv: (path: string) => Promise<void>;
+      data: Buffer;
+      truncated: boolean;
+      size: number;
+      md5: string;
+      tempFilePath: string;
+    }>;
+  };
+}
 import { db } from "./db";
 import { eq, and, or, isNull, not } from "drizzle-orm";
 
@@ -475,6 +503,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload profile picture
+  app.post("/api/profile-picture", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const fileUploadReq = req as unknown as { files?: { [fieldname: string]: any } };
+      
+      if (!fileUploadReq.files || !fileUploadReq.files.profilePicture) {
+        return res.status(400).json({ message: "No profile picture uploaded" });
+      }
+      
+      const fileData = fileUploadReq.files.profilePicture;
+      // Handle if multiple files were uploaded
+      const file = Array.isArray(fileData) ? fileData[0] : fileData;
+      
+      // Validate file type (only allow images)
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ message: "Only image files are allowed" });
+      }
+      
+      // Save the file and get the relative path
+      const filePath = await saveProfilePicture(file);
+      
+      // Update the user's profile picture path in the database
+      const updatedUser = await storage.updateUser(req.user!.id, { profilePicture: filePath });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update profile picture" });
+      }
+      
+      // Return the updated user without sensitive information
+      const { password, resetToken, resetTokenExpiry, ...safeUserData } = updatedUser;
+      
+      return res.status(200).json({ 
+        message: "Profile picture updated successfully", 
+        user: safeUserData
+      });
+    } catch (error) {
+      console.error("Profile picture upload error:", error);
+      return res.status(500).json({ message: "An error occurred while uploading your profile picture" });
+    }
+  });
+  
   // Invite a partner
   app.post("/api/invite-partner", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

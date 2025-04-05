@@ -16,6 +16,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
+import { ProfilePictureUpload } from "@/components/profile-picture-upload";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -120,14 +121,21 @@ export default function ProfilePage() {
                   Your personal account details
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <div className="font-medium">{user.name}</div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <div className="font-medium">{user.email}</div>
+              <CardContent className="space-y-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-shrink-0">
+                    <ProfilePictureUpload user={user} />
+                  </div>
+                  <div className="space-y-4 flex-grow">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <div className="font-medium">{user.name}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <div className="font-medium">{user.email}</div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
