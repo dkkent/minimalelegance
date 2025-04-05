@@ -1465,14 +1465,15 @@ export class DatabaseStorage implements IStorage {
   
   async getSpokenLoveslicesByUserId(userId: number): Promise<SpokenLoveslice[]> {
     // First, get the user to check if they have a partner
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
+    const user = await this.getUser(userId);
+    const partnerId = user?.partnerId;
     
-    if (!user || !user.partnerId) {
+    // Get the base spoken loveslices
+    let spokenLoveslicesList;
+    
+    if (!partnerId) {
       // If user has no partner, only show their own loveslices
-      return db
+      spokenLoveslicesList = await db
         .select()
         .from(spokenLoveslices)
         .where(or(
@@ -1482,17 +1483,31 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(spokenLoveslices.createdAt));
     } else {
       // If user has a partner, also show loveslices where their partner is a participant
-      return db
+      spokenLoveslicesList = await db
         .select()
         .from(spokenLoveslices)
         .where(or(
           eq(spokenLoveslices.user1Id, userId),
           eq(spokenLoveslices.user2Id, userId),
-          eq(spokenLoveslices.user1Id, user.partnerId),
-          eq(spokenLoveslices.user2Id, user.partnerId)
+          eq(spokenLoveslices.user1Id, partnerId),
+          eq(spokenLoveslices.user2Id, partnerId)
         ))
         .orderBy(desc(spokenLoveslices.createdAt));
     }
+    
+    // Enhance spoken loveslices with user data including properly formatted profile pictures
+    for (const loveslice of spokenLoveslicesList) {
+      // Get user data for both users in the spoken loveslice
+      const user1 = await this.getUser(loveslice.user1Id);
+      const user2 = await this.getUser(loveslice.user2Id);
+      
+      // Add user data to the loveslice (user data already includes formatted profile pictures through getUser)
+      // The formatUserProfilePicture helper is automatically applied in getUser
+      loveslice.user1 = user1;
+      loveslice.user2 = user2;
+    }
+    
+    return spokenLoveslicesList;
   }
   
   async getSpokenLovesliceById(id: number): Promise<SpokenLoveslice | undefined> {
@@ -1500,6 +1515,41 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(spokenLoveslices)
       .where(eq(spokenLoveslices.id, id));
+    
+    if (!spokenLoveslice) {
+      return undefined;
+    }
+    
+    // Get user data and format profile pictures for both users
+    const user1 = await this.getUser(spokenLoveslice.user1Id);
+    const user2 = await this.getUser(spokenLoveslice.user2Id);
+    
+    // Add formatted user data to the spokenLoveslice object
+    // getUser already applies the formatUserProfilePicture helper function
+    spokenLoveslice.user1 = user1;
+    spokenLoveslice.user2 = user2;
+    
+    // If there's a conversation, also fetch messages with user data
+    if (spokenLoveslice.conversationId) {
+      const conversation = await this.getConversationById(spokenLoveslice.conversationId);
+      
+      if (conversation) {
+        // Get messages with properly formatted user data (including profile pictures)
+        const messages = await this.getConversationMessages(conversation.id);
+        
+        // For each message, add the user data with properly formatted profile pictures
+        for (const message of messages) {
+          const messageUser = await this.getUser(message.userId);
+          message.user = messageUser; // getUser already applies formatUserProfilePicture
+        }
+        
+        // Add the enhanced conversation with messages to the spoken loveslice
+        spokenLoveslice.conversation = {
+          ...conversation,
+          messages
+        };
+      }
+    }
     
     return spokenLoveslice;
   }

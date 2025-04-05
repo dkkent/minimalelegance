@@ -160,7 +160,9 @@ export const insertConversationMessageSchema = createInsertSchema(conversationMe
 });
 
 export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
-export type ConversationMessage = typeof conversationMessages.$inferSelect;
+export type ConversationMessage = typeof conversationMessages.$inferSelect & {
+  user?: User;
+};
 
 // Spoken Loveslices schema (from meaningful conversations)
 export const spokenLoveslices = pgTable("spoken_loveslices", {
@@ -188,7 +190,14 @@ export const insertSpokenLovesliceSchema = createInsertSchema(spokenLoveslices).
 });
 
 export type InsertSpokenLoveslice = z.infer<typeof insertSpokenLovesliceSchema>;
-export type SpokenLoveslice = typeof spokenLoveslices.$inferSelect;
+export type SpokenLoveslice = typeof spokenLoveslices.$inferSelect & {
+  // Extended properties for hydrated/joined data
+  user1?: User;
+  user2?: User;
+  conversation?: Conversation & {
+    messages?: ConversationMessage[];
+  };
+};
 
 // Active questions schema (questions assigned to users)
 export const activeQuestions = pgTable("active_questions", {
