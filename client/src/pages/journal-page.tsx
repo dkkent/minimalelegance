@@ -229,9 +229,16 @@ export default function JournalPage() {
                         <div key={index}>
                           <div className="flex items-center mb-2">
                             <Avatar className="h-6 w-6 rounded-full mr-2">
-                              <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                {getInitials(response.user.name)}
-                              </AvatarFallback>
+                              {response.user.profilePicture ? (
+                                <img 
+                                  src={response.user.profilePicture.startsWith('/') ? response.user.profilePicture : `/${response.user.profilePicture}`} 
+                                  alt={response.user.name} 
+                                />
+                              ) : (
+                                <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                  {getInitials(response.user.name)}
+                                </AvatarFallback>
+                              )}
                             </Avatar>
                             <p className="text-sm font-medium">{response.user.name}</p>
                           </div>
