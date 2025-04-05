@@ -48,6 +48,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   createPasswordResetToken(email: string): Promise<string | undefined>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   resetPassword(token: string, newPassword: string): Promise<boolean>;
@@ -1507,6 +1508,68 @@ export class DatabaseStorage implements IStorage {
     }
     
     return entries;
+  }
+  
+  /**
+   * Delete a user account and all associated data 
+   * (or anonymize where needed to preserve relational integrity)
+   */
+  async deleteUser(id: number): Promise<boolean> {
+    try {
+      // Start a transaction for data consistency
+      await db.transaction(async (tx) => {
+        // Get user data for associated deletions
+        const user = await this.getUser(id);
+        if (!user) throw new Error("User not found");
+        
+        // Delete related data in relational order (child records first)
+        
+        // 1. Delete user's conversation messages
+        await tx
+          .delete(conversationMessages)
+          .where(eq(conversationMessages.userId, id));
+          
+        // 2. Delete user's active questions
+        await tx
+          .delete(activeQuestions)
+          .where(eq(activeQuestions.userId, id));
+          
+        // 3. Delete user's user activity records
+        await tx
+          .delete(userActivity)
+          .where(eq(userActivity.userId, id));
+          
+        // 4. Delete journal entries
+        await tx
+          .delete(journalEntries)
+          .where(or(
+            eq(journalEntries.user1Id, id),
+            eq(journalEntries.user2Id, id)
+          ));
+          
+        // 5. Handle connected user (partner)
+        if (user.partnerId) {
+          // Update partner to be individual again
+          await tx
+            .update(users)
+            .set({ 
+              partnerId: null,
+              isIndividual: true
+            })
+            .where(eq(users.id, user.partnerId));
+        }
+        
+        // 6. Delete the user record
+        await tx
+          .delete(users)
+          .where(eq(users.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
   }
 }
 
