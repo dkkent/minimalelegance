@@ -118,8 +118,29 @@ export default function AuthPage() {
                       Log in to continue nurturing your relationship garden
                     </CardDescription>
                   </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <FirebaseAuthButton provider="google" />
+                        <FirebaseAuthButton provider="apple" />
+                        <FirebaseAuthButton provider="meta" />
+                      </div>
+                      
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or continue with email
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
                   <form onSubmit={handleLoginSubmit}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-0">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -180,25 +201,6 @@ export default function AuthPage() {
                           </>
                         ) : "Login"}
                       </Button>
-                      
-                      <div className="mt-4">
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                              Or continue with
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 space-y-2">
-                          <FirebaseAuthButton provider="google" />
-                          <FirebaseAuthButton provider="apple" />
-                          <FirebaseAuthButton provider="meta" />
-                        </div>
-                      </div>
                     </CardFooter>
                   </form>
                 </Card>
@@ -212,8 +214,29 @@ export default function AuthPage() {
                       Join Loveslices to start growing your relationship
                     </CardDescription>
                   </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <FirebaseAuthButton provider="google" />
+                        <FirebaseAuthButton provider="apple" />
+                        <FirebaseAuthButton provider="meta" />
+                      </div>
+                      
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or sign up with email
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
                   <form onSubmit={handleRegisterSubmit}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-0">
                       <div className="space-y-2">
                         <Label htmlFor="name">Full Name</Label>
                         <Input
@@ -314,25 +337,6 @@ export default function AuthPage() {
                           </>
                         ) : "Register"}
                       </Button>
-                      
-                      <div className="mt-4">
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                              Or sign up with
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 space-y-2">
-                          <FirebaseAuthButton provider="google" />
-                          <FirebaseAuthButton provider="apple" />
-                          <FirebaseAuthButton provider="meta" />
-                        </div>
-                      </div>
                     </CardFooter>
                   </form>
                 </Card>
