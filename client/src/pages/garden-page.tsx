@@ -149,7 +149,7 @@ export default function GardenPage() {
                         )}
                       </div>
                       <span className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                        {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : "Date unknown"}
                       </span>
                     </div>
                     
