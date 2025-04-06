@@ -42,7 +42,7 @@ import {
   userRoleEnum
 } from "@shared/schema";
 import { db } from "./db";
-import { and, eq, desc, gte, lte, sql, or } from "drizzle-orm";
+import { and, eq, desc, gte, lte, sql, or, inArray, isNotNull, not } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -141,8 +141,8 @@ export interface IStorage {
   getPartnershipCount(): Promise<number>;
   getActiveUserCount(days?: number): Promise<number>;
   getRecentJournalEntryCount(days?: number): Promise<number>;
-  getAllConversationStarters(): Promise<ConversationStarter[]>;
-  getThemes(): Promise<string[]>;
+  getAllConversationStarters(): Promise<{ starters: ConversationStarter[] }>;
+  getThemes(): Promise<{ themes: { id: number, name: string, color: string }[] }>;
   updateConversationStarter(id: number, data: Partial<ConversationStarter>): Promise<ConversationStarter | undefined>;
   deleteConversationStarter(id: number): Promise<boolean>;
   
