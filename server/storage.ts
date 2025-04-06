@@ -148,6 +148,33 @@ export class DatabaseStorage implements IStorage {
     
     return user;
   }
+  
+  /**
+   * Helper function to sanitize user data before sending to client
+   * Removes sensitive fields like password, resetToken, etc.
+   * @param user The user object to sanitize
+   * @returns A sanitized user object safe for client consumption
+   */
+  private sanitizeUser<T extends Partial<User>>(user: T | undefined): Omit<T, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined {
+    if (!user) return undefined;
+    
+    // Create a new object without sensitive fields
+    const { 
+      password, 
+      resetToken, 
+      resetTokenExpiry, 
+      ...safeUserData 
+    } = user as any;
+    
+    // Format the profile picture if it exists
+    if (safeUserData.profilePicture) {
+      safeUserData.profilePicture = safeUserData.profilePicture.startsWith('/') 
+        ? safeUserData.profilePicture 
+        : `/uploads/profile_pictures/${safeUserData.profilePicture}`;
+    }
+    
+    return safeUserData;
+  }
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -165,6 +192,14 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return this.formatUserProfilePicture(user);
+  }
+  
+  /**
+   * Get user data but sanitized for client consumption (removes sensitive fields)
+   */
+  async getSanitizedUser(id: number): Promise<Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return this.sanitizeUser(user);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -1617,22 +1652,22 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          // Always explicitly format profile picture paths
-          const formattedUser1 = this.formatUserProfilePicture(user1);
-          const formattedUser2 = this.formatUserProfilePicture(user2);
+          // Sanitize user data to remove sensitive information before sending to client
+          const sanitizedUser1 = this.sanitizeUser(user1);
+          const sanitizedUser2 = this.sanitizeUser(user2);
           
-          // Add the data to the entry with formatted user objects for responses
+          // Add the data to the entry with sanitized user objects for responses
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
               { 
                 ...response1[0], 
-                user: formattedUser1 
+                user: sanitizedUser1 
               },
               { 
                 ...response2[0], 
-                user: formattedUser2
+                user: sanitizedUser2
               }
             ]
           };
