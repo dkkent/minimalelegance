@@ -269,19 +269,19 @@ export default function JournalPage() {
                         <div key={index}>
                           <div className="flex items-center mb-2">
                             <Avatar className="h-6 w-6 rounded-full mr-2">
-                              {response.user?.profilePicture ? (
+                              {response.user && response.user.profilePicture ? (
                                 <img 
                                   src={response.user.profilePicture} 
-                                  alt={response.user.name} 
+                                  alt={response.user.name || 'User'} 
                                   className="object-cover w-full h-full"
                                 />
                               ) : (
                                 <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                  {getInitials(response.user.name)}
+                                  {getInitials(response.user?.name || 'User')}
                                 </AvatarFallback>
                               )}
                             </Avatar>
-                            <p className="text-sm font-medium">{response.user.name}</p>
+                            <p className="text-sm font-medium">{response.user?.name || 'User'}</p>
                           </div>
                           <p className="text-gray-600 italic">"{response.content}"</p>
                         </div>
@@ -313,28 +313,28 @@ export default function JournalPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Avatar className="h-6 w-6 rounded-full">
-                        {entry.spokenLoveslice.user1?.profilePicture ? (
+                        {entry.spokenLoveslice.user1 && entry.spokenLoveslice.user1.profilePicture ? (
                           <img 
                             src={entry.spokenLoveslice.user1.profilePicture} 
-                            alt={entry.spokenLoveslice.user1.name}
+                            alt={entry.spokenLoveslice.user1.name || 'User 1'}
                             className="object-cover w-full h-full"
                           />
                         ) : (
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {getInitials(entry.spokenLoveslice.user1?.name)}
+                            {getInitials(entry.spokenLoveslice.user1?.name || 'User 1')}
                           </AvatarFallback>
                         )}
                       </Avatar>
                       <Avatar className="h-6 w-6 rounded-full">
-                        {entry.spokenLoveslice.user2?.profilePicture ? (
+                        {entry.spokenLoveslice.user2 && entry.spokenLoveslice.user2.profilePicture ? (
                           <img 
                             src={entry.spokenLoveslice.user2.profilePicture}
-                            alt={entry.spokenLoveslice.user2.name}
+                            alt={entry.spokenLoveslice.user2.name || 'User 2'}
                             className="object-cover w-full h-full"
                           />
                         ) : (
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {getInitials(entry.spokenLoveslice.user2?.name)}
+                            {getInitials(entry.spokenLoveslice.user2?.name || 'User 2')}
                           </AvatarFallback>
                         )}
                       </Avatar>
