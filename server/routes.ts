@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
+import { adminRoutes } from "./routes/admin/routes";
 import { randomBytes } from "crypto";
 import { WebSocketServer, WebSocket } from 'ws';
 import { validatePasswordStrength, comparePasswords, hashPassword } from "./utils/password-utils";
@@ -52,6 +53,9 @@ import { eq, and, or, isNull, not } from "drizzle-orm";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Register admin routes
+  app.use(adminRoutes);
   
   // Debug endpoint to check environment variables (TEMPORARY)
   app.get("/api/debug/env", (req, res) => {

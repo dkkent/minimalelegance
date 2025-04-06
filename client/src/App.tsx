@@ -18,6 +18,7 @@ import SpokenLoveslicePage from "@/pages/spoken-loveslice-page";
 import JournalPage from "@/pages/journal-page";
 import ForgotPasswordPage from "@/pages/forgot-password-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
+import AdminPage from "@/pages/admin-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { FirebaseAuthProvider } from "./hooks/use-firebase-auth";
@@ -46,6 +47,7 @@ function Router() {
       <ProtectedRoute path="/conversation/:id" component={ConversationPage} />
       <ProtectedRoute path="/spoken-loveslice/:id" component={SpokenLoveslicePage} />
       <ProtectedRoute path="/journal" component={JournalPage} />
+      <ProtectedRoute path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );
