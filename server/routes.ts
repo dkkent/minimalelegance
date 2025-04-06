@@ -922,9 +922,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Only add if there's no loveslice yet
         if (userResponse && question && !lovesliceExists) {
+          // Get and format the current user information for proper avatar display
+          const currentUserData = await storage.getUser(currentUser.id);
+          const formattedCurrentUser = storage.formatUserProfilePicture(currentUserData);
+          
+          console.log(`Pending response: Adding user response with profile picture: ${formattedCurrentUser?.profilePicture}`);
+          
           pendingResponses.push({
             question,
-            userResponse,
+            userResponse: {
+              ...userResponse,
+              user: formattedCurrentUser
+            },
             answeredAt: userResponse.createdAt,
             waitingForPartner: true
           });
@@ -958,9 +967,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Only add if there's no loveslice yet and the partner has responded
             if (partnerResponse && question && !lovesliceExists) {
+              // Get the partner user information for the avatar
+              const partnerUserData = await storage.getUser(partnerId);
+              // Format the profile picture path properly
+              const formattedPartnerUser = storage.formatUserProfilePicture(partnerUserData);
+              
+              // Log for debugging
+              console.log(`Pending response: Adding partner response with profile picture: ${formattedPartnerUser?.profilePicture}`);
+
+              // Include the properly formatted partner user data in the response
               pendingResponses.push({
                 question,
-                partnerResponse,
+                partnerResponse: {
+                  ...partnerResponse,
+                  user: formattedPartnerUser
+                },
                 answeredAt: partnerResponse.createdAt,
                 waitingForYou: true
               });
