@@ -114,12 +114,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         {partner ? (
-                          <UserAvatar 
-                            user={partner}
-                            fallbackText="P"
-                            className="h-10 w-10 border border-white absolute left-0 z-0" 
-                            size="md"
-                          />
+                          <>
+                            {/* Debug display */}
+                            {console.log("Rendering partner avatar with data:", partner)}
+                            {/* Direct implementation of avatar with profile picture path */}
+                            <Avatar 
+                              className="h-10 w-10 border border-white absolute left-0 z-0"
+                              title={partner.name}
+                            >
+                              <AvatarImage 
+                                src={partner.profilePicture || undefined} 
+                                alt={partner.name} 
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-sage-light text-sage-dark">
+                                {partner.name ? partner.name.charAt(0) : "P"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </>
                         ) : (
                           <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                             <span className="text-sm">P</span>
@@ -221,12 +233,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         {partner ? (
-                          <UserAvatar 
-                            user={partner}
-                            fallbackText="P"
-                            className="h-10 w-10 border border-white absolute left-0 z-0" 
-                            size="md"
-                          />
+                          <>
+                            {/* Debug display */}
+                            {console.log("Rendering mobile partner avatar with data:", partner)}
+                            {/* Direct implementation of avatar with profile picture path */}
+                            <Avatar 
+                              className="h-10 w-10 border border-white absolute left-0 z-0"
+                              title={partner.name}
+                            >
+                              <AvatarImage 
+                                src={partner.profilePicture || undefined} 
+                                alt={partner.name} 
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-sage-light text-sage-dark">
+                                {partner.name ? partner.name.charAt(0) : "P"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </>
                         ) : (
                           <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                             <span className="text-sm">P</span>
