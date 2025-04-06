@@ -52,6 +52,11 @@ export function usePartner() {
     // Important: provide a fallback initial value so it's never undefined
     initialData: null
   });
+  
+  // Debug: Log partner data when it changes
+  useEffect(() => {
+    console.log("usePartner hook - Current partner value:", partner);
+  }, [partner]);
 
   return {
     partner,
