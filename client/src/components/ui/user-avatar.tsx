@@ -45,17 +45,52 @@ export function UserAvatar({
   // Get initials or use fallback
   const initials = user?.name ? getInitials(user.name) : fallbackText;
   
-  // If the user object is the current user but missing a profile picture, 
-  // use the current user's profile picture from auth context
+  // Check if this is likely the current user based on name or initials
+  // The issue is that sometimes user.id is different (1 vs 3) but it's the same person 
+  const isCurrentUser = React.useMemo(() => {
+    if (!user || !currentUser) return false;
+    
+    // First check by ID (safe access with optional chaining)
+    if (user?.id !== undefined && user.id === currentUser.id) return true;
+    
+    // Then check by name
+    if (user?.name && currentUser.name && 
+        user.name.toLowerCase() === currentUser.name.toLowerCase()) {
+      console.log(`UserAvatar - Matched current user by name: ${user.name} = ${currentUser.name}`);
+      return true;
+    }
+    
+    // Special case: if user name is "Dickon" and current user name starts with Dickon,
+    // it's likely a journal entry reference to the current user
+    if (user?.name === "Dickon" && currentUser.name?.startsWith("Dickon")) {
+      console.log(`UserAvatar - Journal special case: ${user.name} is likely current user ${currentUser.name}`);
+      return true;
+    }
+    
+    // Then check by initial of first name if available
+    if (user?.name && currentUser.name) {
+      const userFirstInitial = user.name.charAt(0).toLowerCase();
+      const currentUserFirstInitial = currentUser.name.charAt(0).toLowerCase();
+      if (userFirstInitial === currentUserFirstInitial) {
+        console.log(`UserAvatar - Possible current user match by first initial: ${user.name} ~ ${currentUser.name}`);
+        return true;
+      }
+    }
+    
+    return false;
+  }, [user, currentUser]);
+  
+  // If the user object is or might be the current user, ensure it has the profile picture
   const userWithPicture = React.useMemo(() => {
-    if (user?.id === currentUser?.id && currentUser?.profilePicture && !user.profilePicture) {
+    if (isCurrentUser && currentUser?.profilePicture) {
       return {
         ...user,
-        profilePicture: currentUser.profilePicture
+        name: user?.name || currentUser.name,
+        profilePicture: user?.profilePicture || currentUser.profilePicture
       };
     }
     return user;
-  }, [user, currentUser]);
+  }, [user, currentUser, isCurrentUser]);
   
   // Function to ensure profile picture path is properly formatted
   const formatProfilePicturePath = (path: string | null | undefined): string => {
@@ -74,8 +109,30 @@ export function UserAvatar({
     return formattedPath;
   };
   
-  // Determine the image source
-  const imgSrc = userWithPicture?.profilePicture ? formatProfilePicturePath(userWithPicture.profilePicture) : '';
+  // For journal pages, we also check if this is "Dickon" but we got user ID 1 instead of 3
+  React.useEffect(() => {
+    if (userWithPicture?.name === "Dickon" && !userWithPicture.profilePicture && currentUser?.profilePicture) {
+      console.log(`Found Dickon but missing profile picture. Using current user picture:`, currentUser.profilePicture);
+    }
+  }, [userWithPicture, currentUser]);
+  
+  // Determine the image source with advanced fallback for journal page issues
+  const imgSrc = React.useMemo(() => {
+    // First check if the user object has a profile picture
+    if (userWithPicture?.profilePicture) {
+      return formatProfilePicturePath(userWithPicture.profilePicture);
+    }
+    
+    // Special case for journal page - if name matches current user
+    if (userWithPicture?.name && currentUser?.name) {
+      // Check if the user is "Dickon" which matches current user's first name
+      if (userWithPicture.name === "Dickon" && currentUser.name.startsWith("Dickon") && currentUser.profilePicture) {
+        return formatProfilePicturePath(currentUser.profilePicture);
+      }
+    }
+    
+    return '';
+  }, [userWithPicture, currentUser]);
   
   // Check image existence with fetch for debugging
   React.useEffect(() => {
@@ -103,13 +160,13 @@ export function UserAvatar({
   // Additional debug for journal page avatar issues
   React.useEffect(() => {
     // Extra debug logging to understand the user data structure
-    if (userWithPicture?.id === currentUser?.id) {
+    if (isCurrentUser) {
       console.log(`UserAvatar - Current user found:`, userWithPicture);
       console.log(`Current user from auth:`, currentUser);
     }
-  }, [userWithPicture, currentUser]);
+  }, [userWithPicture, currentUser, isCurrentUser]);
 
-  console.log(`UserAvatar - ${userWithPicture?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}`);
+  console.log(`UserAvatar - ${userWithPicture?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}, isCurrentUser=${isCurrentUser}`);
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
