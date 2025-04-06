@@ -1662,22 +1662,26 @@ export class DatabaseStorage implements IStorage {
           const user1 = await this.getUser(loveslice.user1Id);
           const user2 = await this.getUser(loveslice.user2Id);
             
-          // Sanitize user data to remove sensitive information before sending to client
-          const sanitizedUser1 = this.sanitizeUser(user1);
-          const sanitizedUser2 = this.sanitizeUser(user2);
+          // Always explicitly format profile picture paths
+          const formattedUser1 = this.formatUserProfilePicture(user1);
+          const formattedUser2 = this.formatUserProfilePicture(user2);
           
-          // Add the data to the entry with sanitized user objects for responses
+          // Log the formatted user data for debugging
+          console.log(`Journal entry user1: ${formattedUser1?.name}, ID: ${formattedUser1?.id}, profilePicture: ${formattedUser1?.profilePicture}`);
+          console.log(`Journal entry user2: ${formattedUser2?.name}, ID: ${formattedUser2?.id}, profilePicture: ${formattedUser2?.profilePicture}`);
+          
+          // Add the data to the entry with properly formatted user objects for responses
           (entry as any).writtenLoveslice = {
             ...loveslice,
             question,
             responses: [
               { 
                 ...response1[0], 
-                user: sanitizedUser1 
+                user: formattedUser1 
               },
               { 
                 ...response2[0], 
-                user: sanitizedUser2
+                user: formattedUser2
               }
             ]
           };
