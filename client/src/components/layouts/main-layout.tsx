@@ -4,6 +4,7 @@ import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { usePartner } from "@/hooks/use-partner";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { PartnerAvatar } from "@/components/ui/partner-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -115,22 +116,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* Partner avatar behind */}
                         {partner ? (
                           <>
-                            {/* Debug display */}
-                            {console.log("Rendering partner avatar with data:", partner)}
-                            {/* Direct implementation of avatar with profile picture path */}
-                            <Avatar 
-                              className="h-10 w-10 border border-white absolute left-0 z-0"
-                              title={partner.name}
-                            >
-                              <AvatarImage 
-                                src={partner.profilePicture || undefined} 
-                                alt={partner.name} 
-                                className="object-cover"
-                              />
-                              <AvatarFallback className="bg-sage-light text-sage-dark">
-                                {partner.name ? partner.name.charAt(0) : "P"}
-                              </AvatarFallback>
-                            </Avatar>
+                            {/* Using our specialized PartnerAvatar component */}
+                            {console.log("Using PartnerAvatar component with data:", partner)}
+                            <PartnerAvatar
+                              partner={partner}
+                              className="absolute left-0 z-0 border border-white"
+                              size="md"
+                            />
                           </>
                         ) : (
                           <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
@@ -234,22 +226,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* Partner avatar behind */}
                         {partner ? (
                           <>
-                            {/* Debug display */}
-                            {console.log("Rendering mobile partner avatar with data:", partner)}
-                            {/* Direct implementation of avatar with profile picture path */}
-                            <Avatar 
-                              className="h-10 w-10 border border-white absolute left-0 z-0"
-                              title={partner.name}
-                            >
-                              <AvatarImage 
-                                src={partner.profilePicture || undefined} 
-                                alt={partner.name} 
-                                className="object-cover"
-                              />
-                              <AvatarFallback className="bg-sage-light text-sage-dark">
-                                {partner.name ? partner.name.charAt(0) : "P"}
-                              </AvatarFallback>
-                            </Avatar>
+                            {/* Using our specialized PartnerAvatar component for mobile */}
+                            {console.log("Using PartnerAvatar component in mobile view with data:", partner)}
+                            <PartnerAvatar
+                              partner={partner}
+                              className="absolute left-0 z-0 border border-white"
+                              size="md"
+                            />
                           </>
                         ) : (
                           <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
