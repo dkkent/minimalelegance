@@ -1041,17 +1041,35 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(adminLogs.adminId, adminId));
     }
     
-    if (fromDate && toDate) {
+    // Format dates safely for SQL queries
+    const formatSQLDate = (date: Date | undefined): string | null => {
+      if (!date) return null;
+      try {
+        if (isNaN(date.getTime())) {
+          console.error("Invalid date value:", date);
+          return null;
+        }
+        return date.toISOString();
+      } catch (err) {
+        console.error("Error formatting date for SQL:", err);
+        return null;
+      }
+    };
+    
+    const fromDateStr = formatSQLDate(fromDate);
+    const toDateStr = formatSQLDate(toDate);
+    
+    if (fromDateStr && toDateStr) {
       // Use raw SQL with direct comparison operators instead of and/gte/lte
       query = query.where(
-        sql`${adminLogs.createdAt} >= ${fromDate} AND ${adminLogs.createdAt} <= ${toDate}`
+        sql`${adminLogs.createdAt} >= ${fromDateStr} AND ${adminLogs.createdAt} <= ${toDateStr}`
       );
-    } else if (fromDate) {
+    } else if (fromDateStr) {
       // Use direct SQL comparison instead of gte operator
-      query = query.where(sql`${adminLogs.createdAt} >= ${fromDate}`);
-    } else if (toDate) {
+      query = query.where(sql`${adminLogs.createdAt} >= ${fromDateStr}`);
+    } else if (toDateStr) {
       // Use direct SQL comparison instead of lte operator
-      query = query.where(sql`${adminLogs.createdAt} <= ${toDate}`);
+      query = query.where(sql`${adminLogs.createdAt} <= ${toDateStr}`);
     }
     
     // Get total count for pagination

@@ -294,10 +294,49 @@ adminRoutes.get('/api/admin/logs', requireAdmin, async (req: Request, res: Respo
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     
+    // Parse date filters if provided
+    let fromDate: Date | undefined = undefined;
+    let toDate: Date | undefined = undefined;
+    
+    if (req.query.fromDate) {
+      try {
+        fromDate = new Date(req.query.fromDate as string);
+        // Validate date
+        if (isNaN(fromDate.getTime())) {
+          fromDate = undefined;
+          console.warn('Invalid fromDate parameter:', req.query.fromDate);
+        }
+      } catch (e) {
+        console.warn('Error parsing fromDate:', e);
+      }
+    }
+    
+    if (req.query.toDate) {
+      try {
+        toDate = new Date(req.query.toDate as string);
+        // Validate date
+        if (isNaN(toDate.getTime())) {
+          toDate = undefined;
+          console.warn('Invalid toDate parameter:', req.query.toDate);
+        }
+      } catch (e) {
+        console.warn('Error parsing toDate:', e);
+      }
+    }
+    
     // Convert page/limit to offset/limit for the database
     const offset = (page - 1) * limit;
     
-    const logs = await storage.getAdminLogs(offset, limit);
+    // Parse admin filter if provided
+    let adminId: number | undefined = undefined;
+    if (req.query.adminId) {
+      adminId = parseInt(req.query.adminId as string);
+      if (isNaN(adminId)) {
+        adminId = undefined;
+      }
+    }
+    
+    const logs = await storage.getAdminLogs(offset, limit, adminId, fromDate, toDate);
     
     return res.status(200).json(logs);
   } catch (err) {
