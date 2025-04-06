@@ -40,11 +40,17 @@ export function UserAvatar({
   
   // Function to ensure profile picture path is properly formatted
   const formatProfilePicturePath = (path: string): string => {
+    console.log("Original profile picture path:", path);
     // If path already starts with a slash, assume it's correctly formatted
-    return path.startsWith('/') 
+    const formattedPath = path.startsWith('/') 
       ? path 
       : `/uploads/profile_pictures/${path}`;
+    console.log("Formatted profile picture path:", formattedPath);
+    return formattedPath;
   };
+  
+  // Log the entire user object to see what we're working with
+  console.log("User in UserAvatar:", user);
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
