@@ -1,10 +1,13 @@
 import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
 
 type UserAvatarProps = {
   user?: {
     name?: string;
     profilePicture?: string | null;
+    id?: number;
+    email?: string;
   } | null;
   fallbackText?: string;
   className?: string;
@@ -27,6 +30,7 @@ export function UserAvatar({
   className = "", 
   size = "md" 
 }: UserAvatarProps) {
+  const { user: currentUser } = useAuth();
   const sizeClasses = {
     xs: "h-6 w-6 text-[10px]",
     sm: "h-8 w-8 text-xs",
@@ -41,12 +45,24 @@ export function UserAvatar({
   // Get initials or use fallback
   const initials = user?.name ? getInitials(user.name) : fallbackText;
   
+  // If the user object is the current user but missing a profile picture, 
+  // use the current user's profile picture from auth context
+  const userWithPicture = React.useMemo(() => {
+    if (user?.id === currentUser?.id && currentUser?.profilePicture && !user.profilePicture) {
+      return {
+        ...user,
+        profilePicture: currentUser.profilePicture
+      };
+    }
+    return user;
+  }, [user, currentUser]);
+  
   // Function to ensure profile picture path is properly formatted
   const formatProfilePicturePath = (path: string | null | undefined): string => {
     if (!path) return '';
     
     // Log the path for debugging
-    console.log(`UserAvatar - Formatting path: "${path}" for user ${user?.name || 'unknown'}`);
+    console.log(`UserAvatar - Formatting path: "${path}" for user ${userWithPicture?.name || 'unknown'}`);
     
     // If path already starts with /uploads, use it as is
     if (path.startsWith('/uploads/profile_pictures/')) {
@@ -59,7 +75,7 @@ export function UserAvatar({
   };
   
   // Determine the image source
-  const imgSrc = user?.profilePicture ? formatProfilePicturePath(user.profilePicture) : '';
+  const imgSrc = userWithPicture?.profilePicture ? formatProfilePicturePath(userWithPicture.profilePicture) : '';
   
   // Check image existence with fetch for debugging
   React.useEffect(() => {
@@ -84,14 +100,23 @@ export function UserAvatar({
     }
   }, [imgSrc]);
 
-  console.log(`UserAvatar - ${user?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}`);
+  // Additional debug for journal page avatar issues
+  React.useEffect(() => {
+    // Extra debug logging to understand the user data structure
+    if (userWithPicture?.id === currentUser?.id) {
+      console.log(`UserAvatar - Current user found:`, userWithPicture);
+      console.log(`Current user from auth:`, currentUser);
+    }
+  }, [userWithPicture, currentUser]);
+
+  console.log(`UserAvatar - ${userWithPicture?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}`);
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
       {imgSrc && !imageError ? (
         <AvatarImage 
           src={`${imgSrc}?t=${Date.now()}`} // Add cache-busting parameter
-          alt={user?.name || "User"} 
+          alt={userWithPicture?.name || "User"} 
           className="object-cover"
           onLoad={() => {
             console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
