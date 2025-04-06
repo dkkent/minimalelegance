@@ -13,11 +13,16 @@ interface ApiRequestOptions {
 }
 
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-  options?: ApiRequestOptions
-): Promise<Response> {
+  endpoint: string,
+  options?: {
+    method?: string;
+    data?: unknown;
+    headers?: Record<string, string>;
+    isFormData?: boolean;
+  }
+): Promise<any> {
+  const method = options?.method || 'GET';
+  const data = options?.data;
   const isFormData = options?.isFormData || false;
   
   const headers: Record<string, string> = {
@@ -30,7 +35,7 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  const res = await fetch(url, {
+  const res = await fetch(endpoint, {
     method,
     headers,
     // For FormData, use the data as is; otherwise stringify it
@@ -39,7 +44,13 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res;
+  
+  // For empty responses (204 No Content)
+  if (res.status === 204) {
+    return null;
+  }
+  
+  return await res.json();
 }
 
 type ResponseBehavior = "returnNull" | "returnUndefined" | "throw";
