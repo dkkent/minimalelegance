@@ -129,10 +129,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
                               <Avatar className="h-10 w-10 border border-white">
-                                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                                <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                  {user.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
+                                {user.profilePicture ? (
+                                  <AvatarImage src={user.profilePicture} alt={user.name} />
+                                ) : (
+                                  <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                  </AvatarFallback>
+                                )}
                               </Avatar>
                             </Button>
                           </DropdownMenuTrigger>
@@ -170,12 +173,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none">
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
                           <Avatar className="h-10 w-10 border border-sage">
-                            <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {user.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
+                            {user.profilePicture ? (
+                              <AvatarImage src={user.profilePicture} alt={user.name} />
+                            ) : (
+                              <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                                {user.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                         </Button>
                       </DropdownMenuTrigger>
@@ -237,10 +243,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           className="h-10 w-10 border border-white absolute left-6 z-10"
                           title={user.name}
                         >
-                          <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
+                          {user.profilePicture ? (
+                            <AvatarImage src={user.profilePicture} alt={user.name} />
+                          ) : (
+                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
+                              {user.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          )}
                         </Avatar>
                       </div>
                     </div>
