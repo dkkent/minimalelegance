@@ -224,14 +224,12 @@ export default function ProfilePage() {
                         Visit your shared garden
                       </Button>
                       
-                      {partner && (
-                        <DisconnectPartnerDialog
-                          partner={{
-                            id: partner.id,
-                            name: partner.name
-                          }}
-                        />
-                      )}
+                      <DisconnectPartnerDialog
+                        partner={{
+                          id: user.partnerId || 0,
+                          name: partner?.name || "your partner"
+                        }}
+                      />
                     </div>
                   </div>
                 ) : (

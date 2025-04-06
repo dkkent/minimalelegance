@@ -105,20 +105,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               {user && (
                 <div className="flex items-center ml-2">
                   {/* Connection indicator with overlapping avatars */}
-                  {user?.partnerId && partner ? (
+                  {user?.partnerId ? (
                     <div 
                       className="relative group"
-                      aria-label={`You're connected with ${partner.name}`}
+                      aria-label={partner ? `You're connected with ${partner.name}` : "You're connected with a partner"}
                     >
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <Avatar 
                           className="h-10 w-10 border border-white absolute left-0 z-0"
-                          title={partner.name}
+                          title={partner?.name || "Partner"}
                         >
-                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          {partner && partner.profilePicture ? (
+                            <AvatarImage src={partner.profilePicture} alt={partner.name} />
+                          ) : null}
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {partner.name.split(' ').map(n => n[0]).join('')}
+                            {partner ? partner.name.split(' ').map(n => n[0]).join('') : "P"}
                           </AvatarFallback>
                         </Avatar>
                         
@@ -161,7 +163,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
-                        Connected with {partner.name}
+                        Connected with {partner?.name || "your partner"}
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                       </div>
                     </div>
@@ -213,18 +215,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col space-y-4 mt-8">
-                  {user?.partnerId && partner ? (
+                  {user?.partnerId ? (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
-                      <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
+                      <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <Avatar 
                           className="h-10 w-10 border border-white absolute left-0 z-0"
-                          title={partner.name}
+                          title={partner?.name || "Partner"}
                         >
-                          <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
+                          {partner && partner.profilePicture ? (
+                            <AvatarImage src={partner.profilePicture} alt={partner.name} />
+                          ) : null}
                           <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {partner.name.split(' ').map(n => n[0]).join('')}
+                            {partner ? partner.name.split(' ').map(n => n[0]).join('') : "P"}
                           </AvatarFallback>
                         </Avatar>
                         
