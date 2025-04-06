@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type UserAvatarProps = {
@@ -34,6 +35,8 @@ export function UserAvatar({
   };
   
   const avatarSize = sizeClasses[size];
+  const [imageLoaded, setImageLoaded] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
   
   // Get initials or use fallback
   const initials = user?.name ? getInitials(user.name) : fallbackText;
@@ -43,35 +46,61 @@ export function UserAvatar({
     if (!path) return '';
     
     // Log the path for debugging
-    console.log(`Formatting profile picture path: "${path}"`);
+    console.log(`UserAvatar - Formatting path: "${path}" for user ${user?.name || 'unknown'}`);
     
     // If path already starts with /uploads, use it as is
     if (path.startsWith('/uploads/profile_pictures/')) {
-      console.log(`Using path as is: "${path}"`);
       return path;
     }
     
     // If path is just the filename, add the directory prefix
     const formattedPath = `/uploads/profile_pictures/${path}`;
-    console.log(`Formatted path: "${formattedPath}"`);
     return formattedPath;
   };
   
   // Determine the image source
   const imgSrc = user?.profilePicture ? formatProfilePicturePath(user.profilePicture) : '';
   
-  console.log("UserAvatar for:", user?.name, "with picture:", imgSrc);
+  // Check image existence with fetch for debugging
+  React.useEffect(() => {
+    if (imgSrc) {
+      // Add a timestamp to bypass browser cache
+      const urlWithCache = `${imgSrc}?t=${Date.now()}`;
+      
+      fetch(urlWithCache, { method: 'HEAD' })
+        .then(res => {
+          console.log(`Image existence check for ${imgSrc}: ${res.status} ${res.statusText}`);
+          if (res.ok) {
+            console.log(`✅ Image exists at path: ${imgSrc}`);
+          } else {
+            console.error(`❌ Image doesn't exist at path: ${imgSrc}`);
+            setImageError(true);
+          }
+        })
+        .catch(err => {
+          console.error(`❌ Error checking image at ${imgSrc}:`, err);
+          setImageError(true);
+        });
+    }
+  }, [imgSrc]);
+
+  console.log(`UserAvatar - ${user?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}`);
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
-      {imgSrc ? (
+      {imgSrc && !imageError ? (
         <AvatarImage 
-          src={imgSrc} 
+          src={`${imgSrc}?t=${Date.now()}`} // Add cache-busting parameter
           alt={user?.name || "User"} 
           className="object-cover"
+          onLoad={() => {
+            console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
+            setImageLoaded(true);
+          }}
           onError={(e) => {
-            console.error("Failed to load avatar image:", imgSrc);
-            e.currentTarget.style.display = 'none';
+            console.error(`❌ Failed to load avatar image: ${imgSrc}`);
+            setImageError(true);
+            // Don't hide the element as the fallback should show
           }}
         />
       ) : null}
