@@ -8,7 +8,7 @@ import { ThemeBadge } from "@/components/theme-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Loader2, ChevronRight, SkipForward } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
@@ -391,22 +391,12 @@ export default function HomePage() {
                     {pendingItem.waitingForYou && pendingItem.partnerResponse && (
                       <div className="border-t border-gray-100 pt-4 mt-2">
                         <div className="flex items-center mb-2">
-                          <Avatar className="h-6 w-6 rounded-full mr-2">
-                            {pendingItem.partnerResponse.user?.profilePicture ? (
-                              <img 
-                                src={pendingItem.partnerResponse.user.profilePicture.startsWith('/') ? 
-                                  pendingItem.partnerResponse.user.profilePicture : 
-                                  `/uploads/profile_pictures/${pendingItem.partnerResponse.user.profilePicture}`} 
-                                alt={pendingItem.partnerResponse.user.name || 'Partner'}
-                              />
-                            ) : (
-                              <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                {pendingItem.partnerResponse.user?.name ? 
-                                  pendingItem.partnerResponse.user.name.split(' ').map((n: string) => n[0]).join('') 
-                                  : 'P'}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
+                          <UserAvatar 
+                            user={pendingItem.partnerResponse.user} 
+                            fallbackText="P" 
+                            size="xs" 
+                            className="mr-2" 
+                          />
                           <p className="text-sm font-medium">Partner's response</p>
                         </div>
                         <p className="text-sm text-gray-600 italic">
@@ -432,11 +422,12 @@ export default function HomePage() {
                     {pendingItem.waitingForPartner && pendingItem.userResponse && (
                       <div className="border-t border-gray-100 pt-4 mt-2">
                         <div className="flex items-center mb-2">
-                          <Avatar className="h-6 w-6 rounded-full mr-2">
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar 
+                            user={user} 
+                            fallbackText="U" 
+                            size="xs" 
+                            className="mr-2" 
+                          />
                           <p className="text-sm font-medium">Your response</p>
                         </div>
                         <p className="text-sm text-gray-600 italic">
