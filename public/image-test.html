@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Image Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .image-test {
+      margin-bottom: 30px;
+    }
+    .image-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 20px;
+      border: 2px solid #ccc;
+    }
+    .status {
+      font-weight: bold;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Profile Image Test</h1>
+  
+  <div class="image-test">
+    <h2>User Image</h2>
+    <div class="image-container">
+      <img id="userImage" class="image" src="/uploads/profile_pictures/199128bb-083c-4eb4-a494-d124557ceaba.jpg" alt="User Profile">
+      <div>
+        <p>Path: <code>/uploads/profile_pictures/199128bb-083c-4eb4-a494-d124557ceaba.jpg</code></p>
+        <p>Status: <span id="userStatus" class="status">Loading...</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="image-test">
+    <h2>Partner Image</h2>
+    <div class="image-container">
+      <img id="partnerImage" class="image" src="/uploads/profile_pictures/4c589270-cf57-431a-ab03-f3dee77282c1.jpg" alt="Partner Profile">
+      <div>
+        <p>Path: <code>/uploads/profile_pictures/4c589270-cf57-431a-ab03-f3dee77282c1.jpg</code></p>
+        <p>Status: <span id="partnerStatus" class="status">Loading...</span></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('userImage').onload = function() {
+      document.getElementById('userStatus').textContent = 'Loaded Successfully!';
+      document.getElementById('userStatus').classList.add('success');
+    };
+    
+    document.getElementById('userImage').onerror = function() {
+      document.getElementById('userStatus').textContent = 'Failed to Load!';
+      document.getElementById('userStatus').classList.add('error');
+    };
+    
+    document.getElementById('partnerImage').onload = function() {
+      document.getElementById('partnerStatus').textContent = 'Loaded Successfully!';
+      document.getElementById('partnerStatus').classList.add('success');
+    };
+    
+    document.getElementById('partnerImage').onerror = function() {
+      document.getElementById('partnerStatus').textContent = 'Failed to Load!';
+      document.getElementById('partnerStatus').classList.add('error');
+    };
+  </script>
+</body>
+</html>
