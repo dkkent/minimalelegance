@@ -1042,16 +1042,16 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (fromDate && toDate) {
+      // Use raw SQL with direct comparison operators instead of and/gte/lte
       query = query.where(
-        and(
-          gte(adminLogs.createdAt, fromDate),
-          lte(adminLogs.createdAt, toDate)
-        )
+        sql`${adminLogs.createdAt} >= ${fromDate} AND ${adminLogs.createdAt} <= ${toDate}`
       );
     } else if (fromDate) {
-      query = query.where(gte(adminLogs.createdAt, fromDate));
+      // Use direct SQL comparison instead of gte operator
+      query = query.where(sql`${adminLogs.createdAt} >= ${fromDate}`);
     } else if (toDate) {
-      query = query.where(lte(adminLogs.createdAt, toDate));
+      // Use direct SQL comparison instead of lte operator
+      query = query.where(sql`${adminLogs.createdAt} <= ${toDate}`);
     }
     
     // Get total count for pagination
@@ -1190,12 +1190,14 @@ export class DatabaseStorage implements IStorage {
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
     // Consider a user active if they have recent response, journal or login activity
-    const activeUsers = await db.select({ userId: responses.userId })
-      .from(responses)
-      .where(gte(responses.created, cutoffDate))
-      .groupBy(responses.userId);
+    // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
+    const result = await db.execute(sql`
+      SELECT COUNT(DISTINCT user_id) as active_users
+      FROM responses
+      WHERE created_at > ${cutoffDate}
+    `);
     
-    return activeUsers.length;
+    return parseInt(result[0]?.active_users || '0', 10);
   }
   
   /**
@@ -1207,11 +1209,14 @@ export class DatabaseStorage implements IStorage {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
-    const result = await db.select({ count: sql<number>`count(*)` })
-      .from(journalEntries)
-      .where(gte(journalEntries.createdAt, cutoffDate));
+    // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
+    const result = await db.execute(sql`
+      SELECT COUNT(*) as entry_count
+      FROM journal_entries
+      WHERE created_at > ${cutoffDate}
+    `);
     
-    return result[0]?.count || 0;
+    return parseInt(result[0]?.entry_count || '0', 10);
   }
   
   /**
