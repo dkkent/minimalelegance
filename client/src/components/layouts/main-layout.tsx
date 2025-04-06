@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { usePartner } from "@/hooks/use-partner";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -112,31 +113,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     >
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <Avatar 
-                          className="h-10 w-10 border border-white absolute left-0 z-0"
-                          title={partner?.name || "Partner"}
-                        >
-                          {partner && partner.profilePicture ? (
-                            <AvatarImage src={partner.profilePicture} alt={partner.name} />
-                          ) : null}
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {partner ? partner.name.split(' ').map(n => n[0]).join('') : "P"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          user={partner} 
+                          fallbackText="P"
+                          className="h-10 w-10 border border-white absolute left-0 z-0" 
+                          size="md"
+                        />
                         
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
-                              <Avatar className="h-10 w-10 border border-white">
-                                {user.profilePicture ? (
-                                  <AvatarImage src={user.profilePicture} alt={user.name} />
-                                ) : (
-                                  <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                    {user.name.split(' ').map(n => n[0]).join('')}
-                                  </AvatarFallback>
-                                )}
-                              </Avatar>
+                              <UserAvatar 
+                                user={user} 
+                                className="h-10 w-10 border border-white" 
+                                size="md" 
+                              />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -174,15 +166,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
-                          <Avatar className="h-10 w-10 border border-sage">
-                            {user.profilePicture ? (
-                              <AvatarImage src={user.profilePicture} alt={user.name} />
-                            ) : (
-                              <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                {user.name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
+                          <UserAvatar 
+                            user={user} 
+                            className="h-10 w-10 border border-sage"
+                            size="md"
+                          />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -226,31 +214,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <Avatar 
-                          className="h-10 w-10 border border-white absolute left-0 z-0"
-                          title={partner?.name || "Partner"}
-                        >
-                          {partner && partner.profilePicture ? (
-                            <AvatarImage src={partner.profilePicture} alt={partner.name} />
-                          ) : null}
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {partner ? partner.name.split(' ').map(n => n[0]).join('') : "P"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          user={partner} 
+                          fallbackText="P"
+                          className="h-10 w-10 border border-white absolute left-0 z-0" 
+                          size="md"
+                        />
                         
                         {/* User avatar in front */}
-                        <Avatar 
-                          className="h-10 w-10 border border-white absolute left-6 z-10"
-                          title={user.name}
-                        >
-                          {user.profilePicture ? (
-                            <AvatarImage src={user.profilePicture} alt={user.name} />
-                          ) : (
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {user.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
+                        <UserAvatar 
+                          user={user} 
+                          className="h-10 w-10 border border-white absolute left-6 z-10" 
+                          size="md"
+                        />
                       </div>
                     </div>
                   ) : null}

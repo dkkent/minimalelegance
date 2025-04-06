@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layouts/main-layout";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
 import { ThemeBadge, type Theme } from "@/components/theme-badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,19 +269,12 @@ export default function JournalPage() {
                       {entry.writtenLoveslice.responses.map((response: any, index: number) => (
                         <div key={index}>
                           <div className="flex items-center mb-2">
-                            <Avatar className="h-6 w-6 rounded-full mr-2">
-                              {response.user && response.user.profilePicture ? (
-                                <img 
-                                  src={response.user.profilePicture} 
-                                  alt={response.user.name || 'User'} 
-                                  className="object-cover w-full h-full"
-                                />
-                              ) : (
-                                <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                                  {getInitials(response.user?.name || 'User')}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
+                            <UserAvatar 
+                              user={response.user} 
+                              fallbackText="U" 
+                              className="mr-2" 
+                              size="xs" 
+                            />
                             <p className="text-sm font-medium">{response.user?.name || 'User'}</p>
                           </div>
                           <p className="text-gray-600 italic">"{response.content}"</p>
@@ -312,32 +306,16 @@ export default function JournalPage() {
                 {entry.spokenLovesliceId && entry.spokenLoveslice && (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <Avatar className="h-6 w-6 rounded-full">
-                        {entry.spokenLoveslice.user1 && entry.spokenLoveslice.user1.profilePicture ? (
-                          <img 
-                            src={entry.spokenLoveslice.user1.profilePicture} 
-                            alt={entry.spokenLoveslice.user1.name || 'User 1'}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {getInitials(entry.spokenLoveslice.user1?.name || 'User 1')}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <Avatar className="h-6 w-6 rounded-full">
-                        {entry.spokenLoveslice.user2 && entry.spokenLoveslice.user2.profilePicture ? (
-                          <img 
-                            src={entry.spokenLoveslice.user2.profilePicture}
-                            alt={entry.spokenLoveslice.user2.name || 'User 2'}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                            {getInitials(entry.spokenLoveslice.user2?.name || 'User 2')}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
+                      <UserAvatar 
+                        user={entry.spokenLoveslice.user1} 
+                        fallbackText="U1" 
+                        size="xs" 
+                      />
+                      <UserAvatar 
+                        user={entry.spokenLoveslice.user2} 
+                        fallbackText="U2" 
+                        size="xs" 
+                      />
                       <p className="font-serif text-lg">
                         A meaningful conversation about {entry.theme.toLowerCase()}
                       </p>
