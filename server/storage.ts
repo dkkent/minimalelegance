@@ -1189,12 +1189,15 @@ export class DatabaseStorage implements IStorage {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
+    // Format the date as ISO string for PostgreSQL compatibility
+    const formattedDate = cutoffDate.toISOString();
+    
     // Consider a user active if they have recent response, journal or login activity
     // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
     const result = await db.execute(sql`
       SELECT COUNT(DISTINCT user_id) as active_users
       FROM responses
-      WHERE created_at > ${cutoffDate}
+      WHERE created_at > ${formattedDate}
     `);
     
     return parseInt(result[0]?.active_users || '0', 10);
@@ -1209,11 +1212,14 @@ export class DatabaseStorage implements IStorage {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
+    // Format the date as ISO string for PostgreSQL compatibility
+    const formattedDate = cutoffDate.toISOString();
+    
     // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
     const result = await db.execute(sql`
       SELECT COUNT(*) as entry_count
       FROM journal_entries
-      WHERE created_at > ${cutoffDate}
+      WHERE created_at > ${formattedDate}
     `);
     
     return parseInt(result[0]?.entry_count || '0', 10);
