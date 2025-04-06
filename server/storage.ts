@@ -1112,42 +1112,40 @@ export class DatabaseStorage implements IStorage {
    * @returns Array of conversation starters with theme and creator info
    */
   async getAllConversationStarters(): Promise<{ starters: any[] }> {
+    // Getting data from conversation_starters table instead of questions
     const starters = await db.select({
-      id: questions.id,
-      content: questions.content,
-      themeId: questions.theme,
-      isGlobal: questions.isPublic,
-      createdAt: questions.created,
-      createdBy: questions.createdBy
+      id: conversationStarters.id,
+      content: conversationStarters.content,
+      themeId: conversationStarters.theme,
+      baseQuestionId: conversationStarters.baseQuestionId,
+      lovesliceId: conversationStarters.lovesliceId,
+      markedAsMeaningful: conversationStarters.markedAsMeaningful,
+      used: conversationStarters.used,
+      createdAt: conversationStarters.createdAt
     })
-    .from(questions)
-    .orderBy(desc(questions.created));
+    .from(conversationStarters)
+    .orderBy(desc(conversationStarters.createdAt));
     
-    // Get related data (themes, creator users)
+    // Get related data (themes)
     const themeValues = await this.getThemes();
-    const userIds = starters.map(s => s.createdBy).filter(Boolean);
-    
-    let userMap = new Map();
-    if (userIds.length > 0) {
-      const users = await db.select({
-        id: users.id,
-        name: users.name
-      })
-      .from(users)
-      .where(inArray(users.id, userIds));
-      
-      userMap = new Map(users.map(u => [u.id, u.name]));
-    }
     
     // Create a theme map for easy lookup
-    const themeMap = new Map(themeValues.themes.map(t => [t.id, t]));
+    const themeMap = new Map(themeValues.themes.map(t => [t.id, t.name]));
     
     // Enhance starters with related data
-    const enhancedStarters = starters.map(starter => ({
-      ...starter,
-      themeName: themeMap.get(starter.themeId)?.name || 'Unknown',
-      createdByName: starter.createdBy ? userMap.get(starter.createdBy) : null
-    }));
+    const enhancedStarters = starters.map(starter => {
+      // Convert themeId to a number if it's a string that looks like a number
+      const themeIdAsNumber = typeof starter.themeId === 'string' && !isNaN(parseInt(starter.themeId))
+        ? parseInt(starter.themeId)
+        : null;
+      
+      return {
+        ...starter,
+        themeName: themeIdAsNumber && themeMap.has(themeIdAsNumber) 
+          ? themeMap.get(themeIdAsNumber) 
+          : starter.themeId || 'Unknown'
+      };
+    });
     
     return { starters: enhancedStarters };
   }
@@ -1254,12 +1252,12 @@ export class DatabaseStorage implements IStorage {
     
     if (data.content !== undefined) updateData.content = data.content;
     if (data.themeId !== undefined) updateData.theme = data.themeId;
-    if (data.isGlobal !== undefined) updateData.isPublic = data.isGlobal;
+    // Note: isGlobal isn't used in the conversationStarters schema
     
     const [updated] = await db
-      .update(questions)
+      .update(conversationStarters)
       .set(updateData)
-      .where(eq(questions.id, id))
+      .where(eq(conversationStarters.id, id))
       .returning();
     
     return updated;
@@ -1272,8 +1270,8 @@ export class DatabaseStorage implements IStorage {
    */
   async deleteConversationStarter(id: number): Promise<boolean> {
     const result = await db
-      .delete(questions)
-      .where(eq(questions.id, id));
+      .delete(conversationStarters)
+      .where(eq(conversationStarters.id, id));
     
     return true;
   }

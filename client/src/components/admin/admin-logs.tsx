@@ -42,7 +42,7 @@ interface AdminLog {
   resourceType: string;
   resourceId: number | null;
   details: string;
-  timestamp: string;
+  timestamp: string | null | undefined;
 }
 
 const AdminLogs: React.FC = () => {
@@ -103,18 +103,24 @@ const AdminLogs: React.FC = () => {
     }
   };
   
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    // Handle null and undefined
+    if (dateString === null || dateString === undefined) {
+      console.error("Invalid date value:", dateString);
+      return "No date available";
+    }
+    
     try {
       const date = new Date(dateString);
       // Check if date is valid before formatting
       if (isNaN(date.getTime())) {
         console.error("Invalid date value:", dateString);
-        return "Invalid date";
+        return "Invalid date format";
       }
       return format(date, 'MMM dd, yyyy HH:mm:ss');
     } catch (err) {
       console.error("Error formatting date:", err);
-      return "Invalid date";
+      return "Date error";
     }
   };
   
@@ -155,12 +161,15 @@ const AdminLogs: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         
-        <Select value={actionFilter || ''} onValueChange={(value) => setActionFilter(value || null)}>
+        <Select 
+          value={actionFilter || 'all'} 
+          onValueChange={(value) => setActionFilter(value === 'all' ? null : value)}
+        >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by action" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All actions</SelectItem>
+            <SelectItem value="all">All actions</SelectItem>
             <SelectItem value="create">Create</SelectItem>
             <SelectItem value="update">Update</SelectItem>
             <SelectItem value="delete">Delete</SelectItem>
