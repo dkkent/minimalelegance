@@ -1017,13 +1017,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   /**
-   * Get admin logs with optional filtering
+   * Get admin logs with pagination
+   * @param offset The offset for pagination
+   * @param limit The limit for pagination
    * @param adminId Optional: Filter by admin ID
    * @param fromDate Optional: Filter by date range start
    * @param toDate Optional: Filter by date range end
    * @returns Array of admin log entries
    */
-  async getAdminLogs(adminId?: number, fromDate?: Date, toDate?: Date): Promise<AdminLog[]> {
+  async getAdminLogs(offset = 0, limit = 50, adminId?: number, fromDate?: Date, toDate?: Date): Promise<{logs: AdminLog[], total: number}> {
     let query = db.select().from(adminLogs);
     
     // Apply filters if provided
@@ -1044,8 +1046,199 @@ export class DatabaseStorage implements IStorage {
       query = query.where(lte(adminLogs.createdAt, toDate));
     }
     
-    // Always sort by most recent first
-    return query.orderBy(desc(adminLogs.createdAt));
+    // Get total count for pagination
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(adminLogs);
+    const total = countResult[0]?.count || 0;
+    
+    // Apply pagination and sorting
+    const logs = await query
+      .orderBy(desc(adminLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+    
+    // Enhance with admin names
+    const adminIds = [...new Set(logs.map(log => log.adminId))];
+    
+    if (adminIds.length > 0) {
+      const admins = await db.select({
+        id: users.id,
+        name: users.name
+      })
+      .from(users)
+      .where(inArray(users.id, adminIds));
+      
+      const adminMap = new Map(admins.map(admin => [admin.id, admin.name]));
+      
+      return {
+        logs: logs.map(log => ({
+          ...log,
+          adminName: adminMap.get(log.adminId) || 'Unknown Admin'
+        })),
+        total
+      };
+    }
+    
+    return { logs, total };
+  }
+  
+  /**
+   * Get all conversation starters with associated data
+   * @returns Array of conversation starters with theme and creator info
+   */
+  async getAllConversationStarters(): Promise<{ starters: any[] }> {
+    const starters = await db.select({
+      id: questions.id,
+      content: questions.content,
+      themeId: questions.theme,
+      isGlobal: questions.isPublic,
+      createdAt: questions.created,
+      createdBy: questions.createdBy
+    })
+    .from(questions)
+    .orderBy(desc(questions.created));
+    
+    // Get related data (themes, creator users)
+    const themeValues = await this.getThemes();
+    const userIds = starters.map(s => s.createdBy).filter(Boolean);
+    
+    let userMap = new Map();
+    if (userIds.length > 0) {
+      const users = await db.select({
+        id: users.id,
+        name: users.name
+      })
+      .from(users)
+      .where(inArray(users.id, userIds));
+      
+      userMap = new Map(users.map(u => [u.id, u.name]));
+    }
+    
+    // Create a theme map for easy lookup
+    const themeMap = new Map(themeValues.themes.map(t => [t.id, t]));
+    
+    // Enhance starters with related data
+    const enhancedStarters = starters.map(starter => ({
+      ...starter,
+      themeName: themeMap.get(starter.themeId)?.name || 'Unknown',
+      createdByName: starter.createdBy ? userMap.get(starter.createdBy) : null
+    }));
+    
+    return { starters: enhancedStarters };
+  }
+  
+  /**
+   * Get all available themes
+   * @returns Array of theme objects with id, name, and color
+   */
+  async getThemes(): Promise<{ themes: { id: number, name: string, color: string }[] }> {
+    // For now, return hardcoded themes
+    // In the future, this should come from a database table
+    const themes = [
+      { id: 1, name: 'Trust', color: '#4299e1' },
+      { id: 2, name: 'Intimacy', color: '#ed64a6' },
+      { id: 3, name: 'Growth', color: '#48bb78' },
+      { id: 4, name: 'Communication', color: '#f6ad55' },
+      { id: 5, name: 'Conflict Resolution', color: '#9f7aea' },
+      { id: 6, name: 'Future Plans', color: '#667eea' }
+    ];
+    
+    return { themes };
+  }
+  
+  /**
+   * Get total user count for admin dashboard
+   * @returns The total number of users
+   */
+  async getUserCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(users);
+    return result[0]?.count || 0;
+  }
+  
+  /**
+   * Get total partnership count for admin dashboard
+   * @returns The total number of partnerships (users with partners)
+   */
+  async getPartnershipCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(
+        and(
+          isNotNull(users.partnerId),
+          not(eq(users.partnerId, 0))
+        )
+      );
+    
+    // Each partnership involves 2 users, so divide by 2
+    return Math.floor((result[0]?.count || 0) / 2);
+  }
+  
+  /**
+   * Get active user count for admin dashboard
+   * @param days Number of days to consider for activity
+   * @returns The number of users active in the specified timeframe
+   */
+  async getActiveUserCount(days = 7): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    // Consider a user active if they have recent response, journal or login activity
+    const activeUsers = await db.select({ userId: responses.userId })
+      .from(responses)
+      .where(gte(responses.created, cutoffDate))
+      .groupBy(responses.userId);
+    
+    return activeUsers.length;
+  }
+  
+  /**
+   * Get recent journal entry count for admin dashboard
+   * @param days Number of days to consider
+   * @returns The number of journal entries in the specified timeframe
+   */
+  async getRecentJournalEntryCount(days = 30): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(journalEntries)
+      .where(gte(journalEntries.createdAt, cutoffDate));
+    
+    return result[0]?.count || 0;
+  }
+  
+  /**
+   * Update conversation starter
+   * @param id The ID of the starter to update
+   * @param data The data to update
+   * @returns The updated starter or undefined if not found
+   */
+  async updateConversationStarter(id: number, data: { content?: string, themeId?: number, isGlobal?: boolean }): Promise<any> {
+    const updateData: any = {};
+    
+    if (data.content !== undefined) updateData.content = data.content;
+    if (data.themeId !== undefined) updateData.theme = data.themeId;
+    if (data.isGlobal !== undefined) updateData.isPublic = data.isGlobal;
+    
+    const [updated] = await db
+      .update(questions)
+      .set(updateData)
+      .where(eq(questions.id, id))
+      .returning();
+    
+    return updated;
+  }
+  
+  /**
+   * Delete conversation starter
+   * @param id The ID of the starter to delete
+   * @returns Success status
+   */
+  async deleteConversationStarter(id: number): Promise<boolean> {
+    const result = await db
+      .delete(questions)
+      .where(eq(questions.id, id));
+    
+    return true;
   }
 
   private async checkAndCreateLoveslice(newResponse: Response): Promise<void> {
