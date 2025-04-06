@@ -105,7 +105,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               {user && (
                 <div className="flex items-center ml-2">
                   {/* Connection indicator with overlapping avatars */}
-                  {user?.partnerId && !isPartnerLoading && partner && (
+                  {user?.partnerId && partner ? (
                     <div 
                       className="relative group"
                       aria-label={`You're connected with ${partner.name}`}
@@ -165,10 +165,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Standalone user avatar if no partner */}
-                  {(!user?.partnerId || isPartnerLoading || !partner) && (
+                  ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none">
@@ -216,7 +213,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col space-y-4 mt-8">
-                  {user?.partnerId && partner && (
+                  {user?.partnerId && partner ? (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner.name}</span>
                       <div className="w-[72px] h-10 relative">
@@ -243,7 +240,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         </Avatar>
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 
                   {navItems.map((item) => (
                     <Link key={item.path} href={item.path} className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
