@@ -38,11 +38,19 @@ export function UserAvatar({
   // Get initials or use fallback
   const initials = user?.name ? getInitials(user.name) : fallbackText;
   
+  // Function to ensure profile picture path is properly formatted
+  const formatProfilePicturePath = (path: string): string => {
+    // If path already starts with a slash, assume it's correctly formatted
+    return path.startsWith('/') 
+      ? path 
+      : `/uploads/profile_pictures/${path}`;
+  };
+  
   return (
     <Avatar className={`${avatarSize} ${className}`}>
       {user?.profilePicture ? (
         <AvatarImage 
-          src={user.profilePicture} 
+          src={formatProfilePicturePath(user.profilePicture)} 
           alt={user.name || "User"} 
           className="object-cover"
         />
