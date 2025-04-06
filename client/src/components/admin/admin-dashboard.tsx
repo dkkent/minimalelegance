@@ -1,13 +1,27 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Heart, Calendar, UserCheck } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
+  const queryClient = useQueryClient();
+  
+  // Clean up dashboard resources when component unmounts
+  useEffect(() => {
+    return () => {
+      // Remove dashboard queries when unmounting to prevent stale data
+      queryClient.removeQueries({
+        queryKey: ['/api/admin/dashboard']
+      });
+    };
+  }, [queryClient]);
+  
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['/api/admin/dashboard'],
-    retry: 1
+    retry: 1,
+    // Don't cache admin dashboard data for long to ensure fresh stats
+    staleTime: 30000 // 30 seconds
   });
 
   if (isLoading) {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Table, 
   TableBody, 
@@ -49,11 +49,25 @@ const AdminLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const queryClient = useQueryClient();
+  
+  // Clean up any WebSocket connections when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset query data to prevent stale state when navigating back
+      queryClient.removeQueries({
+        queryKey: ['/api/admin/logs']
+      });
+    };
+  }, [queryClient]);
   
   // Fetch logs with pagination
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/admin/logs', actionFilter, date ? format(date, 'yyyy-MM-dd') : null],
-    retry: 1
+    retry: 1,
+    // Disable caching to ensure fresh data on each visit
+    staleTime: 0,
+    gcTime: 0 // This is the new name for cacheTime in TanStack Query v5
   });
 
   const logs: AdminLog[] = data?.logs || [];
@@ -70,9 +84,19 @@ const AdminLogs: React.FC = () => {
     // Safely handle date comparison with error checking
     const matchesDate = !date || (() => {
       try {
+        // Handle null/undefined timestamp
+        if (log.timestamp === null || log.timestamp === undefined) {
+          return false;
+        }
+        
         const logDate = new Date(log.timestamp);
-        if (isNaN(logDate.getTime())) return false;
-        return format(logDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+        if (isNaN(logDate.getTime())) {
+          return false;
+        }
+        
+        const formattedLogDate = format(logDate, 'yyyy-MM-dd');
+        const formattedFilterDate = format(date, 'yyyy-MM-dd');
+        return formattedLogDate === formattedFilterDate;
       } catch (err) {
         console.error("Date parsing error:", err);
         return false;

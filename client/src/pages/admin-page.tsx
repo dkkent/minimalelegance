@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -14,7 +14,7 @@ import {
   ActivitySquare,
   Lock
 } from 'lucide-react';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import UserManagement from '@/components/admin/user-management';
 import StarterManagement from '@/components/admin/starter-management';
 import AdminLogs from '@/components/admin/admin-logs';
@@ -35,6 +35,17 @@ interface AdminUser {
 
 const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const queryClient = useQueryClient();
+  
+  // Clean up resources when component unmounts to prevent WebSocket errors
+  useEffect(() => {
+    return () => {
+      // Reset admin-related queries to prevent stale state when navigating back
+      queryClient.removeQueries({
+        queryKey: ['/api/admin']
+      });
+    };
+  }, [queryClient]);
   
   // Check if the current user is an admin
   const { data: currentUser, isLoading, isError } = useQuery({
