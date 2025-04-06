@@ -235,6 +235,10 @@ export function setupAuth(app: Express) {
         // Log successful login for security monitoring
         console.log(`User ${user.id} (${user.email}) logged in successfully at ${new Date().toISOString()}`);
         
+        // Explicitly store userId in session for middleware compatibility
+        req.session.userId = user.id;
+        console.log(`Stored userId ${user.id} in session ${req.sessionID}`);
+        
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
         res.status(200).json(userWithoutPassword);
@@ -246,6 +250,12 @@ export function setupAuth(app: Express) {
     if (req.user) {
       // Log logout for security monitoring
       console.log(`User ${req.user.id} (${req.user.email}) logged out at ${new Date().toISOString()}`);
+    }
+    
+    // Clear the userId in session before passport logout
+    if (req.session) {
+      req.session.userId = undefined;
+      console.log(`Cleared userId from session ${req.sessionID}`);
     }
     
     req.logout((err) => {
