@@ -24,27 +24,61 @@ declare module 'express-session' {
  * Checks if user is authenticated and has admin or superadmin role
  */
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  // Use Passport's isAuthenticated method to check if user is logged in
-  if (!req.isAuthenticated() || !req.user) {
+  // First check if the session exists and has a userId
+  if (!req.session || !req.session.userId) {
+    console.log('[Admin Auth] No session or userId in session');
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED'
     });
   }
 
-  // Check if user has admin or superadmin role
-  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-    return res.status(403).json({ 
-      error: 'Access denied. Admin privileges required.', 
-      code: 'UNAUTHORIZED' 
+  // If req.user doesn't exist yet (passport might have failed to deserialize)
+  // we'll try to get the user from storage directly
+  const processRequest = async () => {
+    let user = req.user;
+    
+    // If user is not available in req.user, try to get it from storage
+    if (!user) {
+      console.log('[Admin Auth] User not in req.user, fetching from storage using session userId:', req.session.userId);
+      user = await storage.getUser(req.session.userId);
+      
+      if (!user) {
+        console.log('[Admin Auth] User not found in storage');
+        return res.status(401).json({ 
+          error: 'Authentication failed - user not found',
+          code: 'UNAUTHENTICATED'
+        });
+      }
+      
+      // Attach the user to the request
+      req.user = user;
+    }
+    
+    // Now check the role
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      console.log('[Admin Auth] User does not have admin role:', user.role);
+      return res.status(403).json({ 
+        error: 'Access denied. Admin privileges required.', 
+        code: 'UNAUTHORIZED' 
+      });
+    }
+    
+    // Update last admin login
+    storage.updateUser(user.id, { lastAdminLogin: new Date() })
+      .catch((err: Error) => console.error('Failed to update last admin login:', err));
+    
+    next();
+  };
+  
+  // Process the request and handle any errors
+  processRequest().catch(err => {
+    console.error('[Admin Auth] Error in requireAdmin middleware:', err);
+    res.status(500).json({ 
+      error: 'Authentication error', 
+      code: 'SERVER_ERROR' 
     });
-  }
-  
-  // Update last admin login
-  storage.updateUser(req.user.id, { lastAdminLogin: new Date() })
-    .catch((err: Error) => console.error('Failed to update last admin login:', err));
-  
-  next();
+  });
 }
 
 /**
@@ -52,27 +86,61 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
  * Checks if user is authenticated and has superadmin role
  */
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  // Use Passport's isAuthenticated method to check if user is logged in
-  if (!req.isAuthenticated() || !req.user) {
+  // First check if the session exists and has a userId
+  if (!req.session || !req.session.userId) {
+    console.log('[Admin Auth] No session or userId in session');
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED'
     });
   }
 
-  // Check if user has superadmin role
-  if (req.user.role !== 'superadmin') {
-    return res.status(403).json({ 
-      error: 'Access denied. Super admin privileges required.', 
-      code: 'UNAUTHORIZED' 
+  // If req.user doesn't exist yet (passport might have failed to deserialize)
+  // we'll try to get the user from storage directly
+  const processRequest = async () => {
+    let user = req.user;
+    
+    // If user is not available in req.user, try to get it from storage
+    if (!user) {
+      console.log('[Admin Auth] User not in req.user, fetching from storage using session userId:', req.session.userId);
+      user = await storage.getUser(req.session.userId);
+      
+      if (!user) {
+        console.log('[Admin Auth] User not found in storage');
+        return res.status(401).json({ 
+          error: 'Authentication failed - user not found',
+          code: 'UNAUTHENTICATED'
+        });
+      }
+      
+      // Attach the user to the request
+      req.user = user;
+    }
+    
+    // Now check the role
+    if (user.role !== 'superadmin') {
+      console.log('[Admin Auth] User does not have superadmin role:', user.role);
+      return res.status(403).json({ 
+        error: 'Access denied. Super admin privileges required.', 
+        code: 'UNAUTHORIZED' 
+      });
+    }
+    
+    // Update last admin login
+    storage.updateUser(user.id, { lastAdminLogin: new Date() })
+      .catch((err: Error) => console.error('Failed to update last admin login:', err));
+    
+    next();
+  };
+  
+  // Process the request and handle any errors
+  processRequest().catch(err => {
+    console.error('[Admin Auth] Error in requireSuperAdmin middleware:', err);
+    res.status(500).json({ 
+      error: 'Authentication error', 
+      code: 'SERVER_ERROR' 
     });
-  }
-  
-  // Update last admin login
-  storage.updateUser(req.user.id, { lastAdminLogin: new Date() })
-    .catch((err: Error) => console.error('Failed to update last admin login:', err));
-  
-  next();
+  });
 }
 
 /**
