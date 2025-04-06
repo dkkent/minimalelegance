@@ -20,10 +20,12 @@ export function usePartner() {
     queryFn: getQueryFn({ on404: "returnNull" }),
     // Only fetch if user is logged in and has a partnerId
     enabled: !!user && !!user.partnerId,
+    // Important: provide a fallback initial value so it's never undefined
+    initialData: null
   });
 
   return {
-    partner: partner || null,
+    partner,
     isLoading,
     error,
     refetch,
