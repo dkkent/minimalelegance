@@ -113,12 +113,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     >
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner} 
-                          fallbackText="P"
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        {partner ? (
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText="P"
+                            className="h-10 w-10 border border-white absolute left-0 z-0" 
+                            size="md"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                            <span className="text-sm">P</span>
+                          </div>
+                        )}
                         
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
@@ -214,12 +220,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner} 
-                          fallbackText="P"
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        {partner ? (
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText="P"
+                            className="h-10 w-10 border border-white absolute left-0 z-0" 
+                            size="md"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                            <span className="text-sm">P</span>
+                          </div>
+                        )}
                         
                         {/* User avatar in front */}
                         <UserAvatar 
