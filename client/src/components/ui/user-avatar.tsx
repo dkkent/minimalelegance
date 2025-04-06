@@ -140,6 +140,9 @@ export function UserAvatar({
       // Add a timestamp to bypass browser cache
       const urlWithCache = `${imgSrc}?t=${Date.now()}`;
       
+      // Immediately set image error to false when we have a new image source
+      setImageError(false);
+      
       fetch(urlWithCache, { method: 'HEAD' })
         .then(res => {
           console.log(`Image existence check for ${imgSrc}: ${res.status} ${res.statusText}`);
@@ -154,6 +157,9 @@ export function UserAvatar({
           console.error(`❌ Error checking image at ${imgSrc}:`, err);
           setImageError(true);
         });
+    } else {
+      // No image source, so we consider this an error state
+      setImageError(true);
     }
   }, [imgSrc]);
 

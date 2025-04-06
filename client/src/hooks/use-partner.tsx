@@ -54,12 +54,20 @@ export function usePartner() {
     queryKey: ["/api/partner"],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/partner", undefined, {
-          headers: { 
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
+        // Check if user has a partnerId before proceeding
+        if (!user?.partnerId) {
+          console.log("No partnerId found in user object, returning null");
+          return null;
+        }
+        
+        const res = await apiRequest("GET", "/api/partner");
+        
+        if (!res.ok) {
+          console.error(`Partner API returned status: ${res.status}`);
+          if (res.status === 404) return null;
+          throw new Error(`Failed to fetch partner data: ${res.statusText}`);
+        }
+        
         const data = await res.json();
         console.log("Partner data from useQuery:", data);
         
