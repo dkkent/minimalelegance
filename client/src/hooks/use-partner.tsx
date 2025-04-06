@@ -15,15 +15,15 @@ export function usePartner() {
     isLoading,
     error,
     refetch,
-  } = useQuery<User | undefined, Error>({
+  } = useQuery<User | null, Error>({
     queryKey: ["/api/partner"],
-    queryFn: getQueryFn({ on404: "returnUndefined" }),
+    queryFn: getQueryFn({ on404: "returnNull" }),
     // Only fetch if user is logged in and has a partnerId
     enabled: !!user && !!user.partnerId,
   });
 
   return {
-    partner,
+    partner: partner || null,
     isLoading,
     error,
     refetch,
