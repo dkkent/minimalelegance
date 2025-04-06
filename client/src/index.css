@@ -86,7 +86,8 @@
     border-color: #DAE3E1;
   }
   .font-serif {
-    font-family: 'Playfair Display', serif;
+    font-family: 'IBM Plex Serif', serif;
+    font-weight: 300;
   }
   .font-sans {
     font-family: 'Inter', sans-serif;
