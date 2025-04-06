@@ -20,6 +20,7 @@ import { ProfilePictureUpload } from "@/components/profile-picture-upload";
 import { DisconnectPartnerDialog } from "@/components/disconnect-partner-dialog";
 import { usePartner } from "@/hooks/use-partner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -172,26 +173,18 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-4 mb-4 p-3 bg-white/50 rounded-md border border-sage-light/50">
                         <div className="w-[72px] h-10 relative">
                           {/* Partner avatar behind */}
-                          <Avatar 
+                          <UserAvatar 
+                            user={partner}
                             className="h-10 w-10 border border-white absolute left-0 z-0"
-                            title={partner.name}
-                          >
-                            <AvatarImage src={partner.profilePicture || undefined} alt={partner.name} />
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {partner.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
+                            size="md"
+                          />
                           
                           {/* User avatar in front */}
-                          <Avatar 
+                          <UserAvatar 
+                            user={user}
                             className="h-10 w-10 border border-white absolute left-6 z-10"
-                            title={user.name}
-                          >
-                            <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {user.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
+                            size="md"
+                          />
                         </div>
                         
                         <div>
