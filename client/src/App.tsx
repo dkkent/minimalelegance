@@ -35,11 +35,11 @@ function Router() {
       <ProtectedRoute path="/reveal/:id" component={RevealPage} />
       <ProtectedRoute path="/invite" component={InvitePartnerPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <ProtectedRoute path="/conversation-starters" component={() => {
+      <Route path="/conversation-starters" component={() => {
         const [_, navigate] = useLocation();
         React.useEffect(() => {
           navigate("/starters");
-        }, [navigate]);
+        }, []);
         return null;
       }} />
       <ProtectedRoute path="/starters" component={StartersPage} />
