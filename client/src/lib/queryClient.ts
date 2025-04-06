@@ -2,8 +2,54 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorDetail = {};
+    let responseText = '';
+    
+    try {
+      // Try to parse as JSON first
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorJson = await res.clone().json();
+        errorDetail = errorJson;
+        responseText = JSON.stringify(errorJson);
+      } else {
+        responseText = await res.text();
+      }
+    } catch (parseError) {
+      // If JSON parsing fails, fall back to text
+      try {
+        responseText = await res.text();
+      } catch (textError) {
+        responseText = res.statusText;
+      }
+    }
+    
+    // For authentication errors, add more context
+    if (res.status === 401) {
+      console.error('Authentication error:', {
+        status: res.status,
+        url: res.url,
+        responseText,
+        cookies: document.cookie ? 'Present' : 'None',
+      });
+      
+      throw new Error(`Authentication required: ${responseText}`, {
+        cause: { 
+          status: res.status, 
+          url: res.url,
+          detail: errorDetail,
+          type: 'auth_error'
+        }
+      });
+    }
+    
+    throw new Error(`${res.status}: ${responseText}`, {
+      cause: { 
+        status: res.status, 
+        url: res.url,
+        detail: errorDetail
+      }
+    });
   }
 }
 
@@ -60,12 +106,27 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401 = "throw", on404 = "throw" }) =>
   async ({ queryKey }) => {
+    console.log(`[API Request] ${queryKey[0]}, cookies: ${document.cookie ? 'Present' : 'None'}`);
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        // Add timestamp to prevent caching issues
+        'X-Request-Time': new Date().toISOString(),
+      }
     });
 
-    if (on401 !== "throw" && res.status === 401) {
-      return on401 === "returnNull" ? null : undefined;
+    // Enhanced debugging for auth issues
+    if (res.status === 401) {
+      console.warn(`[Auth Debug] Authentication failure for ${queryKey[0]}`, {
+        status: res.status,
+        cookies: document.cookie ? 'Present' : 'None',
+        sessionID: document.cookie.match(/connect\.sid=([^;]+)/)?.length > 1 ? 'Found' : 'Not found'
+      });
+      
+      if (on401 !== "throw") {
+        return on401 === "returnNull" ? null : undefined;
+      }
     }
 
     if (on404 !== "throw" && res.status === 404) {

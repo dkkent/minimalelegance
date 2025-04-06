@@ -29,10 +29,32 @@ const AdminDashboard: React.FC = () => {
   }
 
   if (error) {
+    console.error('Admin dashboard error:', error);
+    
+    // Get readable error message
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String(error.message);
+    }
+
     return (
       <div className="bg-destructive/10 text-destructive p-4 rounded-md">
         <p className="font-semibold">Error loading dashboard data</p>
         <p className="text-sm">Please try again later or contact the system administrator.</p>
+        <div className="mt-4 p-2 bg-card border text-xs font-mono overflow-auto">
+          <p className="text-xs text-muted-foreground mb-1">Error details (for debugging):</p>
+          <code>{errorMessage}</code>
+        </div>
+        <div className="mt-4">
+          <p className="text-xs text-muted-foreground">
+            Try refreshing the page or check your browser console for more details.
+            If you're an admin, verify your session is active by checking the "Current user" section above.
+          </p>
+        </div>
       </div>
     );
   }

@@ -57,6 +57,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   app.use(adminRoutes);
   
+  // Debug endpoint to check session status (TEMPORARY, development only)
+  app.get("/api/debug/session", (req, res) => {
+    console.log("======== SESSION DEBUG INFO ========");
+    console.log("Session ID:", req.sessionID);
+    console.log("Session data:", req.session);
+    console.log("isAuthenticated:", req.isAuthenticated());
+    console.log("User in req.user:", req.user ? `User ID: ${req.user.id}, Role: ${req.user.role}` : 'Not available');
+    console.log("==========================================");
+    
+    // Return sanitized info (don't expose passwords or tokens)
+    return res.json({
+      sessionExists: !!req.session,
+      sessionID: req.sessionID,
+      userAuthenticated: req.isAuthenticated(),
+      userId: req.session?.userId,
+      userInfo: req.user ? {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+        lastAdminLogin: req.user.lastAdminLogin,
+      } : null,
+      cookieHeader: req.headers.cookie,
+    });
+  });
+  
   // Debug endpoint to check environment variables (TEMPORARY)
   app.get("/api/debug/env", (req, res) => {
     // Check if request is from localhost for security
