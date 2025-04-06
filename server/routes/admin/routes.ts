@@ -16,6 +16,46 @@ import { userRoleEnum, User } from '@shared/schema';
 export const adminRoutes = Router();
 
 /**
+ * Session debug endpoint for troubleshooting
+ * Does not require admin authentication
+ */
+adminRoutes.get('/api/admin/session-debug', (req: Request, res: Response) => {
+  console.log('====== ADMIN SESSION DEBUG REQUEST ======');
+  console.log('Session exists:', !!req.session);
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('isAuthenticated():', req.isAuthenticated());
+  console.log('req.user:', req.user ? `ID: ${req.user.id}, Role: ${req.user.role}` : 'Not available');
+  console.log('Headers:', {
+    cookie: req.headers.cookie?.substring(0, 50) + '...',
+    'user-agent': req.headers['user-agent'],
+  });
+  console.log('============================');
+  
+  return res.status(200).json({
+    sessionExists: !!req.session,
+    sessionID: req.sessionID,
+    sessionData: {
+      userId: req.session?.userId,
+      cookie: req.session?.cookie ? {
+        originalMaxAge: req.session.cookie.originalMaxAge,
+        expires: req.session.cookie.expires,
+        secure: req.session.cookie.secure,
+        httpOnly: req.session.cookie.httpOnly,
+      } : null,
+    },
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user ? {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+    } : null,
+    hasCookieHeader: !!req.headers.cookie,
+  });
+});
+
+/**
  * Authentication check for admin panel access
  */
 adminRoutes.get('/api/admin/auth-check', requireAdmin, (req: Request, res: Response) => {
@@ -410,21 +450,52 @@ adminRoutes.get('/api/admin/themes', requireAdmin, async (req: Request, res: Res
  */
 adminRoutes.get('/api/admin/dashboard', requireAdmin, async (req: Request, res: Response) => {
   try {
+    console.log("======== ADMIN DASHBOARD REQUEST ========");
+    console.log("User authenticated:", req.isAuthenticated());
+    console.log("User ID:", req.user?.id);
+    console.log("User role:", req.user?.role);
+    console.log("Session ID:", req.sessionID);
+    console.log("Session userId:", req.session?.userId);
+    console.log("Cookies:", req.headers.cookie?.substring(0, 50) + "...");
+    console.log("=====================================");
+    
     // Get basic stats
+    console.log("[Admin Dashboard] Fetching userCount");
     const userCount = await storage.getUserCount();
+    console.log("[Admin Dashboard] Fetching partnershipCount");
     const partnershipCount = await storage.getPartnershipCount();
+    console.log("[Admin Dashboard] Fetching activeUserCount");
     const activeUserCount = await storage.getActiveUserCount();
+    console.log("[Admin Dashboard] Fetching recentJournalCount");
     const recentJournalCount = await storage.getRecentJournalEntryCount();
+    
+    console.log("[Admin Dashboard] All stats fetched successfully");
     
     return res.status(200).json({
       userCount,
       partnershipCount,
       activeUserCount,
       recentJournalCount,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      debug: {
+        requestTime: new Date().toISOString(),
+        userId: req.user?.id,
+        role: req.user?.role
+      }
     });
   } catch (err) {
     console.error('Error fetching admin dashboard stats:', err);
-    return res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+    return res.status(500).json({ 
+      error: 'Failed to fetch dashboard statistics',
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      debug: {
+        sessionExists: !!req.session,
+        userAuthenticated: req.isAuthenticated(),
+        userId: req.user?.id,
+        userRole: req.user?.role,
+        sessionUserId: req.session?.userId
+      }
+    });
   }
 });
