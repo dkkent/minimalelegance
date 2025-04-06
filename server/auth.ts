@@ -254,20 +254,23 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    // Remove password from response and ensure profile picture path is formatted
-    const { password, ...userWithoutPassword } = req.user;
-    
-    // Format profile picture path if it exists
-    if (userWithoutPassword.profilePicture) {
-      userWithoutPassword.profilePicture = userWithoutPassword.profilePicture.startsWith('/') 
-        ? userWithoutPassword.profilePicture 
-        : `/uploads/profile_pictures/${userWithoutPassword.profilePicture}`;
+    try {
+      // Use the storage.getSanitizedUser method to properly sanitize user data
+      // This removes sensitive fields like password, resetToken, etc. AND formats profile picture
+      const sanitizedUser = await storage.getSanitizedUser(req.user.id);
+      
+      if (!sanitizedUser) {
+        return res.sendStatus(404);
+      }
+      
+      res.json(sanitizedUser);
+    } catch (error) {
+      console.error("Error fetching sanitized user data:", error);
+      res.status(500).json({ message: "Error fetching user data" });
     }
-    
-    res.json(userWithoutPassword);
   });
   
   // Get partner information
@@ -275,23 +278,21 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const partner = await storage.getPartner(req.user.id);
+      // Get the partner's user ID first
+      const partnership = await storage.getCurrentPartnership(req.user.id);
       
-      if (!partner) {
+      if (!partnership || !req.user.partnerId) {
         return res.status(404).json({ message: "No partner found" });
       }
       
-      // Remove sensitive information from partner data
-      const { password, resetToken, resetTokenExpiry, ...safePartnerData } = partner;
+      // Use the sanitizeUser method to properly sanitize partner data
+      const sanitizedPartner = await storage.getSanitizedUser(req.user.partnerId);
       
-      // Format profile picture path if it exists
-      if (safePartnerData.profilePicture) {
-        safePartnerData.profilePicture = safePartnerData.profilePicture.startsWith('/') 
-          ? safePartnerData.profilePicture 
-          : `/uploads/profile_pictures/${safePartnerData.profilePicture}`;
+      if (!sanitizedPartner) {
+        return res.status(404).json({ message: "Partner not found" });
       }
       
-      res.json(safePartnerData);
+      res.json(sanitizedPartner);
     } catch (error) {
       console.error("Error fetching partner data:", error);
       res.status(500).json({ message: "Failed to fetch partner information" });

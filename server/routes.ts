@@ -1632,7 +1632,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort entries by creation date, newest first
       entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      res.status(200).json(entries);
+      // Sanitize user data in journal entries
+      const sanitizedEntries = entries.map(entry => {
+        // For entries with user data
+        if (entry.user) {
+          const { password, email, resetToken, resetTokenExpiry, ...safeUserData } = entry.user;
+          entry.user = safeUserData;
+          
+          // Format profile picture if present
+          if (entry.user.profilePicture) {
+            entry.user.profilePicture = entry.user.profilePicture.startsWith('/') 
+              ? entry.user.profilePicture 
+              : `/uploads/profile_pictures/${entry.user.profilePicture}`;
+          }
+        }
+        
+        // For entries with partner data
+        if (entry.partner) {
+          const { password, email, resetToken, resetTokenExpiry, ...safePartnerData } = entry.partner;
+          entry.partner = safePartnerData;
+          
+          // Format partner profile picture if present
+          if (entry.partner.profilePicture) {
+            entry.partner.profilePicture = entry.partner.profilePicture.startsWith('/') 
+              ? entry.partner.profilePicture 
+              : `/uploads/profile_pictures/${entry.partner.profilePicture}`;
+          }
+        }
+        
+        return entry;
+      });
+      
+      res.status(200).json(sanitizedEntries);
     } catch (error) {
       console.error("Failed to fetch journal entries:", error);
       res.status(500).json({ message: "Failed to fetch journal entries" });
@@ -1693,7 +1724,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by creation date, newest first
       spokenLoveslices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      res.status(200).json(spokenLoveslices);
+      // Sanitize user data in spoken loveslices
+      const sanitizedLoveslices = spokenLoveslices.map(loveslice => {
+        // If there's user1 data, sanitize it
+        if (loveslice.user1) {
+          const { password, email, resetToken, resetTokenExpiry, ...safeUser1Data } = loveslice.user1;
+          loveslice.user1 = safeUser1Data;
+          
+          // Format profile picture if present
+          if (loveslice.user1.profilePicture) {
+            loveslice.user1.profilePicture = loveslice.user1.profilePicture.startsWith('/') 
+              ? loveslice.user1.profilePicture 
+              : `/uploads/profile_pictures/${loveslice.user1.profilePicture}`;
+          }
+        }
+        
+        // If there's user2 data, sanitize it
+        if (loveslice.user2) {
+          const { password, email, resetToken, resetTokenExpiry, ...safeUser2Data } = loveslice.user2;
+          loveslice.user2 = safeUser2Data;
+          
+          // Format profile picture if present
+          if (loveslice.user2.profilePicture) {
+            loveslice.user2.profilePicture = loveslice.user2.profilePicture.startsWith('/') 
+              ? loveslice.user2.profilePicture 
+              : `/uploads/profile_pictures/${loveslice.user2.profilePicture}`;
+          }
+        }
+        
+        return loveslice;
+      });
+      
+      res.status(200).json(sanitizedLoveslices);
     } catch (error) {
       console.error("Failed to fetch spoken loveslices:", error);
       res.status(500).json({ message: "Failed to fetch spoken loveslices" });
@@ -1727,6 +1789,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You do not have access to this spoken loveslice" });
       }
       
+      // Sanitize user data in the spoken loveslice
+      if (spokenLoveslice.user1) {
+        const { password, email, resetToken, resetTokenExpiry, ...safeUser1Data } = spokenLoveslice.user1;
+        spokenLoveslice.user1 = safeUser1Data;
+        
+        // Format profile picture if present
+        if (spokenLoveslice.user1.profilePicture) {
+          spokenLoveslice.user1.profilePicture = spokenLoveslice.user1.profilePicture.startsWith('/') 
+            ? spokenLoveslice.user1.profilePicture 
+            : `/uploads/profile_pictures/${spokenLoveslice.user1.profilePicture}`;
+        }
+      }
+      
+      if (spokenLoveslice.user2) {
+        const { password, email, resetToken, resetTokenExpiry, ...safeUser2Data } = spokenLoveslice.user2;
+        spokenLoveslice.user2 = safeUser2Data;
+        
+        // Format profile picture if present
+        if (spokenLoveslice.user2.profilePicture) {
+          spokenLoveslice.user2.profilePicture = spokenLoveslice.user2.profilePicture.startsWith('/') 
+            ? spokenLoveslice.user2.profilePicture 
+            : `/uploads/profile_pictures/${spokenLoveslice.user2.profilePicture}`;
+        }
+      }
+      
       // Get the associated conversation if it exists
       let conversation = null;
       if (spokenLoveslice.conversationId) {
@@ -1747,7 +1834,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 user: {
                   id: messageUser.id,
                   name: messageUser.name,
-                  profilePicture: messageUser.profilePicture // Will be used directly, don't add /uploads/ prefix
+                  // Format profile picture if present
+                  profilePicture: messageUser.profilePicture && !messageUser.profilePicture.startsWith('/')
+                    ? `/uploads/profile_pictures/${messageUser.profilePicture}`
+                    : messageUser.profilePicture
                 }
               };
             }
