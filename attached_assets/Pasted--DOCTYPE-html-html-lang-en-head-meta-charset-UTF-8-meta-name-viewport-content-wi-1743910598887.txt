@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starters Page Wireframe</title>
+  <style>
+    body {
+      background: #fdfdfc;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .starter-page {
+      background: #ffffff;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    h2, h3 {
+      margin-top: 1.5rem;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    .button {
+      display: inline-block;
+      background-color: #e8f0ef;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      text-align: center;
+    }
+    .button:hover {
+      background-color: #d2e4e1;
+    }
+    .filter-tags, .starter-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .tag, .card {
+      background-color: #f3f3f3;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    textarea, select, input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="starter-page">
+
+    <!-- Header + Random Starter Section -->
+    <div class="section">
+      <h2>Conversation Starters</h2>
+      <p>A collection of thoughtful questions to deepen your connection.</p>
+      <div class="button">🌱 Get Random Starter</div>
+    </div>
+
+    <!-- Category Filter Tags -->
+    <div class="section">
+      <h3>Filter by Category</h3>
+      <div class="filter-tags">
+        <div class="tag">Trust</div>
+        <div class="tag">Intimacy</div>
+        <div class="tag">Conflict</div>
+        <div class="tag">Dreams</div>
+        <div class="tag">Play</div>
+        <div class="tag">Finances</div>
+        <div class="tag">Goals</div>
+        <div class="tag">Healing & Growth</div>
+        <div class="tag">Spiritual Connection</div>
+        <div class="tag">Family & Legacy</div>
+        <div class="tag">Sex & Desire</div>
+        <div class="tag">Daily Life & Ritual</div>
+      </div>
+    </div>
+
+    <!-- Starter Library Section -->
+    <div class="section">
+      <h3>Starter Library</h3>
+      <div class="starter-cards">
+        <div class="card">What’s something you miss about how we used to connect?</div>
+        <div class="card">How do you feel about the way we handle stress together?</div>
+        <div class="card">When do you feel most seen by me?</div>
+      </div>
+    </div>
+
+    <!-- Create Your Own Starter -->
+    <div class="section">
+      <h3>Create Your Own Starter</h3>
+      <label for="starter-category">Choose a Category:</label>
+      <select id="starter-category">
+        <option>Trust</option>
+        <option>Intimacy</option>
+        <option>Conflict</option>
+        <option>Dreams</option>
+        <option>Play</option>
+        <option>Finances</option>
+        <option>Goals</option>
+        <option>Healing & Growth</option>
+        <option>Spiritual Connection</option>
+        <option>Family & Legacy</option>
+        <option>Sex & Desire</option>
+        <option>Daily Life & Ritual</option>
+      </select>
+
+      <label for="starter-text">Your Question:</label>
+      <textarea id="starter-text" rows="3" placeholder="Type your question here..."></textarea>
+
+      <label><input type="checkbox"> Add to global starter library</label>
+
+      <div class="button" style="margin-top: 1rem;">Submit Starter</div>
+    </div>
+
+  </div>
+</body>
+</html>

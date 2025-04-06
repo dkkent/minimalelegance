@@ -86,9 +86,10 @@
     border-color: #DAE3E1;
   }
   .font-serif {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'IBM Plex Serif', serif;
+    font-weight: 300;
   }
-  .font-handwritten {
-    font-family: 'Caveat', cursive;
+  .font-sans {
+    font-family: 'Inter', sans-serif;
   }
 }
