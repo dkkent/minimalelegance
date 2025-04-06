@@ -1,0 +1,29 @@
+[API Request] /api/admin/logs, cookies: None
+Invalid time value
+Invalid time value
+The above error occurred in the <AdminLogs> component:
+
+    at AdminLogs (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/components/admin/admin-logs.tsx:54:39)
+    at div
+    at https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3eada81f:41:13
+    at Presence (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AZCBCMZO.js?v=3eada81f:24:11)
+    at https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3eada81f:173:13
+    at _c5 (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3eada81f:41:13
+    at Provider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=3eada81f:38:15)
+    at https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3eada81f:51:7
+    at div
+    at AdminPage (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/pages/admin-page.tsx:37:37)
+    at Route (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3eada81f:323:16)
+    at ProtectedRoute (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3eada81f:379:17)
+    at Router
+    at AuthProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at FirebaseAuthProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/hooks/use-firebase-auth.tsx:32:40)
+    at QueryClientProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3eada81f:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Invalid time value

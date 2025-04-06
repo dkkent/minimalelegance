@@ -67,8 +67,17 @@ const AdminLogs: React.FC = () => {
     
     const matchesAction = !actionFilter || log.action === actionFilter;
     
-    const matchesDate = !date || 
-      format(new Date(log.timestamp), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+    // Safely handle date comparison with error checking
+    const matchesDate = !date || (() => {
+      try {
+        const logDate = new Date(log.timestamp);
+        if (isNaN(logDate.getTime())) return false;
+        return format(logDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+      } catch (err) {
+        console.error("Date parsing error:", err);
+        return false;
+      }
+    })();
     
     return matchesSearch && matchesAction && matchesDate;
   });
@@ -95,8 +104,18 @@ const AdminLogs: React.FC = () => {
   };
   
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, 'MMM dd, yyyy HH:mm:ss');
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid before formatting
+      if (isNaN(date.getTime())) {
+        console.error("Invalid date value:", dateString);
+        return "Invalid date";
+      }
+      return format(date, 'MMM dd, yyyy HH:mm:ss');
+    } catch (err) {
+      console.error("Error formatting date:", err);
+      return "Invalid date";
+    }
   };
   
   if (isLoading) {
