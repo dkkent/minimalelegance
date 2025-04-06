@@ -35,7 +35,11 @@ import {
   conversationOutcomeEnum,
   partnerships,
   type Partnership,
-  type InsertPartnership
+  type InsertPartnership,
+  adminLogs,
+  type AdminLog,
+  type InsertAdminLog,
+  userRoleEnum
 } from "@shared/schema";
 import { db } from "./db";
 import { and, eq, desc, gte, lte, sql, or } from "drizzle-orm";
@@ -127,6 +131,12 @@ export interface IStorage {
   getUserActivity(userId: number, fromDate: Date, toDate: Date): Promise<UserActivity[]>;
   getCurrentStreak(userId: number): Promise<number>;
   getGardenHealth(userId: number): Promise<number>;
+  
+  // Admin related methods
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(userId: number, role: 'user' | 'admin' | 'superadmin'): Promise<User | undefined>;
+  createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
+  getAdminLogs(adminId?: number, fromDate?: Date, toDate?: Date): Promise<AdminLog[]>;
   
   // Session store
   sessionStore: any;
@@ -954,6 +964,88 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return latestActivity?.gardenHealth || 100;
+  }
+  
+  // Admin methods implementation
+  
+  /**
+   * Get all users in the system (for admin use)
+   * Returns users with profile pictures properly formatted
+   */
+  async getAllUsers(): Promise<User[]> {
+    const userList = await db
+      .select()
+      .from(users)
+      .orderBy(users.id);
+    
+    // Format each user's profile picture
+    return userList.map(user => this.formatUserProfilePicture(user)!);
+  }
+  
+  /**
+   * Update user role (admin only)
+   * @param userId The ID of the user to update
+   * @param role The new role to assign
+   * @returns The updated user object or undefined if not found
+   */
+  async updateUserRole(userId: number, role: 'user' | 'admin' | 'superadmin'): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        role,
+        // If upgrading to admin, set the last login time
+        ...(role === 'admin' || role === 'superadmin' ? { lastAdminLogin: new Date() } : {})
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return this.formatUserProfilePicture(user);
+  }
+  
+  /**
+   * Create an admin log entry
+   * @param log The log data to insert
+   * @returns The created log entry
+   */
+  async createAdminLog(log: InsertAdminLog): Promise<AdminLog> {
+    const [newLog] = await db
+      .insert(adminLogs)
+      .values(log)
+      .returning();
+    
+    return newLog;
+  }
+  
+  /**
+   * Get admin logs with optional filtering
+   * @param adminId Optional: Filter by admin ID
+   * @param fromDate Optional: Filter by date range start
+   * @param toDate Optional: Filter by date range end
+   * @returns Array of admin log entries
+   */
+  async getAdminLogs(adminId?: number, fromDate?: Date, toDate?: Date): Promise<AdminLog[]> {
+    let query = db.select().from(adminLogs);
+    
+    // Apply filters if provided
+    if (adminId) {
+      query = query.where(eq(adminLogs.adminId, adminId));
+    }
+    
+    if (fromDate && toDate) {
+      query = query.where(
+        and(
+          gte(adminLogs.createdAt, fromDate),
+          lte(adminLogs.createdAt, toDate)
+        )
+      );
+    } else if (fromDate) {
+      query = query.where(gte(adminLogs.createdAt, fromDate));
+    } else if (toDate) {
+      query = query.where(lte(adminLogs.createdAt, toDate));
+    }
+    
+    // Always sort by most recent first
+    return query.orderBy(desc(adminLogs.createdAt));
   }
 
   private async checkAndCreateLoveslice(newResponse: Response): Promise<void> {

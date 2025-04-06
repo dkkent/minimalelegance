@@ -1,6 +1,9 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, varchar, date, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, jsonb, varchar, date, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// User role enum
+export const userRoleEnum = pgEnum("user_role", ["user", "admin", "superadmin"]);
 
 // User schema
 export const users = pgTable("users", {
@@ -15,6 +18,8 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   firebaseUid: text("firebase_uid").unique(),
   profilePicture: text("profile_picture"),
+  role: userRoleEnum("role").default("user").notNull(),
+  lastAdminLogin: timestamp("last_admin_login"),
 });
 
 // Partnerships table to track unique relationships between users
@@ -342,3 +347,29 @@ export const insertUserActivitySchema = createInsertSchema(userActivity).pick({
 
 export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 export type UserActivity = typeof userActivity.$inferSelect;
+
+// Admin audit logs schema
+export const adminLogs = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").notNull().references(() => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(), // 'user', 'question', 'starter', etc.
+  entityId: integer("entity_id"),
+  details: jsonb("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAdminLogSchema = createInsertSchema(adminLogs).pick({
+  adminId: true,
+  action: true,
+  entityType: true,
+  entityId: true,
+  details: true,
+  ipAddress: true,
+  userAgent: true,
+});
+
+export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
+export type AdminLog = typeof adminLogs.$inferSelect;
