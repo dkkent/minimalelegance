@@ -54,14 +54,37 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     });
   }
   
-  // First check if the session exists and has a userId
-  if (!req.session || !req.session.userId) {
-    console.log('[Admin Auth] No session or userId in session');
+  // First check if the session exists
+  if (!req.session) {
+    console.log('[Admin Auth] No session');
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED',
       debug: {
-        sessionExists: !!req.session,
+        sessionExists: false,
+        isAuthenticated: req.isAuthenticated(),
+        hasSessionCookie: !!req.headers.cookie,
+        sessionID: req.sessionID || null
+      }
+    });
+  }
+  
+  // If userId is not in the session but user is authenticated, recover the session
+  if (!req.session.userId && req.isAuthenticated() && req.user) {
+    console.log('[Admin Auth] Fixing session - adding userId to existing session', 
+      { userId: req.user.id, sessionId: req.sessionID });
+    
+    // Add the userId to the session
+    req.session.userId = req.user.id;
+    
+    // Continue with middleware
+  } else if (!req.session.userId) {
+    console.log('[Admin Auth] No userId in session');
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      code: 'UNAUTHENTICATED',
+      debug: {
+        sessionExists: true,
         isAuthenticated: req.isAuthenticated(),
         hasSessionCookie: !!req.headers.cookie,
         sessionID: req.sessionID || null
@@ -179,14 +202,37 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
     });
   }
   
-  // First check if the session exists and has a userId
-  if (!req.session || !req.session.userId) {
-    console.log('[SuperAdmin Auth] No session or userId in session');
+  // First check if the session exists
+  if (!req.session) {
+    console.log('[SuperAdmin Auth] No session');
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED',
       debug: {
-        sessionExists: !!req.session,
+        sessionExists: false,
+        isAuthenticated: req.isAuthenticated(),
+        hasSessionCookie: !!req.headers.cookie,
+        sessionID: req.sessionID || null
+      }
+    });
+  }
+  
+  // If userId is not in the session but user is authenticated, recover the session
+  if (!req.session.userId && req.isAuthenticated() && req.user) {
+    console.log('[SuperAdmin Auth] Fixing session - adding userId to existing session', 
+      { userId: req.user.id, sessionId: req.sessionID });
+    
+    // Add the userId to the session
+    req.session.userId = req.user.id;
+    
+    // Continue with middleware
+  } else if (!req.session.userId) {
+    console.log('[SuperAdmin Auth] No userId in session');
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      code: 'UNAUTHENTICATED',
+      debug: {
+        sessionExists: true,
         isAuthenticated: req.isAuthenticated(),
         hasSessionCookie: !!req.headers.cookie,
         sessionID: req.sessionID || null
