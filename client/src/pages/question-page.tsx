@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layouts/main-layout";
 import { ThemeBadge } from "@/components/theme-badge";
 import { HandDrawnBorder } from "@/components/hand-drawn-border";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -14,6 +16,7 @@ export default function QuestionPage() {
   const [_, navigate] = useLocation();
   const params = useParams();
   const questionId = params?.id ? parseInt(params.id) : null;
+  const auth = useAuth();
   
   const [response, setResponse] = useState("");
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
@@ -234,7 +237,10 @@ export default function QuestionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Your response */}
               <div>
-                <h3 className="font-medium mb-3">Your Response</h3>
+                <div className="flex items-center mb-3">
+                  <UserAvatar user={auth.user} size="xs" className="mr-2" />
+                  <h3 className="font-medium">Your Response</h3>
+                </div>
                 <div className="bg-cream bg-opacity-40 p-4 rounded-lg">
                   <p className="italic text-gray-700">"{submittedResponseContent}"</p>
                 </div>
@@ -242,7 +248,15 @@ export default function QuestionPage() {
               
               {/* Partner's response - now revealed */}
               <div>
-                <h3 className="font-medium mb-3">Partner's Response</h3>
+                <div className="flex items-center mb-3">
+                  <UserAvatar 
+                    user={questionData.partnerResponse.user} 
+                    fallbackText="P" 
+                    size="xs" 
+                    className="mr-2" 
+                  />
+                  <h3 className="font-medium">Partner's Response</h3>
+                </div>
                 <div className="bg-lavender-light bg-opacity-40 p-4 rounded-lg">
                   <p className="italic text-gray-700">"{questionData.partnerResponse.content}"</p>
                 </div>
@@ -312,7 +326,10 @@ export default function QuestionPage() {
         
         <HandDrawnBorder className="bg-white rounded-lg shadow-md p-6 md:p-8 mb-8">
           <div className="mb-6">
-            <h3 className="font-medium mb-3">Your Response</h3>
+            <div className="flex items-center mb-3">
+              <UserAvatar user={auth.user} size="xs" className="mr-2" />
+              <h3 className="font-medium">Your Response</h3>
+            </div>
             <Textarea
               rows={6}
               className="w-full p-4 border border-lavender-light rounded-lg focus:outline-none focus:ring-1 focus:ring-sage"
