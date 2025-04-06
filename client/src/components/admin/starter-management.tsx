@@ -263,14 +263,14 @@ const StarterManagement: React.FC = () => {
           />
           
           <Select 
-            value={themeFilter?.toString() || ''} 
-            onValueChange={(value) => setThemeFilter(value ? parseInt(value) : null)}
+            value={themeFilter?.toString() || 'all'} 
+            onValueChange={(value) => setThemeFilter(value === 'all' ? null : parseInt(value))}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by theme" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All themes</SelectItem>
+              <SelectItem value="all">All themes</SelectItem>
               {themes.map(theme => (
                 <SelectItem key={theme.id} value={theme.id.toString()}>
                   {theme.name}
