@@ -86,9 +86,9 @@
     border-color: #DAE3E1;
   }
   .font-serif {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
   }
-  .font-handwritten {
-    font-family: 'Caveat', cursive;
+  .font-sans {
+    font-family: 'Inter', sans-serif;
   }
 }
