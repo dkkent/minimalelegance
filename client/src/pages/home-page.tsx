@@ -423,7 +423,7 @@ export default function HomePage() {
                       <div className="border-t border-gray-100 pt-4 mt-2">
                         <div className="flex items-center mb-2">
                           <UserAvatar 
-                            user={user} 
+                            user={pendingItem.userResponse.user || user} 
                             fallbackText="U" 
                             size="xs" 
                             className="mr-2" 

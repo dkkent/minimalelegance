@@ -46,6 +46,9 @@ import connectPg from "connect-pg-simple";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Helper methods
+  formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined;
+  
   // User related methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -134,10 +137,11 @@ export class DatabaseStorage implements IStorage {
   
   /**
    * Helper function to ensure profile picture paths are properly formatted
+   * Made public for use in API routes
    * @param user The user object to format
    * @returns A user object with properly formatted profile picture path
    */
-  private formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined {
+  formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined {
     if (!user) return undefined;
     
     if (user.profilePicture) {
