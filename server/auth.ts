@@ -278,18 +278,24 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      // Get the partner's user ID first
-      const partnership = await storage.getCurrentPartnership(req.user.id);
+      console.log("[Partner API] User requesting partner data:", {
+        userId: req.user.id,
+        userName: req.user.name,
+        partnerId: req.user.partnerId
+      });
       
-      // Return null if no partnership or no partner ID (instead of a 404 error)
-      if (!partnership || !req.user.partnerId) {
+      // First check if the user has a partnerId directly
+      if (!req.user.partnerId) {
+        console.log("[Partner API] User has no partnerId");
         return res.status(200).json(null);
       }
       
-      // Use the sanitizeUser method to properly sanitize partner data
+      // Get the sanitized partner data using the user's partnerId
       const sanitizedPartner = await storage.getSanitizedUser(req.user.partnerId);
+      console.log("[Partner API] Sanitized partner data:", sanitizedPartner);
       
       if (!sanitizedPartner) {
+        console.log("[Partner API] Partner not found or error sanitizing data");
         return res.status(200).json(null);
       }
       
