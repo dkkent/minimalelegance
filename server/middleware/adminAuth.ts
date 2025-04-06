@@ -24,40 +24,27 @@ declare module 'express-session' {
  * Checks if user is authenticated and has admin or superadmin role
  */
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const userId = req.session.userId;
-  
-  if (!userId) {
+  // Use Passport's isAuthenticated method to check if user is logged in
+  if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED'
     });
   }
 
-  storage.getUser(userId)
-    .then(user => {
-      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
-        return res.status(403).json({ 
-          error: 'Access denied. Admin privileges required.', 
-          code: 'UNAUTHORIZED' 
-        });
-      }
-      
-      // Add user to request for later use
-      req.user = user;
-      
-      // Update last admin login
-      storage.updateUser(userId, { lastAdminLogin: new Date() })
-        .catch((err: Error) => console.error('Failed to update last admin login:', err));
-      
-      next();
-    })
-    .catch((err: Error) => {
-      console.error('Admin auth middleware error:', err);
-      res.status(500).json({ 
-        error: 'Internal server error during authorization check', 
-        code: 'SERVER_ERROR' 
-      });
+  // Check if user has admin or superadmin role
+  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ 
+      error: 'Access denied. Admin privileges required.', 
+      code: 'UNAUTHORIZED' 
     });
+  }
+  
+  // Update last admin login
+  storage.updateUser(req.user.id, { lastAdminLogin: new Date() })
+    .catch((err: Error) => console.error('Failed to update last admin login:', err));
+  
+  next();
 }
 
 /**
@@ -65,40 +52,27 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
  * Checks if user is authenticated and has superadmin role
  */
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  const userId = req.session.userId;
-  
-  if (!userId) {
+  // Use Passport's isAuthenticated method to check if user is logged in
+  if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ 
       error: 'Authentication required',
       code: 'UNAUTHENTICATED'
     });
   }
 
-  storage.getUser(userId)
-    .then(user => {
-      if (!user || user.role !== 'superadmin') {
-        return res.status(403).json({ 
-          error: 'Access denied. Super admin privileges required.', 
-          code: 'UNAUTHORIZED' 
-        });
-      }
-      
-      // Add user to request for later use
-      req.user = user;
-      
-      // Update last admin login
-      storage.updateUser(userId, { lastAdminLogin: new Date() })
-        .catch((err: Error) => console.error('Failed to update last admin login:', err));
-      
-      next();
-    })
-    .catch((err: Error) => {
-      console.error('SuperAdmin auth middleware error:', err);
-      res.status(500).json({ 
-        error: 'Internal server error during authorization check', 
-        code: 'SERVER_ERROR' 
-      });
+  // Check if user has superadmin role
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ 
+      error: 'Access denied. Super admin privileges required.', 
+      code: 'UNAUTHORIZED' 
     });
+  }
+  
+  // Update last admin login
+  storage.updateUser(req.user.id, { lastAdminLogin: new Date() })
+    .catch((err: Error) => console.error('Failed to update last admin login:', err));
+  
+  next();
 }
 
 /**
