@@ -9,6 +9,7 @@ async function throwIfResNotOk(res: Response) {
 
 interface ApiRequestOptions {
   isFormData?: boolean;
+  headers?: Record<string, string>;
 }
 
 export async function apiRequest(
@@ -19,10 +20,13 @@ export async function apiRequest(
 ): Promise<Response> {
   const isFormData = options?.isFormData || false;
   
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    // Apply custom headers if provided
+    ...(options?.headers || {})
+  };
   
-  // Only set Content-Type for non-FormData requests
-  if (data && !isFormData) {
+  // Only set Content-Type for non-FormData requests and if not already set by custom headers
+  if (data && !isFormData && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
   

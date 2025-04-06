@@ -141,9 +141,18 @@ export class DatabaseStorage implements IStorage {
     if (!user) return undefined;
     
     if (user.profilePicture) {
-      user.profilePicture = user.profilePicture.startsWith('/') 
-        ? user.profilePicture 
-        : `/uploads/profile_pictures/${user.profilePicture}`;
+      // Only need to format if it's not empty
+      if (user.profilePicture.trim() !== '') {
+        const imagePath = user.profilePicture.startsWith('/') 
+          ? user.profilePicture 
+          : `/uploads/profile_pictures/${user.profilePicture}`;
+          
+        // Log for debugging
+        console.log(`[formatUserProfilePicture] Original path: "${user.profilePicture}", Formatted path: "${imagePath}"`);
+        
+        // Update the user object
+        user.profilePicture = imagePath;
+      }
     }
     
     return user;
@@ -166,12 +175,8 @@ export class DatabaseStorage implements IStorage {
       ...safeUserData 
     } = user as any;
     
-    // Format the profile picture if it exists
-    if (safeUserData.profilePicture) {
-      safeUserData.profilePicture = safeUserData.profilePicture.startsWith('/') 
-        ? safeUserData.profilePicture 
-        : `/uploads/profile_pictures/${safeUserData.profilePicture}`;
-    }
+    // NOTE: We don't need to format the profile picture here anymore
+    // It's already done by formatUserProfilePicture which should be called before this
     
     return safeUserData;
   }
@@ -199,7 +204,12 @@ export class DatabaseStorage implements IStorage {
    */
   async getSanitizedUser(id: number): Promise<Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return this.sanitizeUser(user);
+    
+    // First format the profile picture, then sanitize the user
+    const formattedUser = this.formatUserProfilePicture(user);
+    console.log(`[getSanitizedUser] Formatted user for ID ${id}:`, formattedUser?.profilePicture);
+    
+    return this.sanitizeUser(formattedUser);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {

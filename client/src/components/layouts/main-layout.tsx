@@ -26,13 +26,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { partner, isLoading: isPartnerLoading } = usePartner();
   const [location] = useLocation();
 
-  // Debug effect for partner data
+  // Debug effect for partner data and direct manipulation
   React.useEffect(() => {
+    console.log("Partner state in layout:", partner);
+    console.log("Is partner loading:", isPartnerLoading);
+    
     if (partner) {
-      console.log("Partner data in layout:", JSON.stringify(partner, null, 2));
-      console.log("Partner profile picture:", partner.profilePicture);
+      console.log("Partner data details:", {
+        id: partner.id,
+        name: partner.name,
+        profilePicture: partner.profilePicture,
+        profilePictureType: typeof partner.profilePicture
+      });
+      
+      // Direct test of image loading
+      if (partner.profilePicture) {
+        const img = new Image();
+        img.onload = () => console.log("✅ Partner image loaded successfully:", partner.profilePicture);
+        img.onerror = () => console.error("❌ Partner image failed to load:", partner.profilePicture);
+        img.src = partner.profilePicture;
+      }
     }
-  }, [partner]);
+  }, [partner, isPartnerLoading]);
 
   const handleLogout = () => {
     logoutMutation.mutate();

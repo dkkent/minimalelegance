@@ -14,14 +14,30 @@ export function usePartner() {
   // Direct fetch for debugging
   useEffect(() => {
     if (user?.partnerId) {
+      console.log("User has partnerId:", user.partnerId);
       console.log("Fetching partner data directly for debugging...");
-      fetch("/api/partner", { credentials: "include" })
+      fetch("/api/partner", { 
+        credentials: "include",
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
         .then(res => {
           console.log("Partner API status:", res.status);
           return res.json();
         })
         .then(data => {
-          console.log("Partner API data:", data);
+          console.log("Partner API raw data:", data);
+          if (data && data.profilePicture) {
+            console.log("Partner profile raw:", data.profilePicture);
+            
+            // Test the image
+            const img = new Image();
+            img.onload = () => console.log("✅ Direct fetch - image loaded:", data.profilePicture);
+            img.onerror = () => console.error("❌ Direct fetch - image failed:", data.profilePicture);
+            img.src = data.profilePicture;
+          }
         })
         .catch(err => {
           console.error("Partner API error:", err);
@@ -38,16 +54,25 @@ export function usePartner() {
     queryKey: ["/api/partner"],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/partner");
+        const res = await apiRequest("GET", "/api/partner", undefined, {
+          headers: { 
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         const data = await res.json();
-        console.log("Partner data from query:", data);
+        console.log("Partner data from useQuery:", data);
         
-        // Debug log for avatar-specific data 
-        if (data && data.profilePicture) {
-          console.log("Partner profile picture path:", data.profilePicture);
-          console.log("Is path string?", typeof data.profilePicture === 'string');
+        if (!data) {
+          console.log("Partner data is null");
+          return null;
+        }
+        
+        // Debug log for avatar-specific data
+        if (data.profilePicture) {
+          console.log("Partner profile picture from query:", data.profilePicture);
         } else {
-          console.log("Partner has no profile picture or data is null");
+          console.log("Partner has no profile picture");
         }
         
         return data;
@@ -58,6 +83,7 @@ export function usePartner() {
     },
     // Only fetch if user is logged in and has a partnerId
     enabled: !!user && !!user.partnerId,
+    staleTime: 0, // Consider data always stale
     // Important: provide a fallback initial value so it's never undefined
     initialData: null
   });
