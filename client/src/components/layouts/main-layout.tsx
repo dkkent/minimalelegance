@@ -26,6 +26,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { partner, isLoading: isPartnerLoading } = usePartner();
   const [location] = useLocation();
 
+  // Debug effect for partner data
+  React.useEffect(() => {
+    if (partner) {
+      console.log("Partner data in layout:", JSON.stringify(partner, null, 2));
+      console.log("Partner profile picture:", partner.profilePicture);
+    }
+  }, [partner]);
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
@@ -111,6 +119,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       className="relative group"
                       aria-label={partner ? `You're connected with ${partner.name}` : "You're connected with a partner"}
                     >
+
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <UserAvatar 
@@ -212,6 +221,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {user?.partnerId ? (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
+
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <UserAvatar 
