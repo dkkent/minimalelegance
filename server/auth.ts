@@ -278,8 +278,11 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      // Return null if user has no partner ID (instead of a 404 error)
-      if (!req.user.partnerId) {
+      // Get the partner's user ID first
+      const partnership = await storage.getCurrentPartnership(req.user.id);
+      
+      // Return null if no partnership or no partner ID (instead of a 404 error)
+      if (!partnership || !req.user.partnerId) {
         return res.status(200).json(null);
       }
       

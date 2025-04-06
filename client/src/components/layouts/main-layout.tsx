@@ -4,7 +4,6 @@ import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { usePartner } from "@/hooks/use-partner";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { PartnerAvatar } from "@/components/ui/partner-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -114,23 +113,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     >
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        {partner ? (
-                          <>
-                            {/* Using our specialized PartnerAvatar component */}
-                            {console.log("Using PartnerAvatar component with data:", partner)}
-                            <div className="absolute left-0 z-0">
-                              <PartnerAvatar
-                                partner={partner}
-                                className="border-2 border-white"
-                                size="md"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div className="h-10 w-10 border-2 border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                            <span className="text-sm">P</span>
-                          </div>
-                        )}
+                        <UserAvatar 
+                          user={partner} 
+                          fallbackText="P"
+                          className="h-10 w-10 border border-white absolute left-0 z-0" 
+                          size="md"
+                        />
                         
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
@@ -138,7 +126,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
                               <UserAvatar 
                                 user={user} 
-                                className="h-10 w-10 border-2 border-white" 
+                                className="h-10 w-10 border border-white" 
                                 size="md" 
                               />
                             </Button>
@@ -180,7 +168,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
                           <UserAvatar 
                             user={user} 
-                            className="h-10 w-10 border-2 border-sage"
+                            className="h-10 w-10 border border-sage"
                             size="md"
                           />
                         </Button>
@@ -226,28 +214,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        {partner ? (
-                          <>
-                            {/* Using our specialized PartnerAvatar component for mobile */}
-                            {console.log("Using PartnerAvatar component in mobile view with data:", partner)}
-                            <div className="absolute left-0 z-0">
-                              <PartnerAvatar
-                                partner={partner}
-                                className="border-2 border-white"
-                                size="md"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div className="h-10 w-10 border-2 border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                            <span className="text-sm">P</span>
-                          </div>
-                        )}
+                        <UserAvatar 
+                          user={partner} 
+                          fallbackText="P"
+                          className="h-10 w-10 border border-white absolute left-0 z-0" 
+                          size="md"
+                        />
                         
                         {/* User avatar in front */}
                         <UserAvatar 
                           user={user} 
-                          className="h-10 w-10 border-2 border-white absolute left-6 z-10" 
+                          className="h-10 w-10 border border-white absolute left-6 z-10" 
                           size="md"
                         />
                       </div>
