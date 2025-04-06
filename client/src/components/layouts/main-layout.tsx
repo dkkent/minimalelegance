@@ -118,14 +118,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           <>
                             {/* Using our specialized PartnerAvatar component */}
                             {console.log("Using PartnerAvatar component with data:", partner)}
-                            <PartnerAvatar
-                              partner={partner}
-                              className="absolute left-0 z-0 border border-white"
-                              size="md"
-                            />
+                            <div className="absolute left-0 z-0">
+                              <PartnerAvatar
+                                partner={partner}
+                                className="border-2 border-white"
+                                size="md"
+                              />
+                            </div>
                           </>
                         ) : (
-                          <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                          <div className="h-10 w-10 border-2 border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                             <span className="text-sm">P</span>
                           </div>
                         )}
@@ -136,7 +138,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
                               <UserAvatar 
                                 user={user} 
-                                className="h-10 w-10 border border-white" 
+                                className="h-10 w-10 border-2 border-white" 
                                 size="md" 
                               />
                             </Button>
@@ -178,7 +180,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
                           <UserAvatar 
                             user={user} 
-                            className="h-10 w-10 border border-sage"
+                            className="h-10 w-10 border-2 border-sage"
                             size="md"
                           />
                         </Button>
@@ -228,14 +230,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           <>
                             {/* Using our specialized PartnerAvatar component for mobile */}
                             {console.log("Using PartnerAvatar component in mobile view with data:", partner)}
-                            <PartnerAvatar
-                              partner={partner}
-                              className="absolute left-0 z-0 border border-white"
-                              size="md"
-                            />
+                            <div className="absolute left-0 z-0">
+                              <PartnerAvatar
+                                partner={partner}
+                                className="border-2 border-white"
+                                size="md"
+                              />
+                            </div>
                           </>
                         ) : (
-                          <div className="h-10 w-10 border border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                          <div className="h-10 w-10 border-2 border-white absolute left-0 z-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                             <span className="text-sm">P</span>
                           </div>
                         )}
@@ -243,7 +247,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* User avatar in front */}
                         <UserAvatar 
                           user={user} 
-                          className="h-10 w-10 border border-white absolute left-6 z-10" 
+                          className="h-10 w-10 border-2 border-white absolute left-6 z-10" 
                           size="md"
                         />
                       </div>
