@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
-import { getQueryFn } from "../lib/queryClient";
+import { getQueryFn, apiRequest } from "../lib/queryClient";
 import { useAuth } from "./use-auth";
+import { useEffect } from "react";
 
 /**
  * A hook to fetch and access partner information
@@ -10,6 +11,24 @@ import { useAuth } from "./use-auth";
 export function usePartner() {
   const { user } = useAuth();
   
+  // Direct fetch for debugging
+  useEffect(() => {
+    if (user?.partnerId) {
+      console.log("Fetching partner data directly for debugging...");
+      fetch("/api/partner", { credentials: "include" })
+        .then(res => {
+          console.log("Partner API status:", res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log("Partner API data:", data);
+        })
+        .catch(err => {
+          console.error("Partner API error:", err);
+        });
+    }
+  }, [user]);
+  
   const {
     data: partner,
     isLoading,
@@ -17,7 +36,17 @@ export function usePartner() {
     refetch,
   } = useQuery<User | null, Error>({
     queryKey: ["/api/partner"],
-    queryFn: getQueryFn({ on404: "returnNull" }),
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/partner");
+        const data = await res.json();
+        console.log("Partner data from query:", data);
+        return data;
+      } catch (error) {
+        console.error("Partner query error:", error);
+        return null;
+      }
+    },
     // Only fetch if user is logged in and has a partnerId
     enabled: !!user && !!user.partnerId,
     // Important: provide a fallback initial value so it's never undefined
