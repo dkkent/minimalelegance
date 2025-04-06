@@ -30,7 +30,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   React.useEffect(() => {
     console.log("Partner state in layout:", partner);
     console.log("Is partner loading:", isPartnerLoading);
-    
+
     if (partner) {
       console.log("Partner data details:", {
         id: partner.id,
@@ -38,7 +38,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         profilePicture: partner.profilePicture,
         profilePictureType: typeof partner.profilePicture
       });
-      
+
       // Direct test of image loading
       if (partner.profilePicture) {
         const img = new Image();
@@ -115,7 +115,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Logo size="medium" />
             </Link>
           </div>
-          
+
           <nav>
             <div className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
@@ -125,7 +125,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {item.name}
                 </Link>
               ))}
-              
+
               {user && (
                 <div className="flex items-center ml-2">
                   {/* Connection indicator with overlapping avatars */}
@@ -138,12 +138,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <UserAvatar 
-                          user={partner} 
-                          fallbackText="P"
+                          user={partner}
+                          fallbackText={partner?.name?.[0] || "P"}
                           className="h-10 w-10 border border-white absolute left-0 z-0" 
                           size="md"
                         />
-                        
+
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -179,7 +179,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      
+
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
                         Connected with {partner?.name || "your partner"}
@@ -224,7 +224,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </div>
               )}
             </div>
-            
+
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden focus:outline-none">
@@ -240,12 +240,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
                         <UserAvatar 
-                          user={partner} 
-                          fallbackText="P"
+                          user={partner}
+                          fallbackText={partner?.name?.[0] || "P"}
                           className="h-10 w-10 border border-white absolute left-0 z-0" 
                           size="md"
                         />
-                        
+
                         {/* User avatar in front */}
                         <UserAvatar 
                           user={user} 
@@ -255,7 +255,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       </div>
                     </div>
                   ) : null}
-                
+
                   {navItems.map((item) => (
                     <Link key={item.path} href={item.path} className={`px-3 py-2 rounded hover:bg-sage-light transition duration-200 ${
                       location === item.path ? 'text-sage font-medium' : ''
@@ -263,17 +263,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       {item.name}
                     </Link>
                   ))}
-                  
+
                   <Link href="/profile" className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
                     Profile
                   </Link>
-                  
+
                   {!user?.partnerId && (
                     <Link href="/invite" className="px-3 py-2 rounded hover:bg-sage-light transition duration-200">
                       Invite Partner
                     </Link>
                   )}
-                  
+
                   <Button
                     variant="ghost"
                     className="justify-start px-3"
