@@ -57,7 +57,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { name: "Home", path: "/" },
     { name: "Questions", path: "/question" },
     { name: "Journal", path: "/journal" },
-    { name: "Conversations", path: "/conversation-starters" },
+    { name: "Starters", path: "/starters" },
   ];
 
   return (
