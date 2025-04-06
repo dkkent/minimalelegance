@@ -136,7 +136,15 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   updateUserRole(userId: number, role: 'user' | 'admin' | 'superadmin'): Promise<User | undefined>;
   createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
-  getAdminLogs(adminId?: number, fromDate?: Date, toDate?: Date): Promise<AdminLog[]>;
+  getAdminLogs(offset?: number, limit?: number, adminId?: number, fromDate?: Date, toDate?: Date): Promise<{logs: AdminLog[], total: number}>;
+  getUserCount(): Promise<number>;
+  getPartnershipCount(): Promise<number>;
+  getActiveUserCount(days?: number): Promise<number>;
+  getRecentJournalEntryCount(days?: number): Promise<number>;
+  getAllConversationStarters(): Promise<ConversationStarter[]>;
+  getThemes(): Promise<string[]>;
+  updateConversationStarter(id: number, data: Partial<ConversationStarter>): Promise<ConversationStarter | undefined>;
+  deleteConversationStarter(id: number): Promise<boolean>;
   
   // Session store
   sessionStore: any;
