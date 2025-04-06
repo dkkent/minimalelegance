@@ -41,6 +41,15 @@ export function usePartner() {
         const res = await apiRequest("GET", "/api/partner");
         const data = await res.json();
         console.log("Partner data from query:", data);
+        
+        // Debug log for avatar-specific data 
+        if (data && data.profilePicture) {
+          console.log("Partner profile picture path:", data.profilePicture);
+          console.log("Is path string?", typeof data.profilePicture === 'string');
+        } else {
+          console.log("Partner has no profile picture or data is null");
+        }
+        
         return data;
       } catch (error) {
         console.error("Partner query error:", error);

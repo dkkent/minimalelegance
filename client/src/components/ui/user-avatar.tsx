@@ -39,26 +39,45 @@ export function UserAvatar({
   const initials = user?.name ? getInitials(user.name) : fallbackText;
   
   // Function to ensure profile picture path is properly formatted
-  const formatProfilePicturePath = (path: string): string => {
-    // If path already starts with a slash, assume it's correctly formatted
-    return path.startsWith('/') 
-      ? path 
-      : `/uploads/profile_pictures/${path}`;
+  const formatProfilePicturePath = (path: string | null | undefined): string => {
+    if (!path) return '';
+    
+    // Log the path for debugging
+    console.log(`Formatting profile picture path: "${path}"`);
+    
+    // If path already starts with /uploads, use it as is
+    if (path.startsWith('/uploads/profile_pictures/')) {
+      console.log(`Using path as is: "${path}"`);
+      return path;
+    }
+    
+    // If path is just the filename, add the directory prefix
+    const formattedPath = `/uploads/profile_pictures/${path}`;
+    console.log(`Formatted path: "${formattedPath}"`);
+    return formattedPath;
   };
+  
+  // Determine the image source
+  const imgSrc = user?.profilePicture ? formatProfilePicturePath(user.profilePicture) : '';
+  
+  console.log("UserAvatar for:", user?.name, "with picture:", imgSrc);
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
-      {user?.profilePicture ? (
+      {imgSrc ? (
         <AvatarImage 
-          src={formatProfilePicturePath(user.profilePicture)} 
-          alt={user.name || "User"} 
+          src={imgSrc} 
+          alt={user?.name || "User"} 
           className="object-cover"
+          onError={(e) => {
+            console.error("Failed to load avatar image:", imgSrc);
+            e.currentTarget.style.display = 'none';
+          }}
         />
-      ) : (
-        <AvatarFallback className="bg-sage-light text-sage-dark">
-          {initials}
-        </AvatarFallback>
-      )}
+      ) : null}
+      <AvatarFallback className="bg-sage-light text-sage-dark">
+        {initials}
+      </AvatarFallback>
     </Avatar>
   );
 }
