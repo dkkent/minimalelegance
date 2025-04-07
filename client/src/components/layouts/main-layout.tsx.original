@@ -136,59 +136,78 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       className="relative group"
                       aria-label={partner ? `You're connected with ${partner.name}` : "You're connected with a partner"}
                     >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <div className="w-[72px] h-10 relative cursor-pointer" aria-label="User profile menu">
-                            {/* Partner avatar behind */}
-                            {partner?.profilePicture && (
-                              <div className="absolute left-0 z-0">
-                                <DirectAvatar
-                                  src={partner.profilePicture}
-                                  alt={partner.name || "Partner"}
-                                  size={40}
-                                  borderColor="white"
-                                  fallbackText={partner?.name?.[0] || "P"}
-                                />
-                              </div>
-                            )}
 
-                            {/* User avatar in front */}
-                            {user?.profilePicture && (
-                              <div className="absolute left-6 z-10">
+                      <div className="w-[72px] h-10 relative">
+                        {/* Partner avatar behind */}
+                        <div className="absolute left-0 z-0">
+                          {partner?.profilePicture ? (
+                            <DirectAvatar
+                              src={partner.profilePicture}
+                              alt={partner.name || "Partner"}
+                              size={40}
+                              borderColor="white"
+                              fallbackText={partner?.name?.[0] || "P"}
+                            />
+                          ) : (
+                            <UserAvatar 
+                              user={partner}
+                              fallbackText={partner?.name?.[0] || "P"}
+                              className="h-10 w-10 border-2 border-white" 
+                              size="md"
+                            />
+                          )}
+                        </div>
+
+                        {/* User avatar in front (with dropdown) */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <div className="absolute left-6 z-10">
+                              {user?.profilePicture ? (
                                 <DirectAvatar
                                   src={user.profilePicture}
                                   alt={user.name || "User"}
                                   size={40}
                                   borderColor="white"
                                   fallbackText={user?.name?.[0] || "U"}
+                                  className="cursor-pointer"
                                 />
-                              </div>
-                            )}
-                          </div>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <Link href="/profile">
-                            <DropdownMenuItem>
-                              <UserIcon className="w-4 h-4 mr-2" />
-                              <span>Profile</span>
-                            </DropdownMenuItem>
-                          </Link>
-                          {!user.partnerId && (
-                            <Link href="/invite">
+                              ) : (
+                                <div 
+                                  className="h-10 w-10 rounded-full border-2 border-white flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
+                                  style={{
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  {user?.name?.[0] || "U"}
+                                </div>
+                              )}
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <Link href="/profile">
                               <DropdownMenuItem>
-                                <span>Invite Partner</span>
+                                <UserIcon className="w-4 h-4 mr-2" />
+                                <span>Profile</span>
                               </DropdownMenuItem>
                             </Link>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={handleLogout}>
-                            <LogOut className="w-4 h-4 mr-2" />
-                            <span>Log out</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {!user.partnerId && (
+                              <Link href="/invite">
+                                <DropdownMenuItem>
+                                  <span>Invite Partner</span>
+                                </DropdownMenuItem>
+                              </Link>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout}>
+                              <LogOut className="w-4 h-4 mr-2" />
+                              <span>Log out</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
 
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
@@ -199,7 +218,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="cursor-pointer">
+                        <div>
                           {user?.profilePicture ? (
                             <DirectAvatar
                               src={user.profilePicture}
@@ -207,10 +226,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               size={40}
                               borderColor="var(--sage)"
                               fallbackText={user?.name?.[0] || "U"}
+                              className="cursor-pointer"
                             />
                           ) : (
                             <div 
-                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark"
+                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 'bold'
@@ -263,8 +283,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        {partner?.profilePicture && (
-                          <div className="absolute left-0 z-0">
+                        <div className="absolute left-0 z-0">
+                          {partner?.profilePicture ? (
                             <DirectAvatar
                               src={partner.profilePicture}
                               alt={partner.name || "Partner"}
@@ -272,12 +292,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               borderColor="white"
                               fallbackText={partner?.name?.[0] || "P"}
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <UserAvatar 
+                              user={partner}
+                              fallbackText={partner?.name?.[0] || "P"}
+                              className="h-10 w-10 border-2 border-white" 
+                              size="md"
+                            />
+                          )}
+                        </div>
 
                         {/* User avatar in front */}
-                        {user?.profilePicture && (
-                          <div className="absolute left-6 z-10">
+                        <div className="absolute left-6 z-10">
+                          {user?.profilePicture ? (
                             <DirectAvatar
                               src={user.profilePicture}
                               alt={user.name || "User"}
@@ -285,8 +312,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               borderColor="white"
                               fallbackText={user?.name?.[0] || "U"}
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <UserAvatar 
+                              user={user} 
+                              className="h-10 w-10 border-2 border-white" 
+                              size="md"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : null}

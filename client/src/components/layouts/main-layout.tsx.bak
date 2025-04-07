@@ -133,35 +133,51 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {/* Connection indicator with overlapping avatars */}
                   {user?.partnerId ? (
                     <div 
-                      className="relative group"
+                      className="relative group flex items-center"
                       aria-label={partner ? `You're connected with ${partner.name}` : "You're connected with a partner"}
                     >
+                      {/* Partner avatar container */}
+                      <div className="relative mr-[-16px]">
+                        {partner?.profilePicture ? (
+                          <DirectAvatar
+                            src={partner.profilePicture}
+                            alt={partner.name || "Partner"}
+                            size={40}
+                            borderColor="white"
+                            fallbackText={partner?.name?.[0] || "P"}
+                          />
+                        ) : (
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText={partner?.name?.[0] || "P"}
+                            className="h-10 w-10 border-2 border-white" 
+                            size="md"
+                          />
+                        )}
+                      </div>
+
+                      {/* User avatar with dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <div className="w-[72px] h-10 relative cursor-pointer" aria-label="User profile menu">
-                            {/* Partner avatar behind */}
-                            {partner?.profilePicture && (
-                              <div className="absolute left-0 z-0">
-                                <DirectAvatar
-                                  src={partner.profilePicture}
-                                  alt={partner.name || "Partner"}
-                                  size={40}
-                                  borderColor="white"
-                                  fallbackText={partner?.name?.[0] || "P"}
-                                />
-                              </div>
-                            )}
-
-                            {/* User avatar in front */}
-                            {user?.profilePicture && (
-                              <div className="absolute left-6 z-10">
-                                <DirectAvatar
-                                  src={user.profilePicture}
-                                  alt={user.name || "User"}
-                                  size={40}
-                                  borderColor="white"
-                                  fallbackText={user?.name?.[0] || "U"}
-                                />
+                          <div className="z-10 cursor-pointer">
+                            {user?.profilePicture ? (
+                              <DirectAvatar
+                                src={user.profilePicture}
+                                alt={user.name || "User"}
+                                size={40}
+                                borderColor="white"
+                                fallbackText={user?.name?.[0] || "U"}
+                                className="cursor-pointer"
+                              />
+                            ) : (
+                              <div 
+                                className="h-10 w-10 rounded-full border-2 border-white flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
+                                style={{
+                                  fontSize: '14px',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                {user?.name?.[0] || "U"}
                               </div>
                             )}
                           </div>
@@ -188,7 +204,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <span>Log out</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>
+                        </DropdownMenu>
+                      </div>
 
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
@@ -199,7 +216,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="cursor-pointer">
+                        <div>
                           {user?.profilePicture ? (
                             <DirectAvatar
                               src={user.profilePicture}
@@ -207,10 +224,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               size={40}
                               borderColor="var(--sage)"
                               fallbackText={user?.name?.[0] || "U"}
+                              className="cursor-pointer"
                             />
                           ) : (
                             <div 
-                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark"
+                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 'bold'
@@ -261,10 +279,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
 
-                      <div className="w-[72px] h-10 relative">
-                        {/* Partner avatar behind */}
-                        {partner?.profilePicture && (
-                          <div className="absolute left-0 z-0">
+                      <div className="flex items-center">
+                        {/* Partner avatar */}
+                        <div className="mr-[-16px]">
+                          {partner?.profilePicture ? (
                             <DirectAvatar
                               src={partner.profilePicture}
                               alt={partner.name || "Partner"}
@@ -272,12 +290,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               borderColor="white"
                               fallbackText={partner?.name?.[0] || "P"}
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <UserAvatar 
+                              user={partner}
+                              fallbackText={partner?.name?.[0] || "P"}
+                              className="h-10 w-10 border-2 border-white" 
+                              size="md"
+                            />
+                          )}
+                        </div>
 
-                        {/* User avatar in front */}
-                        {user?.profilePicture && (
-                          <div className="absolute left-6 z-10">
+                        {/* User avatar */}
+                        <div className="z-10">
+                          {user?.profilePicture ? (
                             <DirectAvatar
                               src={user.profilePicture}
                               alt={user.name || "User"}
@@ -285,8 +310,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               borderColor="white"
                               fallbackText={user?.name?.[0] || "U"}
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <UserAvatar 
+                              user={user} 
+                              className="h-10 w-10 border-2 border-white" 
+                              size="md"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : null}
