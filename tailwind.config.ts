@@ -44,6 +44,27 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // Theme colors
+        sage: {
+          DEFAULT: "#7C9A92",
+          light: "#DAE3E1",
+          dark: "#5D7A72",
+        },
+        lavender: {
+          DEFAULT: "#9E9EB3",
+          light: "#D9D9E8",
+          dark: "#8A8AB1",
+        },
+        coral: {
+          DEFAULT: "#E0A783",
+          light: "#F1CCB8",
+          dark: "#D78A5C",
+        },
+        peach: {
+          DEFAULT: "#E3A491",
+          light: "#F9D1C3",
+          dark: "#D6836B",
+        },
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
