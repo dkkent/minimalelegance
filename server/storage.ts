@@ -42,7 +42,7 @@ import {
   userRoleEnum
 } from "@shared/schema";
 import { db } from "./db";
-import { and, eq, desc, gte, lte, sql, or, inArray, isNotNull, not } from "drizzle-orm";
+import { and, eq, desc, gte, lte, sql, or, inArray, isNotNull, not, isNull } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -554,6 +554,14 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionsByCategory(theme: string, filterApproved: boolean = true): Promise<Question[]> {
     // This method uses 'theme' column as that's what exists in the database
+    if (filterApproved) {
+      return db.select().from(questions).where(
+        and(
+          eq(questions.theme, theme),
+          eq(questions.isApproved, true)
+        )
+      );
+    }
     return db.select().from(questions).where(eq(questions.theme, theme));
   }
   
@@ -588,19 +596,29 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserGeneratedQuestions(userId?: number, filterApproved: boolean = false): Promise<Question[]> {
-    let query = db.select().from(questions).where(eq(questions.userGenerated, true));
+    let baseQuery = db.select().from(questions).where(eq(questions.userGenerated, true));
+    
+    // Build filter conditions
+    const conditions = [];
     
     if (userId) {
       // Add filter for specific user
-      query = query.where(eq(questions.createdBy, userId));
+      conditions.push(eq(questions.createdById, userId));
     }
     
     if (filterApproved) {
       // Add filter for approved questions
-      query = query.where(eq(questions.isApproved, true));
+      conditions.push(eq(questions.isApproved, true));
     }
     
-    return query;
+    // Apply all filter conditions if there are any
+    if (conditions.length > 0) {
+      return db.select()
+        .from(questions)
+        .where(and(eq(questions.userGenerated, true), ...conditions));
+    }
+    
+    return baseQuery;
   }
   
   async approveQuestion(id: number): Promise<Question | undefined> {
@@ -923,17 +941,23 @@ export class DatabaseStorage implements IStorage {
     content: string, 
     theme: string, 
     userGenerated: boolean = false, 
-    createdBy?: number
+    createdById?: number
   ): Promise<ConversationStarter & { question: Question }> {
     // First create the question using the theme field
     const question = await this.createQuestion({
       content,
       theme, // Theme field is what exists in the database
+      userGenerated,
+      isApproved: !userGenerated, // Auto-approve admin/system questions
+      createdById,
     });
     
-    // Then create the conversation starter linked to this question
+    // Create the conversation starter using both the direct content/theme approach and
+    // a reference to the question (for transition to the unified model)
     const starter = await this.createConversationStarter({
-      questionId: question.id,
+      content, // Include content directly for backward compatibility
+      theme, // Include theme directly for backward compatibility
+      baseQuestionId: question.id, // Link to the question for the unified model
       lovesliceId: null,
       markedAsMeaningful: false,
       used: false,
@@ -946,9 +970,20 @@ export class DatabaseStorage implements IStorage {
     };
   }
   
-  async getConversationStartersByTheme(category: string): Promise<(ConversationStarter & { question: Question })[]> {
-    // Join the tables to get both starter metadata and question content
-    const results = await db
+  async getConversationStartersByTheme(theme: string): Promise<(ConversationStarter & { question: Question })[]> {
+    // In the transitional period, we need to handle two types of records:
+    // 1. Legacy records with content/theme directly in conversation_starters table
+    // 2. New records that reference the questions table via base_question_id
+
+    // Get starters that have their own content and match the theme
+    const legacyStarters = await db
+      .select()
+      .from(conversationStarters)
+      .where(eq(conversationStarters.theme, theme))
+      .orderBy(desc(conversationStarters.createdAt));
+
+    // Get starters that reference questions via base_question_id
+    const linkedResults = await db
       .select({
         starter: conversationStarters,
         question: questions,
@@ -956,24 +991,50 @@ export class DatabaseStorage implements IStorage {
       .from(conversationStarters)
       .innerJoin(
         questions,
-        eq(conversationStarters.questionId, questions.id)
+        eq(conversationStarters.baseQuestionId, questions.id)
       )
-      .where(eq(questions.theme, category))
-      .orderBy(desc(conversationStarters.createdAt)); // Sort by newest first
-    
-    // Transform to expected format
-    return results.map(row => ({
+      .where(eq(questions.theme, theme))
+      .orderBy(desc(conversationStarters.createdAt));
+
+    // Format the legacy starters to include a synthetic question object
+    const formattedLegacyStarters = legacyStarters
+      .filter(starter => starter.baseQuestionId === null) // Ensure we don't double-count
+      .map(starter => ({
+        ...starter,
+        question: {
+          id: -1, // Use a placeholder ID for now
+          content: starter.content || "", 
+          theme: starter.theme || theme,
+          userGenerated: false, // Legacy starters are considered system-generated
+          isApproved: true,    // Legacy starters are considered pre-approved
+          createdById: null     // No creator for legacy starters
+        } as Question,
+      }));
+
+    // Format the linked results
+    const formattedLinkedResults = linkedResults.map(row => ({
       ...row.starter,
       question: row.question,
     }));
+
+    // Combine both sets of results and sort by creation date
+    const combined = [...formattedLegacyStarters, ...formattedLinkedResults];
+    combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return combined;
   }
   
-  async getRandomConversationStarter(category?: string): Promise<(ConversationStarter & { question: Question }) | undefined> {
-    let results;
+  async getRandomConversationStarter(theme?: string): Promise<(ConversationStarter & { question: Question }) | undefined> {
+    // In the transitional period, we need to handle two types of records:
+    // 1. Legacy records with content/theme directly in conversation_starters table
+    // 2. New records that reference the questions table via base_question_id
     
-    if (category) {
-      // If category is provided, filter by category and unused (using theme instead of category in database)
-      results = await db
+    // Try to get a random starter - first try directly referenced ones (newer approach)
+    let linkedResults;
+    
+    if (theme) {
+      // If theme is provided, filter by theme and unused
+      linkedResults = await db
         .select({
           starter: conversationStarters,
           question: questions,
@@ -981,17 +1042,17 @@ export class DatabaseStorage implements IStorage {
         .from(conversationStarters)
         .innerJoin(
           questions,
-          eq(conversationStarters.questionId, questions.id)
+          eq(conversationStarters.baseQuestionId, questions.id)
         )
         .where(and(
           eq(conversationStarters.used, false),
-          eq(questions.theme, category)
+          eq(questions.theme, theme)
         ))
         .orderBy(sql`RANDOM()`)
         .limit(1);
     } else {
       // Otherwise just filter by unused
-      results = await db
+      linkedResults = await db
         .select({
           starter: conversationStarters,
           question: questions,
@@ -999,19 +1060,60 @@ export class DatabaseStorage implements IStorage {
         .from(conversationStarters)
         .innerJoin(
           questions,
-          eq(conversationStarters.questionId, questions.id)
+          eq(conversationStarters.baseQuestionId, questions.id)
         )
         .where(eq(conversationStarters.used, false))
         .orderBy(sql`RANDOM()`)
         .limit(1);
     }
     
-    if (results.length === 0) return undefined;
+    // If we found a linked starter, return it
+    if (linkedResults.length > 0) {
+      return {
+        ...linkedResults[0].starter,
+        question: linkedResults[0].question,
+      };
+    }
     
-    // Transform to expected format
+    // Otherwise, try to get a legacy starter with its own content
+    let legacyResults;
+    
+    if (theme) {
+      legacyResults = await db
+        .select()
+        .from(conversationStarters)
+        .where(and(
+          eq(conversationStarters.used, false),
+          eq(conversationStarters.theme, theme),
+          isNull(conversationStarters.baseQuestionId) // Ensure it's a legacy record
+        ))
+        .orderBy(sql`RANDOM()`)
+        .limit(1);
+    } else {
+      legacyResults = await db
+        .select()
+        .from(conversationStarters)
+        .where(and(
+          eq(conversationStarters.used, false),
+          isNull(conversationStarters.baseQuestionId) // Ensure it's a legacy record
+        ))
+        .orderBy(sql`RANDOM()`)
+        .limit(1);
+    }
+    
+    if (legacyResults.length === 0) return undefined;
+    
+    // Format the legacy starter to include a synthetic question object
     return {
-      ...results[0].starter,
-      question: results[0].question,
+      ...legacyResults[0],
+      question: {
+        id: -1, // Use a placeholder ID for now
+        content: legacyResults[0].content || "", 
+        theme: legacyResults[0].theme || theme || "Unknown",
+        userGenerated: false, // Legacy starters are considered system-generated
+        isApproved: true,    // Legacy starters are considered pre-approved
+        createdById: null     // No creator for legacy starters
+      } as Question,
     };
   }
   
@@ -1485,7 +1587,7 @@ export class DatabaseStorage implements IStorage {
     );
     
     if (partnerResponse) {
-      // Get the question to include its category
+      // Get the question to include its theme
       const question = await this.getQuestion(newResponse.questionId);
       if (!question) return;
       
@@ -1510,8 +1612,8 @@ export class DatabaseStorage implements IStorage {
         user2Id: user.partnerId,
         writtenLovesliceId: newLoveslice.id,
         spokenLovesliceId: null,
-        theme: question.category,
-        searchableContent: `Written loveslice about ${question.category}: "${question.content}" - Responses: "${newResponse.content}" and "${partnerResponse.content}"`
+        theme: question.theme,
+        searchableContent: `Written loveslice about ${question.theme}: "${question.content}" - Responses: "${newResponse.content}" and "${partnerResponse.content}"`
       });
     }
   }
@@ -1614,7 +1716,7 @@ export class DatabaseStorage implements IStorage {
         .from(questions)
         .leftJoin(
           conversationStarters,
-          eq(questions.id, conversationStarters.questionId)
+          eq(questions.id, conversationStarters.baseQuestionId)
         )
         .where(eq(questions.theme, "Money"))
         .limit(1);
