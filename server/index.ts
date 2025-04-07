@@ -23,8 +23,31 @@ ensureUploadDirs();
 // Serve the uploads directory statically
 // Make sure uploads are accessible - this is critical for profile pictures
 const uploadsPath = path.join(process.cwd(), "uploads");
-app.use("/uploads", express.static(uploadsPath));
-console.log(`[Server] Serving uploads directory from: ${uploadsPath}`);
+app.use("/uploads", (req, res, next) => {
+  // Add headers to prevent caching issues for profile pictures
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(uploadsPath, {
+  // Set generous maxAge for better performance, but still allow revalidation
+  maxAge: '1h',
+  // Ensure proper content types for images
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    if (['.jpg', '.jpeg'].includes(ext)) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (ext === '.png') {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (ext === '.gif') {
+      res.setHeader('Content-Type', 'image/gif');
+    } else if (ext === '.webp') {
+      res.setHeader('Content-Type', 'image/webp');
+    }
+  }
+}));
+console.log(`[Server] Enhanced serving of uploads directory from: ${uploadsPath}`);
 
 app.use((req, res, next) => {
   const start = Date.now();
