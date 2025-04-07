@@ -490,6 +490,49 @@ adminRoutes.get('/api/admin/themes', requireAdmin, async (req: Request, res: Res
 });
 
 /**
+ * Get user-generated questions (admin access)
+ */
+adminRoutes.get('/api/admin/user-generated-questions', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    // Get user-generated questions, regardless of approval status
+    const questions = await storage.getUserGeneratedQuestions(undefined, false);
+    return res.status(200).json({ questions });
+  } catch (err) {
+    console.error('Error fetching user-generated questions:', err);
+    return res.status(500).json({ error: 'Failed to fetch user-generated questions' });
+  }
+});
+
+/**
+ * Approve user-generated question (admin access)
+ */
+adminRoutes.post('/api/admin/questions/:id/approve', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const questionId = parseInt(req.params.id);
+    if (isNaN(questionId)) {
+      return res.status(400).json({ error: 'Invalid question ID' });
+    }
+    
+    const approvedQuestion = await storage.approveQuestion(questionId);
+    if (!approvedQuestion) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+    
+    // Log the admin action
+    logAdminAction(req, 'approve', 'question', questionId);
+    
+    return res.status(200).json({ 
+      success: true, 
+      question: approvedQuestion,
+      message: 'Question approved successfully' 
+    });
+  } catch (err) {
+    console.error('Error approving question:', err);
+    return res.status(500).json({ error: 'Failed to approve question' });
+  }
+});
+
+/**
  * Dashboard statistics for admins
  */
 adminRoutes.get('/api/admin/dashboard', requireAdmin, async (req: Request, res: Response) => {
