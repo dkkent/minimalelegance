@@ -182,20 +182,42 @@ export class DatabaseStorage implements IStorage {
   
   /**
    * Helper function to sanitize user data before sending to client
-   * Removes sensitive fields like password, resetToken, etc.
+   * Removes sensitive fields like password, resetToken, email (for partners), etc.
    * @param user The user object to sanitize
+   * @param isPartnerData Whether this is partner data (requires additional filtering)
    * @returns A sanitized user object safe for client consumption
    */
-  private sanitizeUser<T extends Partial<User>>(user: T | undefined): Omit<T, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined {
+  private sanitizeUser<T extends Partial<User>>(
+    user: T | undefined, 
+    isPartnerData: boolean = false
+  ): Omit<T, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined {
     if (!user) return undefined;
     
     // Create a new object without sensitive fields
     const { 
       password, 
       resetToken, 
-      resetTokenExpiry, 
+      resetTokenExpiry,
       ...safeUserData 
     } = user as any;
+    
+    // For partner data, mask email and inviteCode for additional security
+    if (isPartnerData) {
+      // Only show first character of email and domain for partners
+      if (safeUserData.email) {
+        const parts = safeUserData.email.split('@');
+        if (parts.length === 2) {
+          const username = parts[0];
+          const domain = parts[1];
+          safeUserData.email = `${username.charAt(0)}${'*'.repeat(username.length - 1)}@${domain}`;
+        }
+      }
+      
+      // Mask invite code as well
+      if (safeUserData.inviteCode) {
+        safeUserData.inviteCode = '********';
+      }
+    }
     
     // NOTE: We don't need to format the profile picture here anymore
     // It's already done by formatUserProfilePicture which should be called before this
@@ -224,14 +246,24 @@ export class DatabaseStorage implements IStorage {
   /**
    * Get user data but sanitized for client consumption (removes sensitive fields)
    */
-  async getSanitizedUser(id: number): Promise<Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined> {
+  /**
+   * Get user data but sanitized for client consumption (removes sensitive fields)
+   * 
+   * @param id The user ID to fetch
+   * @param isPartnerData Flag to indicate if this is for partner data (will mask email and invite code)
+   * @returns Sanitized user data
+   */
+  async getSanitizedUser(
+    id: number, 
+    isPartnerData: boolean = false
+  ): Promise<Omit<User, 'password' | 'resetToken' | 'resetTokenExpiry'> | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     
     // First format the profile picture, then sanitize the user
     const formattedUser = this.formatUserProfilePicture(user);
     console.log(`[getSanitizedUser] Formatted user for ID ${id}:`, formattedUser?.profilePicture);
     
-    return this.sanitizeUser(formattedUser);
+    return this.sanitizeUser(formattedUser, isPartnerData);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {

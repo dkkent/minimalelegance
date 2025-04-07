@@ -301,8 +301,12 @@ export function setupAuth(app: Express) {
       }
       
       // Get the sanitized partner data using the user's partnerId
-      const sanitizedPartner = await storage.getSanitizedUser(req.user.partnerId);
-      console.log("[Partner API] Sanitized partner data:", sanitizedPartner);
+      // Pass true for isPartnerData to mask sensitive information
+      const sanitizedPartner = await storage.getSanitizedUser(req.user.partnerId, true);
+      
+      // For security, avoid logging full partner details with sensitive info
+      const { id, name, profilePicture } = sanitizedPartner || {};
+      console.log("[Partner API] Partner data fetched:", { id, name, hasProfilePicture: !!profilePicture });
       
       if (!sanitizedPartner) {
         console.log("[Partner API] Partner not found or error sanitizing data");
