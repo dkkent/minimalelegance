@@ -39,7 +39,8 @@ export function SkipQuestionDialog({
     "I need more time to reflect",
     "This feels too sensitive right now",
     "Let's come back to this another day",
-    "I don't think we need to discuss this"
+    "I don't think we need to discuss this",
+    "No reason, just want a new question"
   ];
 
   // Reset the dialog state when it's closed
@@ -76,7 +77,7 @@ export function SkipQuestionDialog({
           </DialogTitle>
           <DialogDescription className="text-center mt-2 mx-auto max-w-md">
             {step === 1 
-              ? "If you skip this, we'll let your partner know you chose not to answer it. On the next screen you can add a note about why you felt like skipping it." 
+              ? "We’ll let your partner know you skipped this one. You can share a reason next, if you’d like." 
               : "Please select a reason for skipping this question. This helps your partner understand and improves your experience."}
           </DialogDescription>
         </DialogHeader>
@@ -106,13 +107,13 @@ export function SkipQuestionDialog({
                 onClick={handleCancel}
                 className="w-full sm:w-auto"
               >
-                ❌ No, Keep This Question
+                Keep This Question
               </Button>
               <Button 
                 onClick={handleNext}
                 className="w-full sm:w-auto bg-sage hover:bg-sage-dark"
               >
-                ✅ Yes, Skip and Add Note
+                Skip and Add Note
               </Button>
             </>
           ) : (
