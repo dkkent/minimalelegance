@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Skip Question Dialog Screens</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .screen-container {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .dialog {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      width: 400px;
+    }
+    .dialog-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .dialog-title {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .dialog-description {
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .select-wrapper {
+      margin: 24px 0;
+    }
+    .select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+      font-size: 0.95rem;
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn-cancel {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+    }
+    .btn-primary {
+      background-color: #7BAF95;
+      color: white;
+      border: none;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+      color: #444;
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Skip Question Dialog UI Implementation</h1>
+    
+    <div class="screen-container">
+      <div>
+        <h2>Screen 1: Confirmation</h2>
+        <div class="dialog">
+          <div class="dialog-header">
+            <div class="dialog-title">Are you sure you want to skip this question?</div>
+            <div class="dialog-description">
+              If you skip this, we'll let your partner know you chose not to answer it. 
+              On the next screen you can add a note about why you felt like skipping it.
+            </div>
+          </div>
+          <div class="dialog-footer">
+            <div class="btn btn-cancel">No, Keep This Question</div>
+            <div class="btn btn-primary">Yes, Skip and Add Note</div>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h2>Screen 2: Skip Reason Selection</h2>
+        <div class="dialog">
+          <div class="dialog-header">
+            <div class="dialog-title">Add a Note (Optional)</div>
+            <div class="dialog-description">
+              Please select a reason for skipping this question. This helps your partner understand and improves your experience.
+            </div>
+          </div>
+          <div class="select-wrapper">
+            <select class="select">
+              <option>I'm not ready to talk about this yet</option>
+              <option>I need more time to reflect</option>
+              <option>This feels too sensitive right now</option>
+              <option>Let's come back to this another day</option>
+              <option>I don't think we need to discuss this</option>
+            </select>
+          </div>
+          <div class="dialog-footer">
+            <div class="btn btn-cancel">Back</div>
+            <div class="btn btn-primary">Get New Question</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
