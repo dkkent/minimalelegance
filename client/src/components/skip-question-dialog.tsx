@@ -66,6 +66,8 @@ export function SkipQuestionDialog({
   const handleSkip = () => {
     // Start local loading animation
     setLocalIsSkipping(true);
+    // Close the dialog immediately
+    onClose();
     // Trigger actual skip
     onSkip(skipNote);
   };
