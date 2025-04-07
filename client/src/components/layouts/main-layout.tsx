@@ -51,6 +51,26 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     }
   }, [partner, isPartnerLoading]);
 
+  // Fallback to fetch partner data if the usePartner hook fails
+  const [directPartner, setDirectPartner] = React.useState<any>(null);
+  
+  React.useEffect(() => {
+    // Only try to fetch directly if we have a partnerId but no partner data from the hook
+    if (user?.partnerId && !partner && !isPartnerLoading) {
+      console.log("Attempting direct partner fetch as fallback");
+      fetch('/api/partner', { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Direct partner fetch success:", data);
+          setDirectPartner(data);
+        })
+        .catch(err => console.error("Direct partner fetch error:", err));
+    }
+  }, [user?.partnerId, partner, isPartnerLoading]);
+  
+  // Use either the partner from the hook or our direct fetch
+  const activePartner = partner || directPartner;
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
@@ -134,27 +154,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   {user?.partnerId ? (
                     <div 
                       className="relative group"
-                      aria-label={partner ? `You're connected with ${partner.name}` : "You're connected with a partner"}
+                      aria-label={activePartner ? `You're connected with ${activePartner.name}` : "You're connected with a partner"}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <div className="w-[72px] h-10 relative cursor-pointer" aria-label="User profile menu">
                             {/* Partner avatar behind - only show if partner exists */}
-                            {partner && partner.profilePicture && (
+                            {activePartner && activePartner.profilePicture && (
                               <div className="absolute left-0 z-0">
                                 <DirectAvatar
-                                  src={partner.profilePicture}
-                                  alt={partner.name || "Partner"}
+                                  src={activePartner.profilePicture}
+                                  alt={activePartner.name || "Partner"}
                                   size={40}
                                   borderColor="white"
-                                  fallbackText={partner?.name?.[0] || "P"}
+                                  fallbackText={activePartner?.name?.[0] || "P"}
                                 />
                               </div>
                             )}
 
                             {/* User avatar - position depends on whether partner exists */}
                             {user?.profilePicture && (
-                              <div className={`absolute ${partner ? 'left-6' : 'left-0'} z-10`}>
+                              <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
                                 <DirectAvatar
                                   src={user.profilePicture}
                                   alt={user.name || "User"}
@@ -192,7 +212,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       {/* Tooltip */}
                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 bg-sage-dark text-white text-xs rounded whitespace-nowrap pointer-events-none z-50">
-                        Connected with {partner?.name || "your partner"}
+                        Connected with {activePartner?.name || "your partner"}
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-sage-dark transform rotate-45"></div>
                       </div>
                     </div>
@@ -259,25 +279,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <div className="flex flex-col space-y-4 mt-8">
                   {user?.partnerId ? (
                     <div className="flex items-center justify-between px-3 py-2 rounded-md mb-2">
-                      <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
+                      <span className="text-xs text-sage-dark">Connected with {activePartner?.name || "your partner"}</span>
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind - only show if partner exists */}
-                        {partner && partner.profilePicture && (
+                        {activePartner && activePartner.profilePicture && (
                           <div className="absolute left-0 z-0">
                             <DirectAvatar
-                              src={partner.profilePicture}
-                              alt={partner.name || "Partner"}
+                              src={activePartner.profilePicture}
+                              alt={activePartner.name || "Partner"}
                               size={40}
                               borderColor="white"
-                              fallbackText={partner?.name?.[0] || "P"}
+                              fallbackText={activePartner?.name?.[0] || "P"}
                             />
                           </div>
                         )}
 
                         {/* User avatar - position depends on whether partner exists */}
                         {user?.profilePicture && (
-                          <div className={`absolute ${partner ? 'left-6' : 'left-0'} z-10`}>
+                          <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
                             <DirectAvatar
                               src={user.profilePicture}
                               alt={user.name || "User"}
