@@ -825,6 +825,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get active question" });
     }
   });
+  
+  // Skip the current active question
+  app.post("/api/skip-question", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { questionId, skipNote } = req.body;
+      
+      if (!questionId) {
+        return res.status(400).json({ message: "Question ID is required" });
+      }
+      
+      // Get the active question for the user
+      const activeQuestion = await storage.getActiveQuestionForUser(req.user.id);
+      
+      // Validate that it's the current active question
+      if (!activeQuestion || activeQuestion.question.id !== questionId) {
+        return res.status(400).json({ message: "Invalid question ID" });
+      }
+      
+      // Mark the question as skipped
+      await storage.markActiveQuestionAsSkipped(activeQuestion.activeQuestion.id, skipNote);
+      
+      // Get a new active question
+      const allQuestions = await storage.getQuestions();
+      
+      if (!allQuestions || allQuestions.length === 0) {
+        return res.status(404).json({ message: "No questions available" });
+      }
+      
+      // Find a question that hasn't been answered before or pick a random one if all have been answered
+      const answeredQuestions = await db
+        .select({
+          questionId: activeQuestions.questionId
+        })
+        .from(activeQuestions)
+        .where(eq(activeQuestions.userId, req.user.id));
+        
+      const answeredQuestionIds = answeredQuestions.map(q => q.questionId);
+      
+      // Filter questions that haven't been answered yet
+      const unansweredQuestions = allQuestions.filter(q => !answeredQuestionIds.includes(q.id));
+      
+      let selectedQuestion;
+      
+      if (unansweredQuestions.length > 0) {
+        // Randomly select from unanswered questions
+        const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
+        selectedQuestion = unansweredQuestions[randomIndex];
+      } else {
+        // If all questions have been answered, just pick a random one
+        const randomIndex = Math.floor(Math.random() * allQuestions.length);
+        selectedQuestion = allQuestions[randomIndex];
+      }
+      
+      // Create a new active question
+      const newActiveQuestion = await storage.assignQuestionToUser({
+        userId: req.user.id,
+        questionId: selectedQuestion.id
+      });
+      
+      // Return the new question
+      res.status(200).json({
+        activeQuestion: newActiveQuestion,
+        question: selectedQuestion,
+        userHasAnswered: false,
+        partnerHasAnswered: false
+      });
+    } catch (error) {
+      console.error("Error skipping question:", error);
+      res.status(500).json({ message: "Failed to skip question" });
+    }
+  });
 
   // Submit a response to a question
   app.post("/api/responses", async (req, res) => {

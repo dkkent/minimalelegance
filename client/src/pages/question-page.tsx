@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, SkipForward, ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { SkipQuestionDialog } from "@/components/skip-question-dialog";
 
 export default function QuestionPage() {
   const [_, navigate] = useLocation();
@@ -22,6 +23,10 @@ export default function QuestionPage() {
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [questionData, setQuestionData] = useState<any>(null);
+  
+  // Skip question dialog state
+  const [isSkipDialogOpen, setIsSkipDialogOpen] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   
   // If we have a specific questionId from the URL, fetch that question directly
   const {
@@ -77,7 +82,7 @@ export default function QuestionPage() {
     
     // Find this specific question in pending responses
     const pendingItem = pendingResponsesData.find(
-      (item: any) => item.question.id === parseInt(questionId as string)
+      (item: any) => item.question.id === questionId
     );
     
     // Return the partner response if this question is waiting for you
@@ -165,6 +170,27 @@ export default function QuestionPage() {
       }
     },
   });
+  
+  // Skip question mutation
+  const skipQuestionMutation = useMutation({
+    mutationFn: async ({ activeQuestionId, skipNote }: { activeQuestionId: number; skipNote?: string }) => {
+      const res = await apiRequest("POST", "/api/skip-question", {
+        activeQuestionId,
+        skipNote,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      setIsSkipDialogOpen(false);
+      setIsSkipping(false);
+
+      // Refresh the active question data
+      queryClient.invalidateQueries({ queryKey: ["/api/active-question"] });
+      
+      // Navigate to home
+      navigate("/");
+    },
+  });
 
   const handleSubmitResponse = () => {
     if (!questionData?.question?.id || !response.trim()) return;
@@ -179,8 +205,26 @@ export default function QuestionPage() {
   };
 
   const handleSkip = () => {
-    // Just navigate back to home
-    navigate("/");
+    // Open the skip dialog instead of navigating away
+    setIsSkipDialogOpen(true);
+  };
+  
+  // Handle the actual skip action when confirmed in the dialog
+  const handleConfirmSkip = (skipNote?: string) => {
+    // Need to check both types of question data structures
+    const activeQuestionId = questionData?.activeQuestion?.id;
+    
+    if (!activeQuestionId) {
+      console.error("No active question found to skip");
+      return;
+    }
+    
+    setIsSkipping(true);
+    
+    skipQuestionMutation.mutate({
+      activeQuestionId,
+      skipNote
+    });
   };
 
   const isLoading = questionId ? isSpecificQuestionLoading : isActiveQuestionLoading;
@@ -385,6 +429,14 @@ export default function QuestionPage() {
           </div>
         </div>
       </div>
+      
+      {/* Skip Question Dialog */}
+      <SkipQuestionDialog
+        isOpen={isSkipDialogOpen}
+        onClose={() => setIsSkipDialogOpen(false)}
+        onSkip={handleConfirmSkip}
+        isSkipping={isSkipping}
+      />
     </MainLayout>
   );
 }

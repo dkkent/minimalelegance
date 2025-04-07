@@ -211,6 +211,9 @@ export const activeQuestions = pgTable("active_questions", {
   questionId: integer("question_id").notNull().references(() => questions.id),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
   isAnswered: boolean("is_answered").notNull().default(false),
+  isSkipped: boolean("is_skipped").notNull().default(false),
+  skipNote: text("skip_note"),
+  skippedAt: timestamp("skipped_at"),
 });
 
 export const insertActiveQuestionSchema = createInsertSchema(activeQuestions).pick({
