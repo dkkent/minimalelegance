@@ -311,14 +311,16 @@ export default function ConversationStartersPage() {
             {/* Filter tabs */}
             <Tabs value={selectedTheme} onValueChange={handleTabChange} className="mb-8">
               <TabsList className={`w-full grid ${availableThemes.length > 0 ? `grid-cols-${Math.min(availableThemes.length + 1, 7)}` : 'grid-cols-1'}`}>
-                <TabsTrigger value="All">All</TabsTrigger>
+                <TabsTrigger value="All">
+                  {selectedTheme === "All" ? "All" : <ThemeBadge theme="All" size="small" />}
+                </TabsTrigger>
                 {loadingThemes ? (
                   <div className="flex justify-center items-center py-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </div>
                 ) : availableThemes.map((theme) => (
                   <TabsTrigger key={theme.id} value={theme.name}>
-                    {theme.name}
+                    {selectedTheme === theme.name ? theme.name : <ThemeBadge theme={theme.name} size="small" />}
                   </TabsTrigger>
                 ))}
               </TabsList>
