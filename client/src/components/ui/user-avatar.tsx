@@ -176,22 +176,20 @@ export function UserAvatar({
   
   return (
     <Avatar className={`${avatarSize} ${className}`}>
-      {imgSrc && !imageError ? (
-        <AvatarImage 
-          src={`${imgSrc}?t=${Date.now()}`} // Add cache-busting parameter
-          alt={userWithPicture?.name || "User"} 
-          className="object-cover"
-          onLoad={() => {
-            console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
-            setImageLoaded(true);
-          }}
-          onError={(e) => {
-            console.error(`❌ Failed to load avatar image: ${imgSrc}`);
-            setImageError(true);
-            // Don't hide the element as the fallback should show
-          }}
-        />
-      ) : null}
+      <AvatarImage 
+        src={imgSrc}
+        alt={userWithPicture?.name || "User"} 
+        className="object-cover"
+        onLoad={() => {
+          console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
+          setImageLoaded(true);
+          setImageError(false);
+        }}
+        onError={(e) => {
+          console.error(`❌ Failed to load avatar image: ${imgSrc}`);
+          setImageError(true);
+        }}
+      />
       <AvatarFallback className="bg-sage-light text-sage-dark">
         {initials}
       </AvatarFallback>
