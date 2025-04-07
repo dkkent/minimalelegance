@@ -328,7 +328,7 @@ export default function StartersPage() {
     if (!conversationStarters || conversationStarters.length === 0) {
       return (
         <div className="p-6 bg-white rounded-md border border-gray-100 text-center">
-          <p className="text-lg text-gray-500 mb-4">No conversation starters found in this category</p>
+          <p className="text-lg text-gray-500 mb-4">No conversation starters found in this theme</p>
         </div>
       );
     }
@@ -434,7 +434,7 @@ export default function StartersPage() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Browse Starters</h2>
           
-          {/* Category Tabs */}
+          {/* Theme Tabs */}
           <div className="mb-6 overflow-x-auto">
             <div className="inline-flex rounded-md shadow-sm">
               <Button 

@@ -55,12 +55,17 @@ export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   theme: text("theme").notNull(), // Using 'theme' as it exists in the database
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userGenerated: boolean("user_generated").default(false),
+  isApproved: boolean("is_approved").default(true),
+  createdById: integer("created_by_id").references(() => users.id),
 });
 
 export const insertQuestionSchema = createInsertSchema(questions).pick({
   content: true,
   theme: true,
+  userGenerated: true,
+  isApproved: true,
+  createdById: true,
 });
 
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
@@ -226,22 +231,27 @@ export type InsertActiveQuestion = z.infer<typeof insertActiveQuestionSchema>;
 export type ActiveQuestion = typeof activeQuestions.$inferSelect;
 
 // Conversation starters schema
-// Note: Now mostly uses the main questions table
-// This table only maintains additional conversation starter-specific metadata
+// Note: This table has both direct fields (content, theme) and references to the questions table
+// The new unified approach will gradually shift to using only the questions table reference
 export const conversationStarters = pgTable("conversation_starters", {
   id: serial("id").primaryKey(),
-  questionId: integer("question_id").notNull().references(() => questions.id).unique(),
+  baseQuestionId: integer("base_question_id").references(() => questions.id),
   lovesliceId: integer("loveslice_id").references(() => loveslices.id),
   markedAsMeaningful: boolean("marked_as_meaningful").default(false),
   used: boolean("used").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // These fields are in the database but will be deprecated in favor of the questions table
+  content: text("content"),
+  theme: text("theme"),
 });
 
 export const insertConversationStarterSchema = createInsertSchema(conversationStarters).pick({
-  questionId: true,
+  baseQuestionId: true,
   lovesliceId: true,
   markedAsMeaningful: true,
   used: true,
+  content: true,
+  theme: true,
 });
 
 export type InsertConversationStarter = z.infer<typeof insertConversationStarterSchema>;
@@ -290,7 +300,9 @@ export type JournalEntry = typeof journalEntries.$inferSelect & {
       id: number;
       content: string;
       theme: string;
-      createdAt: Date;
+      userGenerated?: boolean;
+      isApproved?: boolean;
+      createdById?: number;
     };
     responses?: Array<{
       id: number;
