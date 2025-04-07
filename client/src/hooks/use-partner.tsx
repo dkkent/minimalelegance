@@ -91,8 +91,11 @@ export function usePartner() {
     },
     // Only fetch if user is logged in and has a partnerId
     enabled: !!user && !!user.partnerId,
-    staleTime: 0, // Consider data always stale
-    // Important: provide a fallback initial value so it's never undefined
+    staleTime: 0,
+    cacheTime: 0,
+    refetchInterval: 1000, // Refetch every second
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     initialData: null
   });
 
