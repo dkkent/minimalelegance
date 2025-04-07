@@ -138,12 +138,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner}
-                          fallbackText={partner?.name?.[0] || "P"}
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        {!isPartnerLoading && (
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText={partner?.name?.[0] || "P"}
+                            className="h-10 w-10 border border-white absolute left-0 z-0" 
+                            size="md"
+                          />
+                        )}
 
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
@@ -240,12 +242,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner}
-                          fallbackText={partner?.name?.[0] || "P"}
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        {!isPartnerLoading && (
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText={partner?.name?.[0] || "P"}
+                            className="h-10 w-10 border border-white absolute left-0 z-0" 
+                            size="md"
+                          />
+                        )}
 
                         {/* User avatar in front */}
                         <UserAvatar 
