@@ -1,3 +1,4 @@
+// Test comment to verify HMR is working
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { Logo } from "@/components/logo";
