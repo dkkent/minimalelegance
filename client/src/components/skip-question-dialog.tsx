@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface SkipQuestionDialogProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export function SkipQuestionDialog({
 }: SkipQuestionDialogProps) {
   const [step, setStep] = useState(1);
   const [skipNote, setSkipNote] = useState("");
+  const [localIsSkipping, setLocalIsSkipping] = useState(false);
   
   // Skip reason options
   const skipReasons = [
@@ -48,14 +50,23 @@ export function SkipQuestionDialog({
     if (!isOpen) {
       setStep(1);
       setSkipNote("");
+      setLocalIsSkipping(false);
     }
   }, [isOpen]);
+
+  // Update local skipping state when prop changes
+  useEffect(() => {
+    setLocalIsSkipping(isSkipping);
+  }, [isSkipping]);
 
   const handleNext = () => {
     setStep(2);
   };
 
   const handleSkip = () => {
+    // Start local loading animation
+    setLocalIsSkipping(true);
+    // Trigger actual skip
     onSkip(skipNote);
   };
 
@@ -77,7 +88,7 @@ export function SkipQuestionDialog({
           </DialogTitle>
           <DialogDescription className="text-center mt-2 mx-auto max-w-md">
             {step === 1 
-              ? "We’ll let your partner know you skipped this one. You can share a reason next, if you’d like." 
+              ? "We'll let your partner know you skipped this one. You can share a reason next, if you'd like." 
               : "Please select a reason for skipping this question. This helps your partner understand and improves your experience."}
           </DialogDescription>
         </DialogHeader>
@@ -122,16 +133,16 @@ export function SkipQuestionDialog({
                 variant="outline" 
                 onClick={() => setStep(1)}
                 className="w-full sm:w-auto"
-                disabled={isSkipping}
+                disabled={localIsSkipping}
               >
                 Back
               </Button>
               <Button 
                 onClick={handleSkip}
                 className="w-full sm:w-auto bg-sage hover:bg-sage-dark"
-                disabled={isSkipping}
+                disabled={localIsSkipping}
               >
-                {isSkipping ? (
+                {localIsSkipping ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Skipping...
