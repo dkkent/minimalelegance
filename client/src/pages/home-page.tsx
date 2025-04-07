@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Loader2, ChevronRight, SkipForward } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
+import { SkipQuestionDialog } from "@/components/skip-question-dialog";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -21,6 +22,9 @@ export default function HomePage() {
   // Keep track of the current question for animation
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Skip question dialog state
+  const [isSkipDialogOpen, setIsSkipDialogOpen] = useState(false);
   
   // Safe fallback for theme values
   const getThemeSafely = (item: any): string => {
@@ -198,10 +202,48 @@ export default function HomePage() {
     });
   };
 
+  // Skip Question Mutation
+  const skipQuestionMutation = useMutation({
+    mutationFn: async ({ questionId, skipNote }: { questionId: number; skipNote?: string }) => {
+      try {
+        const res = await apiRequest("POST", "/api/skip-question", {
+          questionId,
+          skipNote: skipNote || null
+        });
+        return await res.json();
+      } catch (err) {
+        console.error("Error skipping question:", err);
+        throw err;
+      }
+    },
+    onSuccess: (data) => {
+      // Store the current question ID before updating
+      if (activeQuestionData?.question?.id) {
+        setCurrentQuestionId(activeQuestionData.question.id);
+      }
+      
+      // Refetch the active question to get the new one
+      queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
+      setResponse("");
+      setIsSkipDialogOpen(false); // Close the dialog
+    },
+    onError: (error) => {
+      console.error("Error in skip question mutation:", error);
+    }
+  });
+
   const handleSkip = () => {
-    // In a real app, we'd have an API endpoint to skip a question
-    // For now, we'll just clear the response
-    setResponse("");
+    setIsSkipDialogOpen(true);
+  };
+  
+  const handleSkipConfirm = (note?: string) => {
+    if (!activeQuestionData?.question?.id) return;
+    
+    skipQuestionMutation.mutate({
+      questionId: activeQuestionData.question.id,
+      skipNote: note
+    });
   };
 
   // Render different loading states
@@ -447,6 +489,14 @@ export default function HomePage() {
         
         {/* We've removed the Recent Loveslices section as requested for the MVP */}
       </div>
+      
+      {/* Skip Question Dialog */}
+      <SkipQuestionDialog
+        isOpen={isSkipDialogOpen}
+        onClose={() => setIsSkipDialogOpen(false)}
+        onSkip={handleSkipConfirm}
+        isSkipping={skipQuestionMutation.isPending}
+      />
     </MainLayout>
   );
 }

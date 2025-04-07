@@ -82,6 +82,7 @@ export interface IStorage {
   assignQuestionToUser(data: InsertActiveQuestion): Promise<ActiveQuestion>;
   getActiveQuestionForUser(userId: number): Promise<{ activeQuestion: ActiveQuestion, question: Question } | undefined>;
   markActiveQuestionAsAnswered(id: number): Promise<ActiveQuestion | undefined>;
+  skipActiveQuestion(id: number, skipNote?: string | null): Promise<ActiveQuestion | undefined>;
   
   // Response related methods
   createResponse(response: InsertResponse): Promise<Response>;
@@ -588,6 +589,25 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedActiveQuestion;
+  }
+  
+  async markActiveQuestionAsSkipped(id: number, skipNote?: string): Promise<ActiveQuestion | undefined> {
+    const [updatedActiveQuestion] = await db
+      .update(activeQuestions)
+      .set({ 
+        isSkipped: true, 
+        skipNote: skipNote || null,
+        skippedAt: new Date()
+      })
+      .where(eq(activeQuestions.id, id))
+      .returning();
+    
+    return updatedActiveQuestion;
+  }
+  
+  async skipActiveQuestion(id: number, skipNote?: string | null): Promise<ActiveQuestion | undefined> {
+    // This is our public interface method that calls the implementation method
+    return this.markActiveQuestionAsSkipped(id, skipNote || undefined);
   }
 
   async createResponse(response: InsertResponse): Promise<Response> {
