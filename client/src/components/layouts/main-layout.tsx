@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePartner } from "@/hooks/use-partner";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DirectAvatar } from "@/components/ui/direct-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,14 +141,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* Partner avatar behind */}
                         <div className="absolute left-0 z-0">
                           {partner?.profilePicture ? (
-                            <img 
-                              src={`${partner.profilePicture}?t=${Date.now()}`}
+                            <DirectAvatar
+                              src={partner.profilePicture}
                               alt={partner.name || "Partner"}
-                              className="h-10 w-10 object-cover rounded-full border-2 border-white"
-                              onError={(e) => {
-                                console.error("Error loading partner image in header:", e);
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              size={40}
+                              borderColor="white"
+                              fallbackText={partner?.name?.[0] || "P"}
                             />
                           ) : (
                             <UserAvatar 
@@ -162,41 +161,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none overflow-hidden border-2 border-white"
-                              style={{
-                                padding: 0,
-                                overflow: 'hidden',
-                                borderRadius: '50%'
-                              }}
-                            >
-                              {user?.profilePicture && (
-                                <img 
-                                  src={`${user.profilePicture}?t=${Date.now()}`}
+                            <div className="absolute left-6 z-10">
+                              {user?.profilePicture ? (
+                                <DirectAvatar
+                                  src={user.profilePicture}
                                   alt={user.name || "User"}
-                                  width={40}
-                                  height={40}
-                                  style={{
-                                    display: 'block',
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    objectPosition: 'center',
-                                    borderRadius: '50%'
-                                  }}
-                                  onError={(e) => {
-                                    console.error("Error loading profile image in header:", e);
-                                    // Don't hide, let fallback show
-                                  }}
+                                  size={40}
+                                  borderColor="white"
+                                  fallbackText={user?.name?.[0] || "U"}
+                                  className="cursor-pointer"
                                 />
-                              )}
-                              {!user?.profilePicture && (
-                                <div className="flex items-center justify-center h-full w-full bg-sage-light text-sage-dark font-medium">
+                              ) : (
+                                <div 
+                                  className="h-10 w-10 rounded-full border-2 border-white flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
+                                  style={{
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
                                   {user?.name?.[0] || "U"}
                                 </div>
                               )}
-                            </Button>
+                            </div>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
@@ -232,41 +218,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          className="relative h-10 w-10 rounded-full focus:outline-none p-0 overflow-hidden border-2 border-sage"
-                          style={{
-                            padding: 0,
-                            overflow: 'hidden',
-                            borderRadius: '50%'
-                          }}
-                        >
-                          {user?.profilePicture && (
-                            <img 
-                              src={`${user.profilePicture}?t=${Date.now()}`}
+                        <div>
+                          {user?.profilePicture ? (
+                            <DirectAvatar
+                              src={user.profilePicture}
                               alt={user.name || "User"}
-                              width={40}
-                              height={40}
-                              style={{
-                                display: 'block',
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                borderRadius: '50%'
-                              }}
-                              onError={(e) => {
-                                console.error("Error loading profile image in standalone header:", e);
-                                // Don't hide, let fallback show
-                              }}
+                              size={40}
+                              borderColor="var(--sage)"
+                              fallbackText={user?.name?.[0] || "U"}
+                              className="cursor-pointer"
                             />
-                          )}
-                          {!user?.profilePicture && (
-                            <div className="flex items-center justify-center h-full w-full bg-sage-light text-sage-dark font-medium">
+                          ) : (
+                            <div 
+                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark cursor-pointer"
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold'
+                              }}
+                            >
                               {user?.name?.[0] || "U"}
                             </div>
                           )}
-                        </Button>
+                        </div>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
@@ -312,21 +285,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* Partner avatar behind */}
                         <div className="absolute left-0 z-0">
                           {partner?.profilePicture ? (
-                            <img 
-                              src={`${partner.profilePicture}?t=${Date.now()}`}
+                            <DirectAvatar
+                              src={partner.profilePicture}
                               alt={partner.name || "Partner"}
-                              className="h-10 w-10 object-cover border-2 border-white"
-                              style={{
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                maxHeight: '100%',
-                                maxWidth: '100%'
-                              }}
-                              onError={(e) => {
-                                console.error("Error loading partner image in mobile menu:", e);
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              size={40}
+                              borderColor="white"
+                              fallbackText={partner?.name?.[0] || "P"}
                             />
                           ) : (
                             <UserAvatar 
@@ -341,21 +305,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* User avatar in front */}
                         <div className="absolute left-6 z-10">
                           {user?.profilePicture ? (
-                            <img 
-                              src={`${user.profilePicture}?t=${Date.now()}`}
+                            <DirectAvatar
+                              src={user.profilePicture}
                               alt={user.name || "User"}
-                              className="h-10 w-10 object-cover border-2 border-white"
-                              style={{
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                maxHeight: '100%',
-                                maxWidth: '100%'
-                              }}
-                              onError={(e) => {
-                                console.error("Error loading profile image in mobile menu:", e);
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              size={40}
+                              borderColor="white"
+                              fallbackText={user?.name?.[0] || "U"}
                             />
                           ) : (
                             <UserAvatar 
