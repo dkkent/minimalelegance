@@ -54,7 +54,8 @@ export type User = typeof users.$inferSelect;
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
-  theme: text("theme").notNull(),
+  theme: text("theme").notNull(), // Using 'theme' as it exists in the database
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertQuestionSchema = createInsertSchema(questions).pick({
@@ -225,28 +226,28 @@ export type InsertActiveQuestion = z.infer<typeof insertActiveQuestionSchema>;
 export type ActiveQuestion = typeof activeQuestions.$inferSelect;
 
 // Conversation starters schema
+// Note: Now mostly uses the main questions table
+// This table only maintains additional conversation starter-specific metadata
 export const conversationStarters = pgTable("conversation_starters", {
   id: serial("id").primaryKey(),
-  content: text("content").notNull(),
-  theme: text("theme").notNull(),
-  baseQuestionId: integer("base_question_id").references(() => questions.id),
+  questionId: integer("question_id").notNull().references(() => questions.id).unique(),
   lovesliceId: integer("loveslice_id").references(() => loveslices.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
   markedAsMeaningful: boolean("marked_as_meaningful").default(false),
   used: boolean("used").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertConversationStarterSchema = createInsertSchema(conversationStarters).pick({
-  content: true,
-  theme: true,
-  baseQuestionId: true,
+  questionId: true,
   lovesliceId: true,
   markedAsMeaningful: true,
   used: true,
 });
 
 export type InsertConversationStarter = z.infer<typeof insertConversationStarterSchema>;
-export type ConversationStarter = typeof conversationStarters.$inferSelect;
+export type ConversationStarter = typeof conversationStarters.$inferSelect & {
+  question?: Question; // For join operations
+};
 
 // Journal Entries schema (for search/browsing across all loveslices and conversations)
 export const journalEntries = pgTable("journal_entries", {

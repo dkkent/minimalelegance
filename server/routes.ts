@@ -1196,19 +1196,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const { theme } = req.query;
+      const { theme, category } = req.query;
       let starters: Awaited<ReturnType<typeof storage.getConversationStartersByTheme>> = [];
       
-      if (theme && typeof theme === 'string') {
-        // Get starters for a specific theme
-        starters = await storage.getConversationStartersByTheme(theme);
+      // Allow 'theme' for backwards compatibility, but also support 'category'
+      const categoryValue = (category || theme) as string;
+      
+      if (categoryValue && typeof categoryValue === 'string') {
+        // Get starters for a specific category/theme
+        starters = await storage.getConversationStartersByTheme(categoryValue);
       } else {
-        // Get all starters from all themes by getting each theme and combining them
-        const themes = ["Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
+        // Get all categories from the dynamic list in the database
+        const categoriesResult = await storage.getThemes();
+        const categories = categoriesResult.themes.map(t => t.name);
         
-        for (const themeItem of themes) {
-          const themeStarters = await storage.getConversationStartersByTheme(themeItem);
-          starters = [...starters, ...themeStarters];
+        // Get starters from all categories
+        for (const categoryItem of categories) {
+          const categoryStarters = await storage.getConversationStartersByTheme(categoryItem);
+          starters = [...starters, ...categoryStarters];
         }
       }
       
@@ -1222,15 +1227,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get a random conversation starter by theme
+  // Get a random conversation starter by category/theme
   app.get("/api/conversation-starters/random", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const { theme } = req.query;
-      const themeParam = typeof theme === 'string' ? theme : undefined;
+      // Accept either 'theme' or 'category' param for backwards compatibility
+      const { theme, category } = req.query;
+      const categoryValue = (category || theme) as string;
+      const categoryParam = typeof categoryValue === 'string' ? categoryValue : undefined;
       
-      const starter = await storage.getRandomConversationStarter(themeParam);
+      const starter = await storage.getRandomConversationStarter(categoryParam);
       
       if (!starter) {
         return res.status(404).json({ message: "No conversation starters found" });
@@ -1247,18 +1254,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const { content, theme, baseQuestionId, lovesliceId } = req.body;
+      // Accept either 'theme' or 'category' for backwards compatibility
+      const { content, theme, category, baseQuestionId, lovesliceId } = req.body;
+      const categoryValue = category || theme;
       
-      if (!content || !theme) {
-        return res.status(400).json({ message: "Content and theme are required" });
+      if (!content || !categoryValue) {
+        return res.status(400).json({ message: "Content and category are required" });
       }
       
-      const starter = await storage.createConversationStarter({
+      // Use the unified starter creation approach
+      const starter = await storage.createUnifiedStarter(
         content,
-        theme,
-        baseQuestionId: baseQuestionId || null,
-        lovesliceId: lovesliceId || null
-      });
+        categoryValue,
+        true, // User-generated
+        req.user.id // Created by current user
+      );
       
       // Record user activity
       await storage.recordUserActivity(req.user.id, 'create_starter');
