@@ -168,7 +168,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                   <img 
                                     src={`${user.profilePicture}?t=${Date.now()}`}
                                     alt={user.name || "User"}
-                                    className="h-full w-full object-cover rounded-full"
+                                    className="h-full w-full object-cover"
+                                    style={{
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      objectPosition: 'center',
+                                      maxHeight: '100%',
+                                      maxWidth: '100%'
+                                    }}
                                     onError={(e) => {
                                       console.error("Error loading profile image in header:", e);
                                       e.currentTarget.style.display = 'none';
@@ -224,7 +231,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               <img 
                                 src={`${user.profilePicture}?t=${Date.now()}`}
                                 alt={user.name || "User"}
-                                className="h-full w-full object-cover rounded-full"
+                                className="h-full w-full object-cover"
+                                style={{
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  objectPosition: 'center',
+                                  maxHeight: '100%',
+                                  maxWidth: '100%'
+                                }}
                                 onError={(e) => {
                                   console.error("Error loading profile image in standalone header:", e);
                                   e.currentTarget.style.display = 'none';
@@ -287,7 +301,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <img 
                               src={`${partner.profilePicture}?t=${Date.now()}`}
                               alt={partner.name || "Partner"}
-                              className="h-10 w-10 object-cover rounded-full border-2 border-white"
+                              className="h-10 w-10 object-cover border-2 border-white"
+                              style={{
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                objectPosition: 'center',
+                                maxHeight: '100%',
+                                maxWidth: '100%'
+                              }}
                               onError={(e) => {
                                 console.error("Error loading partner image in mobile menu:", e);
                                 e.currentTarget.style.display = 'none';
@@ -309,7 +330,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <img 
                               src={`${user.profilePicture}?t=${Date.now()}`}
                               alt={user.name || "User"}
-                              className="h-10 w-10 object-cover rounded-full border-2 border-white"
+                              className="h-10 w-10 object-cover border-2 border-white"
+                              style={{
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                objectPosition: 'center',
+                                maxHeight: '100%',
+                                maxWidth: '100%'
+                              }}
                               onError={(e) => {
                                 console.error("Error loading profile image in mobile menu:", e);
                                 e.currentTarget.style.display = 'none';
