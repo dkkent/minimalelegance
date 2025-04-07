@@ -222,14 +222,21 @@ export default function HomePage() {
         setCurrentQuestionId(activeQuestionData.question.id);
       }
       
-      // Refetch the active question to get the new one
-      queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
-      setResponse("");
-      setIsSkipDialogOpen(false); // Close the dialog
+      // Set animating state to true to trigger the fade out animation
+      setIsAnimating(true);
+      
+      // Short delay before refetching to allow animation to complete
+      setTimeout(() => {
+        // Refetch the active question to get the new one
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "home-page"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/active-question", "question-page"] });
+        setResponse("");
+        setIsSkipDialogOpen(false); // Close the dialog
+      }, 1000);
     },
     onError: (error) => {
       console.error("Error in skip question mutation:", error);
+      setIsAnimating(false); // Reset animation state on error
     }
   });
 
@@ -311,39 +318,54 @@ export default function HomePage() {
                       </svg>
                     </div>
                     
-                    {/* Question animation with framer-motion */}
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={activeQuestionData.question.id}
-                        initial={isAnimating ? { x: 100, opacity: 0 } : { x: 0, opacity: 1 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -100, opacity: 0 }}
-                        transition={{ 
-                          type: "spring", 
-                          stiffness: 500, 
-                          damping: 30,
-                          duration: 0.5
-                        }}
+                    {/* Loading state while animation happens */}
+                    {isAnimating || skipQuestionMutation.isPending ? (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col items-center justify-center py-8"
                       >
-                        <blockquote className="font-serif text-xl md:text-2xl leading-relaxed italic mb-4">
-                          "{activeQuestionData.question.content || "What matters most to you in this relationship?"}"
-                        </blockquote>
+                        <Loader2 className="h-10 w-10 animate-spin text-sage mb-4" />
+                        <p className="text-sage-dark text-center">Loading a new question for today...</p>
                       </motion.div>
-                    </AnimatePresence>
-                    
-                    <motion.p 
-                      className="text-right text-sm text-gray-500"
-                      animate={{ opacity: isAnimating ? 0 : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {activeQuestionData.userHasAnswered && activeQuestionData.partnerHasAnswered
-                        ? "Both responses complete"
-                        : activeQuestionData.userHasAnswered
-                        ? "Waiting for partner's response"
-                        : activeQuestionData.partnerHasAnswered
-                        ? "Your partner has answered - your turn!"
-                        : "Waiting for both responses"}
-                    </motion.p>
+                    ) : (
+                      <>
+                        {/* Question animation with framer-motion */}
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={activeQuestionData.question.id}
+                            initial={{ x: 100, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -100, opacity: 0 }}
+                            transition={{ 
+                              type: "spring", 
+                              stiffness: 500, 
+                              damping: 30,
+                              duration: 0.5
+                            }}
+                          >
+                            <blockquote className="font-serif text-xl md:text-2xl leading-relaxed italic mb-4">
+                              "{activeQuestionData.question.content || "What matters most to you in this relationship?"}"
+                            </blockquote>
+                          </motion.div>
+                        </AnimatePresence>
+                        
+                        <motion.p 
+                          className="text-right text-sm text-gray-500"
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {activeQuestionData.userHasAnswered && activeQuestionData.partnerHasAnswered
+                            ? "Both responses complete"
+                            : activeQuestionData.userHasAnswered
+                            ? "Waiting for partner's response"
+                            : activeQuestionData.partnerHasAnswered
+                            ? "Your partner has answered - your turn!"
+                            : "Waiting for both responses"}
+                        </motion.p>
+                      </>
+                    )}
                   </div>
                   
                   {!activeQuestionData.userHasAnswered ? (
