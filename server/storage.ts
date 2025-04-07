@@ -73,10 +73,13 @@ export interface IStorage {
   getActivePartnership(userId: number, partnerId: number): Promise<Partnership | undefined>;
   
   // Question related methods
-  getQuestions(): Promise<Question[]>;
+  getQuestions(filterApproved?: boolean): Promise<Question[]>;
   getQuestion(id: number): Promise<Question | undefined>;
   createQuestion(question: InsertQuestion): Promise<Question>;
-  getQuestionsByTheme(theme: string): Promise<Question[]>;
+  getQuestionsByCategory(theme: string, filterApproved?: boolean): Promise<Question[]>;
+  getUnansweredQuestionsForUser(userId: number): Promise<Question[]>;
+  getUserGeneratedQuestions(userId?: number, filterApproved?: boolean): Promise<Question[]>;
+  approveQuestion(id: number): Promise<Question | undefined>;
   
   // Active question related methods
   assignQuestionToUser(data: InsertActiveQuestion): Promise<ActiveQuestion>;
@@ -528,7 +531,10 @@ export class DatabaseStorage implements IStorage {
     return partnership;
   }
 
-  async getQuestions(): Promise<Question[]> {
+  async getQuestions(filterApproved: boolean = true): Promise<Question[]> {
+    if (filterApproved) {
+      return db.select().from(questions).where(eq(questions.isApproved, true));
+    }
     return db.select().from(questions);
   }
 
@@ -546,8 +552,65 @@ export class DatabaseStorage implements IStorage {
     return newQuestion;
   }
 
-  async getQuestionsByTheme(theme: string): Promise<Question[]> {
+  async getQuestionsByCategory(theme: string, filterApproved: boolean = true): Promise<Question[]> {
+    // This method uses 'theme' column as that's what exists in the database
     return db.select().from(questions).where(eq(questions.theme, theme));
+  }
+  
+  async getUnansweredQuestionsForUser(userId: number): Promise<Question[]> {
+    // Get questions that haven't been assigned to this user yet
+    // Or have been assigned but not answered or skipped
+    const answeredOrSkippedQuestionIds = await db
+      .select({ questionId: activeQuestions.questionId })
+      .from(activeQuestions)
+      .where(and(
+        eq(activeQuestions.userId, userId),
+        or(
+          eq(activeQuestions.isAnswered, true),
+          eq(activeQuestions.isSkipped, true)
+        )
+      ));
+    
+    const questionIdsToExclude = answeredOrSkippedQuestionIds.map(q => q.questionId);
+    
+    if (questionIdsToExclude.length === 0) {
+      // If no questions have been answered or skipped, return all approved questions
+      return db.select().from(questions).where(eq(questions.isApproved, true));
+    }
+    
+    // Otherwise return questions that haven't been answered or skipped
+    return db.select()
+      .from(questions)
+      .where(and(
+        eq(questions.isApproved, true),
+        not(inArray(questions.id, questionIdsToExclude))
+      ));
+  }
+  
+  async getUserGeneratedQuestions(userId?: number, filterApproved: boolean = false): Promise<Question[]> {
+    let query = db.select().from(questions).where(eq(questions.userGenerated, true));
+    
+    if (userId) {
+      // Add filter for specific user
+      query = query.where(eq(questions.createdBy, userId));
+    }
+    
+    if (filterApproved) {
+      // Add filter for approved questions
+      query = query.where(eq(questions.isApproved, true));
+    }
+    
+    return query;
+  }
+  
+  async approveQuestion(id: number): Promise<Question | undefined> {
+    const [updatedQuestion] = await db
+      .update(questions)
+      .set({ isApproved: true })
+      .where(eq(questions.id, id))
+      .returning();
+      
+    return updatedQuestion;
   }
 
   async assignQuestionToUser(data: InsertActiveQuestion): Promise<ActiveQuestion> {
@@ -855,38 +918,101 @@ export class DatabaseStorage implements IStorage {
     return newStarter;
   }
   
-  async getConversationStartersByTheme(theme: string): Promise<ConversationStarter[]> {
-    return db.select()
-      .from(conversationStarters)
-      .where(eq(conversationStarters.theme, theme))
-      .orderBy(desc(conversationStarters.createdAt)); // Sort by newest first
+  // Create a new starter with associated question in one step
+  async createUnifiedStarter(
+    content: string, 
+    theme: string, 
+    userGenerated: boolean = false, 
+    createdBy?: number
+  ): Promise<ConversationStarter & { question: Question }> {
+    // First create the question using the theme field
+    const question = await this.createQuestion({
+      content,
+      theme, // Theme field is what exists in the database
+    });
+    
+    // Then create the conversation starter linked to this question
+    const starter = await this.createConversationStarter({
+      questionId: question.id,
+      lovesliceId: null,
+      markedAsMeaningful: false,
+      used: false,
+    });
+    
+    // Return combined object
+    return {
+      ...starter,
+      question,
+    };
   }
   
-  async getRandomConversationStarter(theme?: string): Promise<ConversationStarter | undefined> {
+  async getConversationStartersByTheme(category: string): Promise<(ConversationStarter & { question: Question })[]> {
+    // Join the tables to get both starter metadata and question content
+    const results = await db
+      .select({
+        starter: conversationStarters,
+        question: questions,
+      })
+      .from(conversationStarters)
+      .innerJoin(
+        questions,
+        eq(conversationStarters.questionId, questions.id)
+      )
+      .where(eq(questions.theme, category))
+      .orderBy(desc(conversationStarters.createdAt)); // Sort by newest first
+    
+    // Transform to expected format
+    return results.map(row => ({
+      ...row.starter,
+      question: row.question,
+    }));
+  }
+  
+  async getRandomConversationStarter(category?: string): Promise<(ConversationStarter & { question: Question }) | undefined> {
     let results;
     
-    if (theme) {
-      // If theme is provided, filter by theme and unused
+    if (category) {
+      // If category is provided, filter by category and unused (using theme instead of category in database)
       results = await db
-        .select()
+        .select({
+          starter: conversationStarters,
+          question: questions,
+        })
         .from(conversationStarters)
+        .innerJoin(
+          questions,
+          eq(conversationStarters.questionId, questions.id)
+        )
         .where(and(
           eq(conversationStarters.used, false),
-          eq(conversationStarters.theme, theme)
+          eq(questions.theme, category)
         ))
         .orderBy(sql`RANDOM()`)
         .limit(1);
     } else {
       // Otherwise just filter by unused
       results = await db
-        .select()
+        .select({
+          starter: conversationStarters,
+          question: questions,
+        })
         .from(conversationStarters)
+        .innerJoin(
+          questions,
+          eq(conversationStarters.questionId, questions.id)
+        )
         .where(eq(conversationStarters.used, false))
         .orderBy(sql`RANDOM()`)
         .limit(1);
     }
     
-    return results.length > 0 ? results[0] : undefined;
+    if (results.length === 0) return undefined;
+    
+    // Transform to expected format
+    return {
+      ...results[0].starter,
+      question: results[0].question,
+    };
   }
   
   async getConversationStarterById(id: number): Promise<ConversationStarter | undefined> {
@@ -1207,16 +1333,35 @@ export class DatabaseStorage implements IStorage {
    * @returns Array of theme objects with id, name, and color
    */
   async getThemes(): Promise<{ themes: { id: number, name: string, color: string }[] }> {
-    // For now, return hardcoded themes
-    // In the future, this should come from a database table
-    const themes = [
-      { id: 1, name: 'Trust', color: '#4299e1' },
-      { id: 2, name: 'Intimacy', color: '#ed64a6' },
-      { id: 3, name: 'Growth', color: '#48bb78' },
-      { id: 4, name: 'Communication', color: '#f6ad55' },
-      { id: 5, name: 'Conflict Resolution', color: '#9f7aea' },
-      { id: 6, name: 'Future Plans', color: '#667eea' }
-    ];
+    // Get distinct themes from questions table and map them to theme objects
+    // We'll use manual color mapping for now until we have a proper themes table
+    
+    // Get all unique themes (which are categories in our unified model)
+    const themeResults = await db
+      .selectDistinct({ theme: questions.theme })
+      .from(questions)
+      .orderBy(questions.theme);
+    
+    // Map them to theme objects with IDs and colors
+    const themeColorMap: Record<string, string> = {
+      'Trust': '#4299e1',
+      'Intimacy': '#ed64a6',
+      'Conflict': '#9f7aea',
+      'Dreams': '#667eea',
+      'Play': '#48bb78',
+      'Money': '#f6ad55',
+      'Growth': '#48bb78',
+      'Communication': '#f6ad55',
+      'Conflict Resolution': '#9f7aea',
+      'Future Plans': '#667eea'
+    };
+    
+    // Map themes to theme objects
+    const themes = themeResults.map((result, index) => ({
+      id: index + 1,
+      name: result.theme,
+      color: themeColorMap[result.theme] || '#718096' // Default color if not in map
+    }));
     
     return { themes };
   }
@@ -1340,7 +1485,7 @@ export class DatabaseStorage implements IStorage {
     );
     
     if (partnerResponse) {
-      // Get the question to include its theme
+      // Get the question to include its category
       const question = await this.getQuestion(newResponse.questionId);
       if (!question) return;
       
@@ -1365,8 +1510,8 @@ export class DatabaseStorage implements IStorage {
         user2Id: user.partnerId,
         writtenLovesliceId: newLoveslice.id,
         spokenLovesliceId: null,
-        theme: question.theme,
-        searchableContent: `Written loveslice about ${question.theme}: "${question.content}" - Responses: "${newResponse.content}" and "${partnerResponse.content}"`
+        theme: question.category,
+        searchableContent: `Written loveslice about ${question.category}: "${question.content}" - Responses: "${newResponse.content}" and "${partnerResponse.content}"`
       });
     }
   }
@@ -1460,15 +1605,22 @@ export class DatabaseStorage implements IStorage {
     if (existingStarters.length > 0) {
       console.log("Conversation starters already exist, checking for money theme starters...");
       
-      // Check if we have Money theme starters
-      const moneyStarters = await db
-        .select()
-        .from(conversationStarters)
-        .where(eq(conversationStarters.theme, "Money"))
+      // Check if we have Money theme questions that are linked to starters
+      const moneyQuestions = await db
+        .select({
+          question: questions,
+          starter: conversationStarters
+        })
+        .from(questions)
+        .leftJoin(
+          conversationStarters,
+          eq(questions.id, conversationStarters.questionId)
+        )
+        .where(eq(questions.theme, "Money"))
         .limit(1);
       
       // If Money theme starters exist, we're done
-      if (moneyStarters.length > 0) {
+      if (moneyQuestions.length > 0 && moneyQuestions[0].starter) {
         console.log("Money theme starters already exist, skipping seed.");
         return;
       }
@@ -1483,75 +1635,54 @@ export class DatabaseStorage implements IStorage {
     console.log("Seeding conversation starters...");
     
     // Trust theme
-    await this.createConversationStarter({
-      content: "If we could improve one aspect of trust in our relationship, what would it be?",
-      theme: "Trust",
-      baseQuestionId: null,
-      lovesliceId: null,
-      markedAsMeaningful: false
-    });
-    await this.createConversationStarter({
-      content: "What's something I do that makes you feel safe and secure?",
-      theme: "Trust",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "If we could improve one aspect of trust in our relationship, what would it be?",
+      "Trust"
+    );
+    await this.createUnifiedStarter(
+      "What's something I do that makes you feel safe and secure?",
+      "Trust"
+    );
     
     // Intimacy theme
-    await this.createConversationStarter({
-      content: "How would you describe our emotional connection right now?",
-      theme: "Intimacy",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What's a moment when you felt truly seen and understood by me?",
-      theme: "Intimacy",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "How would you describe our emotional connection right now?",
+      "Intimacy"
+    );
+    await this.createUnifiedStarter(
+      "What's a moment when you felt truly seen and understood by me?",
+      "Intimacy"
+    );
     
     // Conflict theme
-    await this.createConversationStarter({
-      content: "Is there a recurring misunderstanding between us that we should address?",
-      theme: "Conflict",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What's your preferred way to resolve tension between us?",
-      theme: "Conflict",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "Is there a recurring misunderstanding between us that we should address?",
+      "Conflict"
+    );
+    await this.createUnifiedStarter(
+      "What's your preferred way to resolve tension between us?",
+      "Conflict"
+    );
     
     // Dreams theme
-    await this.createConversationStarter({
-      content: "What's something you hope we can accomplish together in the next year?",
-      theme: "Dreams",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "If we could design our ideal day together, what would it look like?",
-      theme: "Dreams",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "What's something you hope we can accomplish together in the next year?",
+      "Dreams"
+    );
+    await this.createUnifiedStarter(
+      "If we could design our ideal day together, what would it look like?",
+      "Dreams"
+    );
     
     // Play theme
-    await this.createConversationStarter({
-      content: "What's a childhood game or activity you'd love to share with me?",
-      theme: "Play",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "How can we bring more spontaneity and fun into our daily routine?",
-      theme: "Play",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "What's a childhood game or activity you'd love to share with me?",
+      "Play"
+    );
+    await this.createUnifiedStarter(
+      "How can we bring more spontaneity and fun into our daily routine?",
+      "Play"
+    );
     
     // Money theme
     await this.seedMoneyThemeStarters();
@@ -1561,66 +1692,46 @@ export class DatabaseStorage implements IStorage {
   
   private async seedMoneyThemeStarters() {
     // Money theme starters
-    await this.createConversationStarter({
-      content: "What's one financial goal we could work toward together?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "How do our different spending habits affect our relationship?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What financial decisions should we make together versus individually?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What does financial security mean to you?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "How do you think our upbringing has shaped our views on money?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What's one money habit you wish we could improve together?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "If we had a financial windfall, how would you want us to use it?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "How open should we be with each other about our individual finances?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "What are your thoughts on saving versus spending for experiences?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
-    await this.createConversationStarter({
-      content: "How should we balance individual financial freedom with shared goals?",
-      theme: "Money",
-      baseQuestionId: null,
-      lovesliceId: null
-    });
+    await this.createUnifiedStarter(
+      "What's one financial goal we could work toward together?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "How do our different spending habits affect our relationship?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "What financial decisions should we make together versus individually?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "What does financial security mean to you?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "How do you think our upbringing has shaped our views on money?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "What's one money habit you wish we could improve together?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "If we had a financial windfall, how would you want us to use it?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "How open should we be with each other about our individual finances?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "What are your thoughts on saving versus spending for experiences?",
+      "Money"
+    );
+    await this.createUnifiedStarter(
+      "How should we balance individual financial freedom with shared goals?",
+      "Money"
+    );
   }
   
   // Conversation methods start here

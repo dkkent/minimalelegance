@@ -366,22 +366,23 @@ adminRoutes.post('/api/admin/conversation-starters', requireAdmin, async (req: R
     // Validate starter data
     const starterSchema = z.object({
       content: z.string().min(1),
-      theme: z.string().min(1),
+      category: z.string().min(1),
       isActive: z.boolean().optional()
     });
     
     const starterData = starterSchema.parse(req.body);
     
-    const newStarter = await storage.createConversationStarter({
-      content: starterData.content,
-      theme: starterData.theme,
-      isActive: starterData.isActive ?? true,
-      createdByUserId: req.user?.id
-    });
+    // Use the unified starter creation method
+    const newStarter = await storage.createUnifiedStarter(
+      starterData.content,
+      starterData.category,
+      false, // Not user-generated (admin created)
+      req.user?.id // Current admin as creator
+    );
     
     // Log the admin action
     logAdminAction(req, 'create', 'conversation-starter', newStarter.id, {
-      theme: starterData.theme
+      category: starterData.category
     });
     
     return res.status(201).json(newStarter);
@@ -412,12 +413,14 @@ adminRoutes.patch('/api/admin/conversation-starters/:id', requireAdmin, async (r
     // Validate update data
     const updateSchema = z.object({
       content: z.string().min(1).optional(),
-      theme: z.string().min(1).optional(),
+      category: z.string().min(1).optional(),
       isActive: z.boolean().optional()
     });
     
     const updateData = updateSchema.parse(req.body);
     
+    // TODO: Implement proper update for starter+question together
+    // For now, use existing method
     const updatedStarter = await storage.updateConversationStarter(starterId, updateData);
     if (!updatedStarter) {
       return res.status(404).json({ error: 'Conversation starter not found' });
@@ -472,15 +475,17 @@ adminRoutes.delete('/api/admin/conversation-starters/:id', requireAdmin, async (
 });
 
 /**
- * Get all question themes (admin access)
+ * Get all question categories (admin access)
  */
 adminRoutes.get('/api/admin/themes', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const themes = await storage.getThemes();
-    return res.status(200).json(themes);
+    // For backward compatibility, we still call this endpoint "/themes"
+    // but it now returns categories from the unified question system
+    const categories = await storage.getThemes();
+    return res.status(200).json(categories);
   } catch (err) {
-    console.error('Error fetching themes:', err);
-    return res.status(500).json({ error: 'Failed to fetch themes' });
+    console.error('Error fetching question categories:', err);
+    return res.status(500).json({ error: 'Failed to fetch question categories' });
   }
 });
 
