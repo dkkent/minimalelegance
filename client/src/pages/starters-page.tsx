@@ -503,11 +503,7 @@ export default function StartersPage() {
                     onClick={() => handleTabChange(theme.name)}
                     className={`rounded-none border-l-0 ${index === availableThemes.length - 1 ? 'rounded-r-md' : ''}`}
                   >
-                    {selectedTheme === theme.name ? (
-                      theme.name
-                    ) : (
-                      <ThemeBadge theme={theme.name} size="small" />
-                    )}
+                    {theme.name}
                   </Button>
                 ))
               ) : (
@@ -517,42 +513,42 @@ export default function StartersPage() {
                     onClick={() => handleTabChange("Trust")}
                     className="rounded-none border-l-0"
                   >
-                    {selectedTheme === "Trust" ? "Trust" : <ThemeBadge theme="Trust" size="small" />}
+                    Trust
                   </Button>
                   <Button 
                     variant={selectedTheme === "Intimacy" ? "default" : "outline"} 
                     onClick={() => handleTabChange("Intimacy")}
                     className="rounded-none border-l-0"
                   >
-                    {selectedTheme === "Intimacy" ? "Intimacy" : <ThemeBadge theme="Intimacy" size="small" />}
+                    Intimacy
                   </Button>
                   <Button 
                     variant={selectedTheme === "Conflict" ? "default" : "outline"} 
                     onClick={() => handleTabChange("Conflict")}
                     className="rounded-none border-l-0"
                   >
-                    {selectedTheme === "Conflict" ? "Conflict" : <ThemeBadge theme="Conflict" size="small" />}
+                    Conflict
                   </Button>
                   <Button 
                     variant={selectedTheme === "Dreams" ? "default" : "outline"} 
                     onClick={() => handleTabChange("Dreams")}
                     className="rounded-none border-l-0"
                   >
-                    {selectedTheme === "Dreams" ? "Dreams" : <ThemeBadge theme="Dreams" size="small" />}
+                    Dreams
                   </Button>
                   <Button 
                     variant={selectedTheme === "Play" ? "default" : "outline"} 
                     onClick={() => handleTabChange("Play")}
                     className="rounded-none border-l-0"
                   >
-                    {selectedTheme === "Play" ? "Play" : <ThemeBadge theme="Play" size="small" />}
+                    Play
                   </Button>
                   <Button 
                     variant={selectedTheme === "Money" ? "default" : "outline"} 
                     onClick={() => handleTabChange("Money")}
                     className="rounded-r-md border-l-0"
                   >
-                    {selectedTheme === "Money" ? "Money" : <ThemeBadge theme="Money" size="small" />}
+                    Money
                   </Button>
                 </>
               )}
