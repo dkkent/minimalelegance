@@ -20,33 +20,11 @@ export function DirectAvatar({
   borderColor = "white",
   fallbackText = "U"
 }: DirectAvatarProps) {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
-
-  // Add cache-busting parameter and log the full URL
-  const imageUrl = `${src}?t=${Date.now()}`;
-  console.log(`DirectAvatar - Rendering with src: ${imageUrl}`);
   
-  React.useEffect(() => {
-    // Ensure the image exists by preloading it
-    const img = new Image();
-    img.onload = () => {
-      console.log(`DirectAvatar preload success: ${imageUrl}`);
-      setImageLoaded(true);
-      setImageError(false);
-    };
-    img.onerror = (e) => {
-      console.error(`DirectAvatar preload error: ${imageUrl}`, e);
-      setImageError(true);
-    };
-    img.src = imageUrl;
-    
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [imageUrl]);
-
+  // Add cache-busting parameter to prevent stale cache
+  const imageUrl = `${src}?t=${Date.now()}`;
+  
   return (
     <div 
       className={`direct-avatar ${className}`}
@@ -65,7 +43,7 @@ export function DirectAvatar({
     >
       {!imageError && (
         <img
-          key={`img-${Date.now()}`}
+          key={`avatar-${Date.now()}`} // Key forces re-render
           src={imageUrl}
           alt={alt}
           width={size}
@@ -77,12 +55,8 @@ export function DirectAvatar({
             objectFit: 'cover',
             objectPosition: 'center',
           }}
-          onLoad={() => {
-            console.log(`DirectAvatar onload success: ${imageUrl}`);
-            setImageLoaded(true);
-          }}
           onError={(e) => {
-            console.error(`DirectAvatar onerror: ${imageUrl}`, e);
+            console.error(`DirectAvatar error loading: ${imageUrl}`, e);
             setImageError(true);
           }}
         />
