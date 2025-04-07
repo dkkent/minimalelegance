@@ -139,8 +139,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <div className="w-[72px] h-10 relative cursor-pointer" aria-label="User profile menu">
-                            {/* Partner avatar behind */}
-                            {partner?.profilePicture && (
+                            {/* Partner avatar behind - only show if partner exists */}
+                            {partner && partner.profilePicture && (
                               <div className="absolute left-0 z-0">
                                 <DirectAvatar
                                   src={partner.profilePicture}
@@ -152,9 +152,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                               </div>
                             )}
 
-                            {/* User avatar in front */}
+                            {/* User avatar - position depends on whether partner exists */}
                             {user?.profilePicture && (
-                              <div className="absolute left-6 z-10">
+                              <div className={`absolute ${partner ? 'left-6' : 'left-0'} z-10`}>
                                 <DirectAvatar
                                   src={user.profilePicture}
                                   alt={user.name || "User"}
@@ -262,8 +262,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <span className="text-xs text-sage-dark">Connected with {partner?.name || "your partner"}</span>
 
                       <div className="w-[72px] h-10 relative">
-                        {/* Partner avatar behind */}
-                        {partner?.profilePicture && (
+                        {/* Partner avatar behind - only show if partner exists */}
+                        {partner && partner.profilePicture && (
                           <div className="absolute left-0 z-0">
                             <DirectAvatar
                               src={partner.profilePicture}
@@ -275,9 +275,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           </div>
                         )}
 
-                        {/* User avatar in front */}
+                        {/* User avatar - position depends on whether partner exists */}
                         {user?.profilePicture && (
-                          <div className="absolute left-6 z-10">
+                          <div className={`absolute ${partner ? 'left-6' : 'left-0'} z-10`}>
                             <DirectAvatar
                               src={user.profilePicture}
                               alt={user.name || "User"}
