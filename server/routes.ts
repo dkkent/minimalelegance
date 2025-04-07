@@ -855,29 +855,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No questions available" });
       }
       
-      // Find a question that hasn't been answered before or pick a random one if all have been answered
-      const answeredQuestions = await db
+      // Find questions that have been previously seen (answered or skipped)
+      const previouslySeenQuestions = await db
         .select({
-          questionId: activeQuestions.questionId
+          questionId: activeQuestions.questionId,
+          isSkipped: activeQuestions.isSkipped,
+          isAnswered: activeQuestions.isAnswered
         })
         .from(activeQuestions)
         .where(eq(activeQuestions.userId, req.user.id));
         
-      const answeredQuestionIds = answeredQuestions.map(q => q.questionId);
+      // Get IDs of questions that have been answered or skipped
+      const previouslySeenQuestionIds = previouslySeenQuestions.map(q => q.questionId);
       
-      // Filter questions that haven't been answered yet
-      const unansweredQuestions = allQuestions.filter(q => !answeredQuestionIds.includes(q.id));
+      // Current question that was just skipped
+      const currentSkippedQuestionId = questionId;
+      
+      // Filter questions that haven't been answered or skipped yet
+      // Also exclude the question that was just skipped to ensure we get a different one
+      const unseenQuestions = allQuestions.filter(q => 
+        !previouslySeenQuestionIds.includes(q.id) && q.id !== currentSkippedQuestionId
+      );
       
       let selectedQuestion;
       
-      if (unansweredQuestions.length > 0) {
-        // Randomly select from unanswered questions
-        const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
-        selectedQuestion = unansweredQuestions[randomIndex];
+      if (unseenQuestions.length > 0) {
+        // Randomly select from unseen questions
+        const randomIndex = Math.floor(Math.random() * unseenQuestions.length);
+        selectedQuestion = unseenQuestions[randomIndex];
       } else {
-        // If all questions have been answered, just pick a random one
-        const randomIndex = Math.floor(Math.random() * allQuestions.length);
-        selectedQuestion = allQuestions[randomIndex];
+        // If all questions have been seen, pick a random one that's not the one just skipped
+        // Filter out the current skipped question to ensure we get a different one
+        const availableQuestions = allQuestions.filter(q => q.id !== currentSkippedQuestionId);
+        
+        // If somehow we've run out of questions, fall back to all questions
+        const questionsPool = availableQuestions.length > 0 ? availableQuestions : allQuestions;
+        
+        const randomIndex = Math.floor(Math.random() * questionsPool.length);
+        selectedQuestion = questionsPool[randomIndex];
       }
       
       // Create a new active question
