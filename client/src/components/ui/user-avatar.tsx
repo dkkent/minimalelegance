@@ -120,14 +120,18 @@ export function UserAvatar({
   const imgSrc = React.useMemo(() => {
     // First check if the user object has a profile picture
     if (userWithPicture?.profilePicture) {
-      return formatProfilePicturePath(userWithPicture.profilePicture);
+      const path = formatProfilePicturePath(userWithPicture.profilePicture);
+      // Add a cache-busting timestamp to force browser to reload the image
+      return `${path}?t=${new Date().getTime()}`;
     }
     
     // Special case for journal page - if name matches current user
     if (userWithPicture?.name && currentUser?.name) {
       // Check if the user is "Dickon" which matches current user's first name
       if (userWithPicture.name === "Dickon" && currentUser.name.startsWith("Dickon") && currentUser.profilePicture) {
-        return formatProfilePicturePath(currentUser.profilePicture);
+        const path = formatProfilePicturePath(currentUser.profilePicture);
+        // Add a cache-busting timestamp
+        return `${path}?t=${new Date().getTime()}`;
       }
     }
     
@@ -137,24 +141,24 @@ export function UserAvatar({
   // Check image existence with fetch for debugging
   React.useEffect(() => {
     if (imgSrc) {
-      // Add a timestamp to bypass browser cache
-      const urlWithCache = `${imgSrc}?t=${Date.now()}`;
+      // Extract the base path without cache busting parameters
+      const basePath = imgSrc.split('?')[0];
       
       // Immediately set image error to false when we have a new image source
       setImageError(false);
       
-      fetch(urlWithCache, { method: 'HEAD' })
+      fetch(imgSrc, { method: 'HEAD' })
         .then(res => {
-          console.log(`Image existence check for ${imgSrc}: ${res.status} ${res.statusText}`);
+          console.log(`Image existence check for ${basePath}: ${res.status} ${res.statusText}`);
           if (res.ok) {
-            console.log(`✅ Image exists at path: ${imgSrc}`);
+            console.log(`✅ Image exists at path: ${basePath}`);
           } else {
-            console.error(`❌ Image doesn't exist at path: ${imgSrc}`);
+            console.error(`❌ Image doesn't exist at path: ${basePath}`);
             setImageError(true);
           }
         })
         .catch(err => {
-          console.error(`❌ Error checking image at ${imgSrc}:`, err);
+          console.error(`❌ Error checking image at ${basePath}:`, err);
           setImageError(true);
         });
     } else {
@@ -174,22 +178,55 @@ export function UserAvatar({
 
   console.log(`UserAvatar - ${userWithPicture?.name || 'unknown'}: imgSrc=${imgSrc}, loaded=${imageLoaded}, error=${imageError}, isCurrentUser=${isCurrentUser}`);
   
+  // Force a refresh of the avatar image
+  const [forceRefresh, setForceRefresh] = React.useState(Date.now());
+  
+  // After the first render, force a refresh after a short delay
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceRefresh(Date.now());
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Use a direct img element to check if the image exists and can be loaded
+  React.useEffect(() => {
+    if (imgSrc) {
+      const img = new Image();
+      img.onload = () => {
+        console.log(`Direct image check: ✅ Image loaded: ${imgSrc}`);
+        setImageLoaded(true);
+        setImageError(false);
+      };
+      img.onerror = () => {
+        console.error(`Direct image check: ❌ Image failed to load: ${imgSrc}`);
+        setImageError(true);
+      };
+      img.src = imgSrc;
+    }
+  }, [imgSrc, forceRefresh]);
+
   return (
-    <Avatar className={`${avatarSize} ${className}`}>
-      <AvatarImage 
-        src={imgSrc}
-        alt={userWithPicture?.name || "User"} 
-        className="object-cover"
-        onLoad={() => {
-          console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
-          setImageLoaded(true);
-          setImageError(false);
-        }}
-        onError={(e) => {
-          console.error(`❌ Failed to load avatar image: ${imgSrc}`);
-          setImageError(true);
-        }}
-      />
+    <Avatar className={`${avatarSize} ${className} overflow-hidden`}>
+      {imgSrc && !imageError ? (
+        <AvatarImage 
+          key={`avatar-${forceRefresh}`} // Force re-render with key change
+          src={imgSrc}
+          alt={userWithPicture?.name || "User"} 
+          className="object-cover w-full h-full"
+          style={{ opacity: 1 }} // Force opacity for visibility
+          onLoad={() => {
+            console.log(`✅ Avatar image loaded successfully: ${imgSrc}`);
+            setImageLoaded(true);
+            setImageError(false);
+          }}
+          onError={(e) => {
+            console.error(`❌ Failed to load avatar image: ${imgSrc}`);
+            setImageError(true);
+          }}
+        />
+      ) : null}
       <AvatarFallback className="bg-sage-light text-sage-dark">
         {initials}
       </AvatarFallback>

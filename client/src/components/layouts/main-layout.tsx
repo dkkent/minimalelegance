@@ -138,22 +138,26 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner}
-                          fallbackText={partner?.name?.[0] || "P"}
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        <div className="absolute left-0 z-0">
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText={partner?.name?.[0] || "P"}
+                            className="h-10 w-10 border-2 border-white" 
+                            size="md"
+                          />
+                        </div>
 
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
-                              <UserAvatar 
-                                user={user} 
-                                className="h-10 w-10 border border-white" 
-                                size="md" 
-                              />
+                              <div className="w-full h-full overflow-hidden rounded-full">
+                                <UserAvatar 
+                                  user={user} 
+                                  className="h-10 w-10 border-2 border-white" 
+                                  size="md" 
+                                />
+                              </div>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -191,11 +195,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
-                          <UserAvatar 
-                            user={user} 
-                            className="h-10 w-10 border border-sage"
-                            size="md"
-                          />
+                          <div className="w-full h-full overflow-hidden rounded-full">
+                            <UserAvatar 
+                              user={user} 
+                              className="h-10 w-10 border-2 border-sage"
+                              size="md"
+                            />
+                          </div>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -240,19 +246,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind */}
-                        <UserAvatar 
-                          user={partner}
-                          fallbackText={partner?.name?.[0] || "P"}
-                          className="h-10 w-10 border border-white absolute left-0 z-0" 
-                          size="md"
-                        />
+                        <div className="absolute left-0 z-0">
+                          <UserAvatar 
+                            user={partner}
+                            fallbackText={partner?.name?.[0] || "P"}
+                            className="h-10 w-10 border-2 border-white" 
+                            size="md"
+                          />
+                        </div>
 
                         {/* User avatar in front */}
-                        <UserAvatar 
-                          user={user} 
-                          className="h-10 w-10 border border-white absolute left-6 z-10" 
-                          size="md"
-                        />
+                        <div className="absolute left-6 z-10">
+                          <UserAvatar 
+                            user={user} 
+                            className="h-10 w-10 border-2 border-white" 
+                            size="md"
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : null}
