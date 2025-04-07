@@ -8,8 +8,14 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, SkipForward } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SkipQuestionDialogProps {
   isOpen: boolean;
@@ -26,6 +32,15 @@ export function SkipQuestionDialog({
 }: SkipQuestionDialogProps) {
   const [step, setStep] = useState(1);
   const [skipNote, setSkipNote] = useState("");
+  
+  // Skip reason options
+  const skipReasons = [
+    "I'm not ready to talk about this yet",
+    "I need more time to reflect",
+    "This feels too sensitive right now",
+    "Let's come back to this another day",
+    "I don't think we need to discuss this"
+  ];
 
   // Reset the dialog state when it's closed
   useEffect(() => {
@@ -59,22 +74,27 @@ export function SkipQuestionDialog({
           <DialogTitle className="text-xl text-center font-serif">
             {step === 1 ? "Are you sure you want to skip this question?" : "Add a Note (Optional)"}
           </DialogTitle>
-          <DialogDescription className="text-center mt-2">
+          <DialogDescription className="text-center mt-2 mx-auto max-w-md">
             {step === 1 
               ? "If you skip this, we'll let your partner know you chose not to answer it. On the next screen you can add a note about why you felt like skipping it." 
-              : "Is there something about this question you'd like to note? This helps us improve your experience."}
+              : "Please select a reason for skipping this question. This helps your partner understand and improves your experience."}
           </DialogDescription>
         </DialogHeader>
 
         {step === 2 && (
           <div className="mt-4">
-            <Textarea 
-              placeholder="I'm skipping because..." 
-              className="w-full p-3 border border-lavender-light rounded-lg focus:outline-none focus:ring-1 focus:ring-sage"
-              value={skipNote}
-              onChange={(e) => setSkipNote(e.target.value)}
-              rows={4}
-            />
+            <Select onValueChange={setSkipNote} defaultValue={skipNote || skipReasons[0]}>
+              <SelectTrigger className="w-full border border-lavender-light focus:ring-1 focus:ring-sage">
+                <SelectValue placeholder="Select a reason for skipping" />
+              </SelectTrigger>
+              <SelectContent>
+                {skipReasons.map((reason, index) => (
+                  <SelectItem key={index} value={reason}>
+                    {reason}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -116,10 +136,7 @@ export function SkipQuestionDialog({
                     Skipping...
                   </>
                 ) : (
-                  <>
-                    <SkipForward className="mr-2 h-4 w-4" />
-                    Get New Question
-                  </>
+                  "Get New Question"
                 )}
               </Button>
             </>
