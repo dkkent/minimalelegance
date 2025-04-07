@@ -57,11 +57,11 @@ export function SkipQuestionDialog({
       <DialogContent className="max-w-md bg-white p-6 rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-xl text-center font-serif">
-            {step === 1 ? "Skip This Question?" : "Add a Note (Optional)"}
+            {step === 1 ? "Are you sure you want to skip this question?" : "Add a Note (Optional)"}
           </DialogTitle>
           <DialogDescription className="text-center mt-2">
             {step === 1 
-              ? "You can skip this question and get a new one. Would you like to proceed?" 
+              ? "If you skip this, we'll let your partner know you chose not to answer it. On the next screen you can add a note about why you felt like skipping it." 
               : "Is there something about this question you'd like to note? This helps us improve your experience."}
           </DialogDescription>
         </DialogHeader>
@@ -86,13 +86,13 @@ export function SkipQuestionDialog({
                 onClick={handleCancel}
                 className="w-full sm:w-auto"
               >
-                Keep This Question
+                ❌ No, Keep This Question
               </Button>
               <Button 
                 onClick={handleNext}
                 className="w-full sm:w-auto bg-sage hover:bg-sage-dark"
               >
-                Skip Question
+                ✅ Yes, Skip and Add Note
               </Button>
             </>
           ) : (
