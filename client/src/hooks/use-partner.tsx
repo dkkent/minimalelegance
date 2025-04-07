@@ -11,39 +11,8 @@ import { useEffect } from "react";
 export function usePartner() {
   const { user } = useAuth();
   
-  // Direct fetch for debugging
-  useEffect(() => {
-    if (user?.partnerId) {
-      console.log("User has partnerId:", user.partnerId);
-      console.log("Fetching partner data directly for debugging...");
-      fetch("/api/partner", { 
-        credentials: "include",
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      })
-        .then(res => {
-          console.log("Partner API status:", res.status);
-          return res.json();
-        })
-        .then(data => {
-          console.log("Partner API raw data:", data);
-          if (data && data.profilePicture) {
-            console.log("Partner profile raw:", data.profilePicture);
-            
-            // Test the image
-            const img = new Image();
-            img.onload = () => console.log("✅ Direct fetch - image loaded:", data.profilePicture);
-            img.onerror = () => console.error("❌ Direct fetch - image failed:", data.profilePicture);
-            img.src = data.profilePicture;
-          }
-        })
-        .catch(err => {
-          console.error("Partner API error:", err);
-        });
-    }
-  }, [user]);
+  // We've removed the direct fetch debugging code that was exposing sensitive information
+  // This improves security by not logging user data to the console
   
   const {
     data: partner,
@@ -69,19 +38,18 @@ export function usePartner() {
         }
         
         const data = await res.json();
-        console.log("Partner data from useQuery:", data);
         
         if (!data) {
           console.log("Partner data is null");
           return null;
         }
         
-        // Debug log for avatar-specific data
-        if (data.profilePicture) {
-          console.log("Partner profile picture from query:", data.profilePicture);
-        } else {
-          console.log("Partner has no profile picture");
-        }
+        // Only log minimal information about the partner data for debugging
+        const hasProfilePicture = !!data.profilePicture;
+        console.log("Partner data loaded:", { 
+          id: data.id, 
+          hasProfilePicture
+        });
         
         return data;
       } catch (error) {
