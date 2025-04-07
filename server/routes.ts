@@ -2039,6 +2039,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
+  
+  // Debug route to check if profile pictures are accessible
+  app.get("/api/debug/profile-pictures", async (req, res) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'profile_pictures');
+      const files = fs.readdirSync(uploadsDir);
+      
+      const results = files.map(file => {
+        const filePath = path.join(uploadsDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          filename: file,
+          size: stats.size,
+          absolutePath: filePath,
+          urlPath: `/uploads/profile_pictures/${file}`,
+          exists: fs.existsSync(filePath)
+        };
+      });
+      
+      res.json({
+        workingDirectory: process.cwd(),
+        uploadsDirectory: uploadsDir,
+        files: results
+      });
+    } catch (error) {
+      console.error("Error checking profile pictures:", error);
+      res.status(500).json({ error: "Failed to check profile pictures" });
+    }
+  });
 
   return httpServer;
 }

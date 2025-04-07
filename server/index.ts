@@ -21,7 +21,10 @@ setupFileUpload(app);
 ensureUploadDirs();
 
 // Serve the uploads directory statically
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Make sure uploads are accessible - this is critical for profile pictures
+const uploadsPath = path.join(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsPath));
+console.log(`[Server] Serving uploads directory from: ${uploadsPath}`);
 
 app.use((req, res, next) => {
   const start = Date.now();
