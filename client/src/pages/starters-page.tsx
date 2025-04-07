@@ -59,7 +59,14 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 
 // Types and schema definitions
-type Theme = "All" | "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "Money" | "Family" | "Growth" | "Communication";
+type Theme = string;
+
+// Database theme object structure
+interface ThemeObject {
+  id: number;
+  name: string;
+  color: string;
+}
 
 type ConversationStarter = {
   id: number;
@@ -93,6 +100,35 @@ export default function StartersPage() {
   const [starterContent, setStarterContent] = useState("");
   const [selectedStarterTheme, setSelectedStarterTheme] = useState<string>("Trust");
   const [addToGlobal, setAddToGlobal] = useState(false);
+  const [availableThemes, setAvailableThemes] = useState<ThemeObject[]>([]);
+  
+  // Query to get available themes from the database
+  const { data: themesData, isLoading: loadingThemes } = useQuery({
+    queryKey: ['/api/themes'],
+    queryFn: async () => {
+      const response = await fetch('/api/themes', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch themes');
+      }
+      
+      return response.json() as Promise<{ themes: ThemeObject[] }>;
+    }
+  });
+  
+  // Update available themes when data is loaded
+  React.useEffect(() => {
+    if (themesData && themesData.themes) {
+      setAvailableThemes(themesData.themes);
+      
+      // Set the selected theme to the first theme in the list if it exists
+      if (themesData.themes.length > 0 && !selectedStarterTheme) {
+        setSelectedStarterTheme(themesData.themes[0].name);
+      }
+    }
+  }, [themesData, selectedStarterTheme]);
   
   // Input ref for auto-focus
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -396,15 +432,24 @@ export default function StartersPage() {
                   onChange={(e) => setSelectedStarterTheme(e.target.value)}
                   className="w-full p-2 border rounded-md"
                 >
-                  <option value="Trust">Trust</option>
-                  <option value="Intimacy">Intimacy</option>
-                  <option value="Conflict">Conflict</option>
-                  <option value="Dreams">Dreams</option>
-                  <option value="Play">Play</option>
-                  <option value="Money">Money</option>
-                  <option value="Family">Family</option>
-                  <option value="Growth">Growth</option>
-                  <option value="Communication">Communication</option>
+                  {loadingThemes ? (
+                    <option value="">Loading themes...</option>
+                  ) : availableThemes.length > 0 ? (
+                    availableThemes.map((theme) => (
+                      <option key={theme.id} value={theme.name}>
+                        {theme.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Trust">Trust</option>
+                      <option value="Intimacy">Intimacy</option>
+                      <option value="Conflict">Conflict</option>
+                      <option value="Dreams">Dreams</option>
+                      <option value="Play">Play</option>
+                      <option value="Money">Money</option>
+                    </>
+                  )}
                 </select>
               </div>
               
@@ -444,48 +489,69 @@ export default function StartersPage() {
               >
                 All
               </Button>
-              <Button 
-                variant={selectedTheme === "Trust" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Trust")}
-                className="rounded-none border-l-0"
-              >
-                Trust
-              </Button>
-              <Button 
-                variant={selectedTheme === "Intimacy" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Intimacy")}
-                className="rounded-none border-l-0"
-              >
-                Intimacy
-              </Button>
-              <Button 
-                variant={selectedTheme === "Conflict" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Conflict")}
-                className="rounded-none border-l-0"
-              >
-                Conflict
-              </Button>
-              <Button 
-                variant={selectedTheme === "Dreams" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Dreams")}
-                className="rounded-none border-l-0"
-              >
-                Dreams
-              </Button>
-              <Button 
-                variant={selectedTheme === "Play" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Play")}
-                className="rounded-none border-l-0"
-              >
-                Play
-              </Button>
-              <Button 
-                variant={selectedTheme === "Money" ? "default" : "outline"} 
-                onClick={() => handleTabChange("Money")}
-                className="rounded-l-none border-l-0"
-              >
-                Money
-              </Button>
+              
+              {loadingThemes ? (
+                <Button disabled className="rounded-none border-l-0">
+                  <div className="animate-spin h-4 w-4 mr-2 border-b-2 border-primary rounded-full"></div>
+                  Loading...
+                </Button>
+              ) : availableThemes.length > 0 ? (
+                availableThemes.map((theme, index) => (
+                  <Button 
+                    key={theme.id}
+                    variant={selectedTheme === theme.name ? "default" : "outline"} 
+                    onClick={() => handleTabChange(theme.name)}
+                    className={`rounded-none border-l-0 ${index === availableThemes.length - 1 ? 'rounded-r-md' : ''}`}
+                  >
+                    {theme.name}
+                  </Button>
+                ))
+              ) : (
+                <>
+                  <Button 
+                    variant={selectedTheme === "Trust" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Trust")}
+                    className="rounded-none border-l-0"
+                  >
+                    Trust
+                  </Button>
+                  <Button 
+                    variant={selectedTheme === "Intimacy" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Intimacy")}
+                    className="rounded-none border-l-0"
+                  >
+                    Intimacy
+                  </Button>
+                  <Button 
+                    variant={selectedTheme === "Conflict" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Conflict")}
+                    className="rounded-none border-l-0"
+                  >
+                    Conflict
+                  </Button>
+                  <Button 
+                    variant={selectedTheme === "Dreams" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Dreams")}
+                    className="rounded-none border-l-0"
+                  >
+                    Dreams
+                  </Button>
+                  <Button 
+                    variant={selectedTheme === "Play" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Play")}
+                    className="rounded-none border-l-0"
+                  >
+                    Play
+                  </Button>
+                  <Button 
+                    variant={selectedTheme === "Money" ? "default" : "outline"} 
+                    onClick={() => handleTabChange("Money")}
+                    className="rounded-r-md border-l-0"
+                  >
+                    Money
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           
