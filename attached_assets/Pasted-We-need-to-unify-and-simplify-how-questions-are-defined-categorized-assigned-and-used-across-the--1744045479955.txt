@@ -1,0 +1,53 @@
+We need to unify and simplify how questions are defined, categorized, assigned, and used across the Loveslices application. Right now, there are inconsistencies between how questions are seeded, categorized, assigned, and surfaced—especially across the homepage, journal, admin panel, and the “Starters” page.
+
+⸻
+
+🎯 The Goal
+
+Create a single, consistent, category-aware question system with the following properties:
+	1.	All questions, regardless of origin (admin panel, seed file, or user-created starter), are stored in the same questions table
+	2.	Each question must:
+	•	Belong to a defined category (from the global category list)
+	•	Be optionally flagged as userGenerated = true
+	•	Have a field for isApproved = true/false for moderation
+	3.	All logic for assigning and skipping questions should:
+	•	Respect isSkipped and isAnswered status across both partners
+	•	Ensure questions are not repeated once fully completed (or give users the ability to revisit them manually)
+
+⸻
+
+🛠️ Required Changes
+
+✅ Database Schema Adjustments
+	•	Ensure questions table includes:
+	•	category (string or enum)
+	•	userGenerated (boolean)
+	•	isApproved (boolean)
+	•	createdBy (userId if relevant)
+	•	Ensure admin uploads and the Starters page both feed into this same table.
+
+✅ Starter Integration
+	•	When a user creates a starter on the Starters page:
+	•	It should create a new entry in the questions table
+	•	Set userGenerated = true, isApproved = false (default), and include their selected category
+	•	Add a way for admin to later approve & publish these into the active pool
+
+✅ Assignment Logic Improvements
+	•	Ensure question assignment respects both:
+	•	If a user has skipped/answered it and
+	•	If their partner has also completed or skipped it
+	•	Avoid assigning the same question again unless it’s explicitly requested
+	•	Prioritize unseen, unshared, and approved questions first
+
+✅ Naming & API Consistency
+	•	Standardize all endpoints and frontend components to use questionId (not activeQuestionId)
+	•	Ensure the admin panel uses the same field names and logic as the frontend (e.g., categories, approval)
+
+⸻
+
+✨ UX Considerations
+	•	Rename consistently across the app:
+	•	Use the term “Questions” throughout instead of Starters/Loveslices unless context-specific:
+	•	“Today’s Loveslice” → OK for the homepage
+	•	“Create a Starter” → still OK on Starters page
+	•	But in code/API/db, call them all questions
