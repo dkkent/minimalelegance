@@ -162,33 +162,40 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {/* User avatar in front (with dropdown) */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none">
-                              <div className="w-full h-full overflow-hidden rounded-full">
-                                {user?.profilePicture ? (
-                                  <img 
-                                    src={`${user.profilePicture}?t=${Date.now()}`}
-                                    alt={user.name || "User"}
-                                    className="h-full w-full object-cover"
-                                    style={{
-                                      borderRadius: '50%',
-                                      objectFit: 'cover',
-                                      objectPosition: 'center',
-                                      maxHeight: '100%',
-                                      maxWidth: '100%'
-                                    }}
-                                    onError={(e) => {
-                                      console.error("Error loading profile image in header:", e);
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <UserAvatar 
-                                    user={user} 
-                                    className="h-10 w-10 border-2 border-white" 
-                                    size="md" 
-                                  />
-                                )}
-                              </div>
+                            <Button 
+                              variant="ghost" 
+                              className="absolute left-6 z-10 p-0 h-10 w-10 rounded-full focus:outline-none overflow-hidden border-2 border-white"
+                              style={{
+                                padding: 0,
+                                overflow: 'hidden',
+                                borderRadius: '50%'
+                              }}
+                            >
+                              {user?.profilePicture && (
+                                <img 
+                                  src={`${user.profilePicture}?t=${Date.now()}`}
+                                  alt={user.name || "User"}
+                                  width={40}
+                                  height={40}
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    objectPosition: 'center',
+                                    borderRadius: '50%'
+                                  }}
+                                  onError={(e) => {
+                                    console.error("Error loading profile image in header:", e);
+                                    // Don't hide, let fallback show
+                                  }}
+                                />
+                              )}
+                              {!user?.profilePicture && (
+                                <div className="flex items-center justify-center h-full w-full bg-sage-light text-sage-dark font-medium">
+                                  {user?.name?.[0] || "U"}
+                                </div>
+                              )}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -225,33 +232,40 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-10 w-10 rounded-full focus:outline-none p-0">
-                          <div className="w-full h-full overflow-hidden rounded-full">
-                            {user?.profilePicture ? (
-                              <img 
-                                src={`${user.profilePicture}?t=${Date.now()}`}
-                                alt={user.name || "User"}
-                                className="h-full w-full object-cover"
-                                style={{
-                                  borderRadius: '50%',
-                                  objectFit: 'cover',
-                                  objectPosition: 'center',
-                                  maxHeight: '100%',
-                                  maxWidth: '100%'
-                                }}
-                                onError={(e) => {
-                                  console.error("Error loading profile image in standalone header:", e);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <UserAvatar 
-                                user={user} 
-                                className="h-10 w-10 border-2 border-sage"
-                                size="md"
-                              />
-                            )}
-                          </div>
+                        <Button 
+                          variant="ghost" 
+                          className="relative h-10 w-10 rounded-full focus:outline-none p-0 overflow-hidden border-2 border-sage"
+                          style={{
+                            padding: 0,
+                            overflow: 'hidden',
+                            borderRadius: '50%'
+                          }}
+                        >
+                          {user?.profilePicture && (
+                            <img 
+                              src={`${user.profilePicture}?t=${Date.now()}`}
+                              alt={user.name || "User"}
+                              width={40}
+                              height={40}
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: 'center',
+                                borderRadius: '50%'
+                              }}
+                              onError={(e) => {
+                                console.error("Error loading profile image in standalone header:", e);
+                                // Don't hide, let fallback show
+                              }}
+                            />
+                          )}
+                          {!user?.profilePicture && (
+                            <div className="flex items-center justify-center h-full w-full bg-sage-light text-sage-dark font-medium">
+                              {user?.name?.[0] || "U"}
+                            </div>
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
