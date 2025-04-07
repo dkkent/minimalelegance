@@ -67,6 +67,9 @@
   .text-coral-dark {
     color: #D78A5C;
   }
+  .text-peach-dark {
+    color: #D6836B;
+  }
   .bg-sage {
     background-color: #7C9A92;
   }
@@ -81,6 +84,9 @@
   }
   .bg-coral-light {
     background-color: #F1CCB8;
+  }
+  .bg-peach-light {
+    background-color: #F9D1C3;
   }
   .border-sage-light {
     border-color: #DAE3E1;
