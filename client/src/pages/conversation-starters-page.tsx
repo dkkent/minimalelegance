@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layouts/main-layout';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,14 +21,27 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-type Theme = "Trust" | "Intimacy" | "Conflict" | "Dreams" | "Play" | "Money" | "All";
+// Dynamic theme type that will be updated based on database values
+type Theme = string;
 
-const starterFormSchema = z.object({
+// Database theme object structure
+interface ThemeObject {
+  id: number;
+  name: string;
+  color: string;
+}
+
+// We'll create the schema dynamically once we have the themes
+const createStarterFormSchema = (themeValues: string[]) => z.object({
   content: z.string().min(5, "Content must be at least 5 characters"),
-  theme: z.enum(["Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"])
+  theme: z.enum(themeValues as [string, ...string[]])
 });
 
-type StarterFormData = z.infer<typeof starterFormSchema>;
+// Form data type can be any because we're using a dynamic schema
+type StarterFormData = {
+  content: string;
+  theme: string;
+};
 
 type ConversationStarter = {
   id: number;
@@ -47,18 +60,59 @@ export default function ConversationStartersPage() {
   const [_, navigate] = useLocation();
   const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [availableThemes, setAvailableThemes] = useState<ThemeObject[]>([]);
   
   // Track the newly created starter for highlight effect
   const [newStarterId, setNewStarterId] = useState<number | null>(null);
   
-  // Form for creating a new conversation starter
-  const form = useForm<StarterFormData>({
+  // Query to get available themes from the database
+  const { data: themesData, isLoading: loadingThemes } = useQuery({
+    queryKey: ['/api/themes'],
+    queryFn: async () => {
+      const response = await fetch('/api/themes', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch themes');
+      }
+      
+      return response.json() as Promise<{ themes: ThemeObject[] }>;
+    }
+  });
+  
+  // Set up form with dynamic theme values once they are loaded
+  const [starterFormSchema, setStarterFormSchema] = useState(z.object({
+    content: z.string().min(5, "Content must be at least 5 characters"),
+    theme: z.string().min(1, "Theme is required")
+  }));
+  
+  // Form for creating a new conversation starter - will be updated when themes load
+  const form = useForm<any>({
     resolver: zodResolver(starterFormSchema),
     defaultValues: {
       content: "",
-      theme: "Trust"
+      theme: ""
     }
   });
+  
+  // Update form and schema when themes are loaded
+  useEffect(() => {
+    if (themesData?.themes && themesData.themes.length > 0) {
+      // Store the available themes
+      setAvailableThemes(themesData.themes);
+      
+      // Extract theme names for the schema
+      const themeNames = themesData.themes.map(t => t.name);
+      
+      // Create a new schema with the available themes
+      const newSchema = createStarterFormSchema(themeNames);
+      setStarterFormSchema(newSchema);
+      
+      // Update form with new schema and default value
+      form.reset({ content: "", theme: themeNames[0] || "" });
+    }
+  }, [themesData, form]);
   
   // Query for getting conversation starters
   const { data: conversationStarters, isLoading } = useQuery({
@@ -256,14 +310,17 @@ export default function ConversationStartersPage() {
           <div className="md:col-span-2">
             {/* Filter tabs */}
             <Tabs value={selectedTheme} onValueChange={handleTabChange} className="mb-8">
-              <TabsList className="w-full grid grid-cols-7">
+              <TabsList className={`w-full grid ${availableThemes.length > 0 ? `grid-cols-${Math.min(availableThemes.length + 1, 7)}` : 'grid-cols-1'}`}>
                 <TabsTrigger value="All">All</TabsTrigger>
-                <TabsTrigger value="Trust">Trust</TabsTrigger>
-                <TabsTrigger value="Intimacy">Intimacy</TabsTrigger>
-                <TabsTrigger value="Conflict">Conflict</TabsTrigger>
-                <TabsTrigger value="Dreams">Dreams</TabsTrigger>
-                <TabsTrigger value="Play">Play</TabsTrigger>
-                <TabsTrigger value="Money">Money</TabsTrigger>
+                {loadingThemes ? (
+                  <div className="flex justify-center items-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  </div>
+                ) : availableThemes.map((theme) => (
+                  <TabsTrigger key={theme.id} value={theme.name}>
+                    {theme.name}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </Tabs>
             
@@ -461,13 +518,19 @@ export default function ConversationStartersPage() {
                             <select
                               className="w-full p-2 border rounded-md"
                               {...field}
+                              disabled={loadingThemes}
                             >
-                              <option value="Trust">Trust</option>
-                              <option value="Intimacy">Intimacy</option>
-                              <option value="Conflict">Conflict</option>
-                              <option value="Dreams">Dreams</option>
-                              <option value="Play">Play</option>
-                              <option value="Money">Money</option>
+                              {loadingThemes ? (
+                                <option value="">Loading themes...</option>
+                              ) : availableThemes.length > 0 ? (
+                                availableThemes.map((theme) => (
+                                  <option key={theme.id} value={theme.name}>
+                                    {theme.name}
+                                  </option>
+                                ))
+                              ) : (
+                                <option value="">No themes available</option>
+                              )}
                             </select>
                           </FormControl>
                           <FormMessage />

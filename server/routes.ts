@@ -1227,6 +1227,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all available themes
+  app.get("/api/themes", async (req, res) => {
+    try {
+      // Get themes from the database
+      const themes = await storage.getThemes();
+      res.status(200).json(themes);
+    } catch (error) {
+      console.error("Failed to fetch themes:", error);
+      res.status(500).json({ message: "Failed to fetch themes" });
+    }
+  });
+
   // Get a random conversation starter by category/theme
   app.get("/api/conversation-starters/random", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
