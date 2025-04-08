@@ -35,18 +35,31 @@ ensureUploadDirs();
 // Make sure uploads are accessible - this is critical for profile pictures
 const uploadsPath = path.join(process.cwd(), "uploads");
 app.use("/uploads", (req, res, next) => {
-  // Add headers to prevent caching issues for profile pictures
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  // Check if request contains a t parameter (timestamp) for cache busting
+  const hasTimestamp = req.query.t !== undefined;
+  
+  if (hasTimestamp) {
+    // If a timestamp is provided, use long-term caching
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year in seconds
+    res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString()); // 1 year in ms
+  } else {
+    // For requests without timestamps, don't cache
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 }, express.static(uploadsPath, {
-  // Set generous maxAge for better performance, but still allow revalidation
-  maxAge: '1h',
-  // Ensure proper content types for images
+  // Use conditional maxAge based on whether the request has a timestamp
+  maxAge: '1d', // Default to 1 day
+  
+  // Set proper content type and cache headers
   setHeaders: (res, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
+    
+    // Set Content-Type based on file extension
     if (['.jpg', '.jpeg'].includes(ext)) {
       res.setHeader('Content-Type', 'image/jpeg');
     } else if (ext === '.png') {
@@ -56,6 +69,9 @@ app.use("/uploads", (req, res, next) => {
     } else if (ext === '.webp') {
       res.setHeader('Content-Type', 'image/webp');
     }
+    
+    // Add vary header to properly handle different cache conditions
+    res.setHeader('Vary', 'Accept-Encoding');
   }
 }));
 console.log(`[Server] Enhanced serving of uploads directory from: ${uploadsPath}`);
