@@ -22,12 +22,23 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
   
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await apiRequest("POST", "/api/profile-picture", formData, {
-        isFormData: true
-      });
-      return await res.json();
+      console.log('Starting profile picture upload with form data');
+      try {
+        // The apiRequest function takes (endpoint, options) and handles JSON parsing
+        const result = await apiRequest("/api/profile-picture", {
+          method: "POST",
+          data: formData,
+          isFormData: true
+        });
+        console.log('Received response from server:', result);
+        return result;
+      } catch (error) {
+        console.error('Error in profile picture upload mutation:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log('Profile picture upload success:', data);
       queryClient.setQueryData(["/api/user"], data.user);
       toast({
         title: "Profile picture updated",
@@ -35,6 +46,7 @@ export function ProfilePictureUpload({ user }: ProfilePictureUploadProps) {
       });
     },
     onError: (error: Error) => {
+      console.error('Profile picture upload error:', error);
       toast({
         title: "Upload failed",
         description: error.message || "There was an error uploading your profile picture.",
