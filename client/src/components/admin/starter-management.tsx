@@ -49,7 +49,7 @@ import {
 interface ConversationStarter {
   id: number;
   content: string;
-  themeId: number;
+  themeId: number | string;  // Can be either number or string in the backend
   themeName?: string;
   createdAt: string;
   createdBy: number | null;
@@ -91,23 +91,51 @@ const StarterManagement: React.FC = () => {
   const starters: ConversationStarter[] = startersData?.starters || [];
   const themes: Theme[] = themesData?.themes || [];
   
+  // Add debug logging to understand the data
+  console.log("All starters:", starters.map(s => ({ 
+    id: s.id, 
+    content: s.content?.substring(0, 20) + "...", 
+    themeId: s.themeId, 
+    themeIdType: typeof s.themeId,
+    themeName: s.themeName
+  })));
+  console.log("All themes:", themes.map(t => ({ id: t.id, name: t.name })));
+  console.log("Current theme filter:", themeFilter);
+
   // Filter starters based on search term and theme filter
   const filteredStarters = starters.filter(starter => {
+    // Search term matching - check content, theme name, and created by
     const matchesSearch = searchTerm === '' || 
-      starter.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (starter.themeName && starter.themeName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (starter.content && starter.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (starter.themeName && starter.themeName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (starter.createdByName && starter.createdByName.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesTheme = themeFilter === null || starter.themeId === themeFilter;
+    // Theme filter matching - handle both number and string theme IDs
+    const starterThemeId = typeof starter.themeId === 'string' 
+      ? parseInt(starter.themeId) 
+      : starter.themeId;
+    
+    // Get theme name for debugging
+    const themeName = themes.find(t => t.id === starterThemeId)?.name || 'Unknown';
+    
+    // Match theme
+    const matchesTheme = themeFilter === null || starterThemeId === themeFilter;
+    
+    // Debug each starter's theme matching
+    console.log(`Starter ${starter.id} - content: "${starter.content?.substring(0, 20)}..." - themeId: ${starter.themeId} (${typeof starter.themeId}), themeName: ${themeName}, searching for: ${themeFilter} - matches: ${matchesTheme}`);
     
     return matchesSearch && matchesTheme;
   });
   
   // Create starter mutation
   const createStarterMutation = useMutation({
-    mutationFn: (data: { content: string; themeId: number; isGlobal: boolean }) => 
+    mutationFn: (data: { content: string; themeId: number | string; isGlobal: boolean }) => 
       apiRequest('/api/admin/conversation-starters', { 
         method: 'POST', 
-        data
+        data: {
+          ...data,
+          themeId: typeof data.themeId === 'string' ? parseInt(data.themeId) : data.themeId
+        }
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/conversation-starters'] });
@@ -189,10 +217,17 @@ const StarterManagement: React.FC = () => {
   const handleUpdateStarter = () => {
     if (!editStarter || !editStarter.themeId) return;
     
+    // Convert themeId to number if it's a string
+    const themeId = typeof editStarter.themeId === 'string' 
+      ? parseInt(editStarter.themeId) 
+      : editStarter.themeId;
+    
+    console.log('Updating starter with themeId:', themeId);
+    
     updateStarterMutation.mutate({
       id: editStarter.id,
       content: editStarter.content,
-      themeId: editStarter.themeId,
+      themeId: themeId,
       isGlobal: editStarter.isGlobal
     });
   };
@@ -221,7 +256,9 @@ const StarterManagement: React.FC = () => {
     
     // If no match found, try to find by theme name (some starters might have theme as a string name)
     if (!theme && typeof themeId === 'string') {
-      theme = themes.find(t => t.name.toLowerCase() === themeId.toLowerCase());
+      // Safe to use toLowerCase() since we've verified themeId is a string
+      const themeIdLower = themeId.toLowerCase();
+      theme = themes.find(t => t.name.toLowerCase() === themeIdLower);
     }
     
     return theme?.color || '#CBD5E0';
@@ -236,7 +273,9 @@ const StarterManagement: React.FC = () => {
     
     // If no match found, try to find by theme name (some starters might have theme as a string name)
     if (!theme && typeof themeId === 'string') {
-      theme = themes.find(t => t.name.toLowerCase() === themeId.toLowerCase());
+      // Safe to use toLowerCase() since we've verified themeId is a string
+      const themeIdLower = themeId.toLowerCase();
+      theme = themes.find(t => t.name.toLowerCase() === themeIdLower);
     }
     
     // If still no match, check if themeName is available on the starter
@@ -284,12 +323,18 @@ const StarterManagement: React.FC = () => {
             placeholder="Search starters..." 
             className="w-64" 
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              console.log(`Search term changed: "${e.target.value}"`);
+              setSearchTerm(e.target.value);
+            }}
           />
           
           <Select 
             value={themeFilter?.toString() || 'all'} 
-            onValueChange={(value) => setThemeFilter(value === 'all' ? null : parseInt(value))}
+            onValueChange={(value) => {
+              console.log(`Theme filter selected: ${value}`);
+              setThemeFilter(value === 'all' ? null : parseInt(value));
+            }}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by theme" />
@@ -298,7 +343,13 @@ const StarterManagement: React.FC = () => {
               <SelectItem value="all">All themes</SelectItem>
               {themes.map(theme => (
                 <SelectItem key={theme.id} value={theme.id.toString()}>
-                  {theme.name}
+                  <div className="flex items-center">
+                    <div 
+                      className="w-3 h-3 rounded-full mr-2" 
+                      style={{ backgroundColor: theme.color }} 
+                    />
+                    {theme.name}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -544,7 +595,9 @@ const StarterManagement: React.FC = () => {
                       let theme = themes.find(t => t.id === themeIdNum);
                       
                       if (!theme && typeof deleteStarter.themeId === 'string') {
-                        theme = themes.find(t => t.name.toLowerCase() === deleteStarter.themeId.toLowerCase());
+                        // Safe to use toLowerCase() since we've verified themeId is a string
+                        const themeIdLower = deleteStarter.themeId.toLowerCase();
+                        theme = themes.find(t => t.name.toLowerCase() === themeIdLower);
                       }
                       
                       return theme?.name || 'Unknown theme';
