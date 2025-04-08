@@ -51,7 +51,7 @@ const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // Helper methods
-  formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined;
+  formatUserProfilePicture<T extends {profilePicture?: string | null, profilePictureSizes?: {small?: string, medium?: string, large?: string} | null}>(user: T | undefined): T | undefined;
   
   // User related methods
   getUser(id: number): Promise<User | undefined>;
@@ -163,9 +163,10 @@ export class DatabaseStorage implements IStorage {
    * @param user The user object to format
    * @returns A user object with properly formatted profile picture path
    */
-  formatUserProfilePicture<T extends {profilePicture?: string | null}>(user: T | undefined): T | undefined {
+  formatUserProfilePicture<T extends {profilePicture?: string | null, profilePictureSizes?: {small?: string, medium?: string, large?: string} | null}>(user: T | undefined): T | undefined {
     if (!user) return undefined;
     
+    // Format the profilePicture property
     if (user.profilePicture) {
       // Only need to format if it's not empty
       if (user.profilePicture.trim() !== '') {
@@ -178,6 +179,32 @@ export class DatabaseStorage implements IStorage {
         
         // Update the user object
         user.profilePicture = imagePath;
+      }
+    }
+    
+    // Now format the profilePictureSizes paths
+    if (user.profilePictureSizes) {
+      const sizes = user.profilePictureSizes;
+      
+      // Format small size if it exists
+      if (sizes.small && sizes.small.trim() !== '') {
+        sizes.small = sizes.small.startsWith('/') 
+          ? sizes.small 
+          : `/uploads/profile_pictures/${sizes.small}`;
+      }
+      
+      // Format medium size if it exists
+      if (sizes.medium && sizes.medium.trim() !== '') {
+        sizes.medium = sizes.medium.startsWith('/') 
+          ? sizes.medium 
+          : `/uploads/profile_pictures/${sizes.medium}`;
+      }
+      
+      // Format large size if it exists
+      if (sizes.large && sizes.large.trim() !== '') {
+        sizes.large = sizes.large.startsWith('/') 
+          ? sizes.large 
+          : `/uploads/profile_pictures/${sizes.large}`;
       }
     }
     
