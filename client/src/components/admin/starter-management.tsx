@@ -317,7 +317,7 @@ const StarterManagement: React.FC = () => {
               <TableHead>Content</TableHead>
               <TableHead>Theme</TableHead>
               <TableHead>Created By</TableHead>
-              <TableHead>Visibility</TableHead>
+              <TableHead>Availability</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
