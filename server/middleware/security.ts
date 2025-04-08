@@ -10,17 +10,21 @@ export function setupSecurityMiddleware(app: Express) {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com']
+        defaultSrc: ["'self'", "*"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "*"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', "*"],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', "*"],
+        imgSrc: ["'self'", 'data:', 'https:', "*"],
+        connectSrc: ["'self'", 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', "*"]
       }
     },
     // Allow iframe embedding since this is a development environment
     // For production, you would want to set this to true
-    frameguard: false
+    frameguard: false,
+    // Disable crossOriginResourcePolicy for better external access
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Disable crossOriginEmbedderPolicy for better external access
+    crossOriginEmbedderPolicy: false
   }));
 
   // General rate limiter for all requests
@@ -62,16 +66,21 @@ export function setupSecurityMiddleware(app: Express) {
 
   // Add security middleware to prevent common vulnerabilities
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Set secure cookie policy
+    // Set secure cookie policy - using 'lax' for better cross-origin support
     res.cookie('cookieName', 'cookieValue', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      sameSite: 'lax'
     });
 
     // Set additional security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Add CORS headers - redundant with the earlier middleware but ensures they're set here too
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
     next();
   });
