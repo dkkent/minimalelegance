@@ -1466,8 +1466,9 @@ export class DatabaseStorage implements IStorage {
     // Get related data (themes)
     const themeValues = await this.getThemes();
     
-    // Create a theme map for easy lookup
-    const themeMap = new Map(themeValues.themes.map(t => [t.id, t.name]));
+    // Create theme maps for easy lookup - both by ID and by name
+    const themeMapById = new Map(themeValues.themes.map(t => [t.id, t.name]));
+    const themeMapByName = new Map(themeValues.themes.map(t => [t.name, t.id]));
     
     // Combine and prepare all starters
     const allStarters = [
@@ -1494,34 +1495,51 @@ export class DatabaseStorage implements IStorage {
       }))
     ];
     
-    // Process theme names
+    // Process theme names and normalize theme IDs
     const enhancedStarters = allStarters.map(starter => {
       // There are two cases for themeId:
       // 1. It's a numeric ID that references a theme in our themeMap
-      // 2. It's a string that directly contains the theme name, like "Trust" or "Intimacy"
+      // 2. It's a string that directly contains the theme name
       
-      // If themeId is a string that can be parsed as a number, try to get theme name from map
       let themeName = 'Unknown';
+      let normalizedThemeId: number | null = null; 
       
       if (typeof starter.themeId === 'number') {
-        // Case 1: Direct numeric ID reference
-        themeName = themeMap.has(starter.themeId) ? themeMap.get(starter.themeId) || 'Unknown' : 'Unknown';
+        // Direct numeric theme ID reference
+        themeName = themeMapById.has(starter.themeId) ? themeMapById.get(starter.themeId) || 'Unknown' : 'Unknown';
+        normalizedThemeId = starter.themeId;
       } else if (typeof starter.themeId === 'string') {
         if (!isNaN(parseInt(starter.themeId))) {
-          // Case 1a: String that contains a number
+          // String that contains a number - try to use as a theme ID
           const themeIdAsNumber = parseInt(starter.themeId);
-          themeName = themeMap.has(themeIdAsNumber) ? themeMap.get(themeIdAsNumber) || starter.themeId : starter.themeId;
+          if (themeMapById.has(themeIdAsNumber)) {
+            themeName = themeMapById.get(themeIdAsNumber) || 'Unknown';
+            normalizedThemeId = themeIdAsNumber;
+          } else {
+            // Number doesn't exist in theme map, treat as a direct theme name
+            themeName = starter.themeId;
+            normalizedThemeId = themeMapByName.get(starter.themeId) || null;
+          }
         } else {
-          // Case 2: String that directly contains the theme name
+          // String that directly contains the theme name
           themeName = starter.themeId;
+          normalizedThemeId = themeMapByName.get(starter.themeId) || null;
         }
       }
       
+      // Always include both themeId (normalized as number when possible) and themeName
       return {
         ...starter,
+        // Keep the original themeId for reference
+        themeIdOriginal: starter.themeId,
+        // Set normalized numeric themeId when possible, otherwise keep original
+        themeId: normalizedThemeId !== null ? normalizedThemeId : starter.themeId,
+        // Always set themeName for display
         themeName: themeName
       };
     });
+    
+    console.log(`[getAllConversationStarters] Returning ${enhancedStarters.length} starters`);
     
     return { starters: enhancedStarters };
   }
@@ -1665,36 +1683,83 @@ export class DatabaseStorage implements IStorage {
       updateData.content = data.content;
     }
     
+    // Handle themeId conversion more robustly
     if (data.themeId !== undefined) {
-      // Convert themeId to string for storage in the 'theme' column
+      const themes = await this.getThemes();
+      let themeName: string | null = null;
+      
+      // Case 1: Numeric theme ID, need to map to name
       if (typeof data.themeId === 'number') {
-        // For numeric IDs, we need to find the theme name first
-        const themes = await this.getThemes();
         const theme = themes.themes.find(t => t.id === data.themeId);
         if (theme) {
-          updateData.theme = theme.name;
-        } else {
-          console.log(`[updateConversationStarter] Theme ID ${data.themeId} not found, using as-is`);
-          updateData.theme = data.themeId.toString();
+          themeName = theme.name;
         }
+      }
+      // Case 2: String that might be numeric
+      else if (typeof data.themeId === 'string' && !isNaN(parseInt(data.themeId))) {
+        const themeId = parseInt(data.themeId);
+        const theme = themes.themes.find(t => t.id === themeId);
+        if (theme) {
+          themeName = theme.name;
+        }
+      }
+      // Case 3: String that might be a direct theme name
+      else if (typeof data.themeId === 'string') {
+        // Check if it's a valid theme name
+        const theme = themes.themes.find(t => t.name === data.themeId);
+        if (theme) {
+          themeName = theme.name;
+        }
+      }
+      
+      if (themeName) {
+        // We found a valid theme name
+        updateData.theme = themeName;
+        console.log(`[updateConversationStarter] Mapped themeId ${data.themeId} to theme name "${themeName}"`);
       } else {
-        // String themeId is already a theme name
-        updateData.theme = data.themeId;
+        // Fallback: use the themeId as-is as the theme name
+        // This should rarely happen with proper frontend validation
+        console.log(`[updateConversationStarter] Warning: Theme ID ${data.themeId} not found in known themes`);
+        updateData.theme = typeof data.themeId === 'number' ? data.themeId.toString() : data.themeId;
       }
     }
     
     // Note: isGlobal isn't used in the conversationStarters schema yet
+    // Future enhancement: add isGlobal column to the schema
     
     console.log(`[updateConversationStarter] Final update data:`, updateData);
     
+    // Update the record
     const [updated] = await db
       .update(conversationStarters)
       .set(updateData)
       .where(eq(conversationStarters.id, id))
       .returning();
     
-    console.log(`[updateConversationStarter] Update result:`, updated);
-    return updated;
+    if (updated) {
+      console.log(`[updateConversationStarter] Update successful for starter ${id}`);
+      
+      // Enhance the response with normalized theme data
+      const themes = await this.getThemes();
+      const themeName = updated.theme;
+      let themeId: number | null = null;
+      
+      // Try to find the numeric theme ID for this theme name
+      const matchingTheme = themes.themes.find(t => t.name === themeName);
+      if (matchingTheme) {
+        themeId = matchingTheme.id;
+      }
+      
+      // Return the updated record with normalized theme information
+      return {
+        ...updated,
+        themeId: themeId || updated.theme,
+        themeName: themeName
+      };
+    } else {
+      console.log(`[updateConversationStarter] No starter found with ID ${id}`);
+      return undefined;
+    }
   }
   
   /**

@@ -110,19 +110,36 @@ const StarterManagement: React.FC = () => {
       (starter.themeName && starter.themeName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (starter.createdByName && starter.createdByName.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Theme filter matching - handle both number and string theme IDs
-    const starterThemeId = typeof starter.themeId === 'string' 
-      ? parseInt(starter.themeId) 
-      : starter.themeId;
+    // Theme filter matching - we'll try multiple strategies
     
-    // Get theme name for debugging
-    const themeName = themes.find(t => t.id === starterThemeId)?.name || 'Unknown';
+    // 1. Check if the starter has a matching themeName directly (most reliable)
+    if (themeFilter !== null && starter.themeName) {
+      const selectedThemeName = themes.find(t => t.id === themeFilter)?.name;
+      if (selectedThemeName && starter.themeName === selectedThemeName) {
+        console.log(`✅ MATCH by name: Starter ${starter.id} theme "${starter.themeName}" matches selected theme "${selectedThemeName}"`);
+        return matchesSearch; // This is a match, only check search term
+      }
+    }
     
-    // Match theme
-    const matchesTheme = themeFilter === null || starterThemeId === themeFilter;
+    // 2. Try converting themeId to number if it's a string (for numeric IDs stored as strings)
+    let starterThemeIdNum: number | null = null;
+    if (typeof starter.themeId === 'string' && !isNaN(parseInt(starter.themeId))) {
+      starterThemeIdNum = parseInt(starter.themeId);
+    } else if (typeof starter.themeId === 'number') {
+      starterThemeIdNum = starter.themeId;
+    }
     
-    // Debug each starter's theme matching
-    console.log(`Starter ${starter.id} - content: "${starter.content?.substring(0, 20)}..." - themeId: ${starter.themeId} (${typeof starter.themeId}), themeName: ${themeName}, searching for: ${themeFilter} - matches: ${matchesTheme}`);
+    // 3. Check direct theme ID match
+    const directThemeMatch = themeFilter === null || 
+      (starterThemeIdNum !== null && starterThemeIdNum === themeFilter);
+      
+    // 4. If we don't have a theme filter, everything matches
+    const matchesTheme = themeFilter === null || directThemeMatch;
+    
+    // Debug each starter's theme matching in more detail
+    if (themeFilter !== null) {
+      console.log(`Starter ${starter.id} - themeName: "${starter.themeName}", themeId: ${starter.themeId} (${typeof starter.themeId}), numeric themeId: ${starterThemeIdNum}, filterThemeId: ${themeFilter}, matches: ${matchesTheme}`);
+    }
     
     return matchesSearch && matchesTheme;
   });
