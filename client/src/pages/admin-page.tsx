@@ -36,6 +36,7 @@ interface AdminUser {
 const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const queryClient = useQueryClient();
+  const [isAdminLoading, setIsAdminLoading] = useState(true);
   
   // Clean up resources when component unmounts to prevent WebSocket errors
   useEffect(() => {
@@ -48,10 +49,22 @@ const AdminPage: React.FC = () => {
   }, [queryClient]);
   
   // Check if the current user is an admin
-  const { data: currentUser, isLoading, isError } = useQuery({
+  const { data: currentUser, isLoading: isUserLoading, isError } = useQuery({
     queryKey: ['/api/user'],
     retry: false
   });
+  
+  // Simulate loading state for a short time to ensure loading UI is visible
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAdminLoading(false);
+    }, 1000); // Show loading state for at least 1 second
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Combined loading state
+  const isLoading = isUserLoading || isAdminLoading;
   
   // If the user is not an admin or superadmin, show access denied
   if (!isLoading && !isError && currentUser && 
