@@ -163,33 +163,6 @@ export default function ProfilePage() {
               <CardContent>
                 {user.partnerId ? (
                   <div className="bg-sage-light/30 p-4 rounded-md border border-sage-light">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-sage-light text-sage-dark px-3 py-1 text-xs rounded-full font-medium">
-                          Connected
-                        </div>
-                      </div>
-                      
-                      {partner && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">Connected with:</span>
-                          <Avatar 
-                            className="h-8 w-8 border-2 border-white shadow-sm"
-                            title={partner.name}
-                          >
-                            <AvatarImage 
-                              src={partner.profilePictureSizes?.small || partner.profilePicture || undefined} 
-                              alt={partner.name} 
-                            />
-                            <AvatarFallback className="text-xs bg-sage-light text-sage-dark">
-                              {partner.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm">{partner.name}</span>
-                        </div>
-                      )}
-                    </div>
-                    
                     {isPartnerLoading ? (
                       <div className="flex justify-center items-center py-4">
                         <Loader2 className="h-8 w-8 animate-spin text-sage" />
