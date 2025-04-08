@@ -211,14 +211,38 @@ const StarterManagement: React.FC = () => {
     deleteStarterMutation.mutate(deleteStarter.id);
   };
   
-  const getThemeColor = (themeId: number) => {
-    const theme = themes.find(t => t.id === themeId);
+  const getThemeColor = (themeId: number | string) => {
+    // Handle the case where themeId comes as a string and needs to be converted
+    const themeIdNum = typeof themeId === 'string' ? parseInt(themeId) : themeId;
+    
+    // First check if we have a direct match on ID
+    let theme = themes.find(t => t.id === themeIdNum);
+    
+    // If no match found, try to find by theme name (some starters might have theme as a string name)
+    if (!theme && typeof themeId === 'string') {
+      theme = themes.find(t => t.name.toLowerCase() === themeId.toLowerCase());
+    }
+    
     return theme?.color || '#CBD5E0';
   };
   
-  const getThemeBadge = (themeId: number) => {
-    const theme = themes.find(t => t.id === themeId);
-    if (!theme) return <Badge variant="outline">Unknown</Badge>;
+  const getThemeBadge = (themeId: number | string) => {
+    // Handle the case where themeId comes as a string and needs to be converted
+    const themeIdNum = typeof themeId === 'string' ? parseInt(themeId) : themeId;
+    
+    // First check if we have a direct match on ID
+    let theme = themes.find(t => t.id === themeIdNum);
+    
+    // If no match found, try to find by theme name (some starters might have theme as a string name)
+    if (!theme && typeof themeId === 'string') {
+      theme = themes.find(t => t.name.toLowerCase() === themeId.toLowerCase());
+    }
+    
+    // If still no match, check if themeName is available on the starter
+    if (!theme) {
+      // This is a fallback that uses the Unknown badge
+      return <Badge variant="outline">Unknown</Badge>;
+    }
     
     return (
       <Badge
@@ -510,7 +534,20 @@ const StarterManagement: React.FC = () => {
                 <div className="flex items-center mt-2">
                   <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {themes.find(t => t.id === deleteStarter.themeId)?.name || 'Unknown theme'}
+                    {(() => {
+                      // Use the same theme finding logic as getThemeBadge
+                      const themeIdNum = typeof deleteStarter.themeId === 'string' 
+                        ? parseInt(deleteStarter.themeId) 
+                        : deleteStarter.themeId;
+                        
+                      let theme = themes.find(t => t.id === themeIdNum);
+                      
+                      if (!theme && typeof deleteStarter.themeId === 'string') {
+                        theme = themes.find(t => t.name.toLowerCase() === deleteStarter.themeId.toLowerCase());
+                      }
+                      
+                      return theme?.name || 'Unknown theme';
+                    })()}
                   </span>
                 </div>
               </div>
