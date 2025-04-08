@@ -1,5 +1,89 @@
 import * as React from "react";
 
+// Create a global cache for image URLs across component instances
+type ImageCache = {
+  [key: string]: {
+    url: string;
+    timestamp: number;
+    loaded: boolean;
+  }
+};
+
+// Global cache that persists between renders
+const globalImageCache: ImageCache = {};
+
+// Cache management helper
+const AvatarCacheManager = {
+  // Maximum cache size (number of entries)
+  MAX_CACHE_SIZE: 50,
+  
+  // Maximum age for a cache entry (30 minutes in ms)
+  MAX_CACHE_AGE: 30 * 60 * 1000,
+  
+  // Get a cached URL or create a new one
+  getCachedUrl(path: string): string {
+    // Check if we already have this in cache
+    if (globalImageCache[path] && globalImageCache[path].loaded) {
+      return globalImageCache[path].url;
+    }
+    
+    // Clean up cache if needed
+    this.cleanCache();
+    
+    // Create a new cache entry
+    const timestamp = Date.now();
+    const url = `${path}?t=${timestamp}`;
+    
+    globalImageCache[path] = {
+      url,
+      timestamp,
+      loaded: false
+    };
+    
+    return url;
+  },
+  
+  // Mark an image as loaded in the cache
+  setLoaded(path: string, loaded: boolean = true): void {
+    if (globalImageCache[path]) {
+      globalImageCache[path].loaded = loaded;
+    }
+  },
+  
+  // Check if an image is already loaded in cache
+  isLoaded(path: string): boolean {
+    return !!globalImageCache[path]?.loaded;
+  },
+  
+  // Clean up old or excess cache entries
+  cleanCache(): void {
+    const now = Date.now();
+    const entries = Object.entries(globalImageCache);
+    
+    // If cache is under the limit, only remove old entries
+    if (entries.length <= this.MAX_CACHE_SIZE) {
+      // Remove entries older than MAX_CACHE_AGE
+      entries.forEach(([key, entry]) => {
+        if (now - entry.timestamp > this.MAX_CACHE_AGE) {
+          delete globalImageCache[key];
+        }
+      });
+      return;
+    }
+    
+    // If cache is over the limit, sort by age and keep only the newest MAX_CACHE_SIZE entries
+    const sortedEntries = entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+    const entriesToKeep = sortedEntries.slice(0, this.MAX_CACHE_SIZE);
+    
+    // Clear the cache and add back only the entries to keep
+    Object.keys(globalImageCache).forEach(key => delete globalImageCache[key]);
+    
+    entriesToKeep.forEach(([key, entry]) => {
+      globalImageCache[key] = entry;
+    });
+  }
+};
+
 interface DirectAvatarProps {
   // Direct src and size props
   src?: string;
@@ -88,32 +172,50 @@ export function DirectAvatar({
     return '';
   }, [src, user, size]);
   
-  // Add cache-busting parameter to prevent stale cache
-  const imageUrl = React.useMemo(() => {
-    if (!getOptimalImageSrc) return '';
-    return `${getOptimalImageSrc}?t=${Date.now()}`;
-  }, [getOptimalImageSrc]);
+  // Create a cache key from the optimal image source
+  const cacheKey = getOptimalImageSrc || '';
   
-  // Preload image
+  // Get cached URL or create new one with cache management
+  const imageUrl = React.useMemo(() => {
+    if (!cacheKey) return '';
+    return AvatarCacheManager.getCachedUrl(cacheKey);
+  }, [cacheKey]);
+  
+  // Set initial state based on cache
+  React.useEffect(() => {
+    if (cacheKey) {
+      // Set initial loaded state based on cache
+      setImageLoaded(AvatarCacheManager.isLoaded(cacheKey));
+    }
+  }, [cacheKey]);
+  
+  // Preload image (only if not already loaded in cache)
   React.useEffect(() => {
     // Skip if no URL
-    if (!imageUrl) {
+    if (!imageUrl || !cacheKey) {
       setImageError(true);
       return;
     }
     
-    // Reset state when src changes
+    // If image is already loaded in cache, skip loading
+    if (AvatarCacheManager.isLoaded(cacheKey)) {
+      setImageLoaded(true);
+      setImageError(false);
+      return;
+    }
+    
+    // Reset state when src changes to a non-cached image
     setImageError(false);
     setImageLoaded(false);
     
     // Verify image actually loads
     const img = new Image();
     img.onload = () => {
-      console.log(`DirectAvatar preload success: ${imageUrl}`);
+      // Update global cache
+      AvatarCacheManager.setLoaded(cacheKey, true);
       setImageLoaded(true);
     };
     img.onerror = () => {
-      console.error(`DirectAvatar preload error: ${imageUrl}`);
       setImageError(true);
     };
     img.src = imageUrl;
@@ -123,7 +225,12 @@ export function DirectAvatar({
       img.onload = null;
       img.onerror = null;
     };
-  }, [imageUrl]);
+  }, [imageUrl, cacheKey]);
+  
+  // Use a stable key for the component
+  const imageKey = React.useMemo(() => {
+    return `avatar-${cacheKey}`;
+  }, [cacheKey]);
   
   return (
     <div 
@@ -143,7 +250,7 @@ export function DirectAvatar({
     >
       {!imageError && (
         <img
-          key={`avatar-${Date.now()}`} // Key forces re-render
+          key={imageKey} // Use stable key based on the source path
           src={imageUrl}
           alt={alt}
           width={size}
@@ -158,11 +265,25 @@ export function DirectAvatar({
             transition: 'opacity 0.3s ease'
           }}
           onLoad={() => {
-            console.log(`DirectAvatar loaded in DOM: ${imageUrl}`);
+            // Only log on initial load, not on every render
+            if (!AvatarCacheManager.isLoaded(cacheKey)) {
+              // Reduce console noise in production
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`DirectAvatar loaded in DOM: ${imageUrl}`);
+              }
+            }
+            
+            // Update component state
             setImageLoaded(true);
+            
+            // Update global cache
+            AvatarCacheManager.setLoaded(cacheKey, true);
           }}
           onError={(e) => {
-            console.error(`DirectAvatar error loading in DOM: ${imageUrl}`, e);
+            // Only log errors in development
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`DirectAvatar error loading: ${imageUrl}`);
+            }
             setImageError(true);
           }}
         />
