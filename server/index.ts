@@ -38,12 +38,30 @@ app.use("/uploads", (req, res, next) => {
   // Check if request contains a t parameter (timestamp) for cache busting
   const hasTimestamp = req.query.t !== undefined;
   
+  // Check if this is a profile picture
+  const isProfilePicture = req.path.startsWith('/profile_pictures/');
+  
+  // Check if this is an optimized image (contains -small, -medium, -large in name)
+  const isOptimizedImage = 
+    req.path.includes('-small.') || 
+    req.path.includes('-medium.') ||
+    req.path.includes('-large.');
+  
   if (hasTimestamp) {
     // If a timestamp is provided, use long-term caching
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year in seconds
     res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString()); // 1 year in ms
+  } else if (isProfilePicture && isOptimizedImage) {
+    // For optimized profile pictures, use aggressive caching even without timestamp
+    // These images are immutable once created (new versions get new filenames)
+    res.setHeader('Cache-Control', 'public, max-age=28800, immutable'); // 8 hours
+    res.setHeader('Expires', new Date(Date.now() + 28800000).toUTCString()); // 8 hours in ms
+  } else if (isProfilePicture) {
+    // For non-optimized profile pictures, use shorter caching
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
+    res.setHeader('Expires', new Date(Date.now() + 3600000).toUTCString()); // 1 hour in ms
   } else {
-    // For requests without timestamps, don't cache
+    // For other files without timestamps, use standard caching rules
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');

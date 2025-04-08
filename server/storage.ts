@@ -250,8 +250,18 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // NOTE: We don't need to format the profile picture here anymore
-    // It's already done by formatUserProfilePicture which should be called before this
+    // Use optimized profile pictures by default if available
+    if (safeUserData.profilePictureSizes) {
+      // Set the default profilePicture to the medium size for best general use
+      if (safeUserData.profilePictureSizes.medium) {
+        safeUserData.profilePicture = safeUserData.profilePictureSizes.medium;
+        console.log(`[sanitizeUser] Using optimized medium image as default profilePicture: ${safeUserData.profilePicture}`);
+      } else if (safeUserData.profilePictureSizes.small) {
+        // Fall back to small if medium isn't available
+        safeUserData.profilePicture = safeUserData.profilePictureSizes.small;
+        console.log(`[sanitizeUser] Using optimized small image as default profilePicture: ${safeUserData.profilePicture}`);
+      }
+    }
     
     return safeUserData;
   }
