@@ -4,22 +4,51 @@ async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorDetail = {};
     let responseText = '';
+    let isHtmlResponse = false;
     
     try {
       // Try to parse as JSON first
       const contentType = res.headers.get('content-type');
+      console.log(`Response content-type for ${res.url}:`, contentType);
+      
       if (contentType && contentType.includes('application/json')) {
         const errorJson = await res.clone().json();
         errorDetail = errorJson;
         responseText = JSON.stringify(errorJson);
       } else {
         responseText = await res.text();
+        
+        // Detect if this is an HTML response that might indicate a server error
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+          isHtmlResponse = true;
+          console.error('Received HTML response instead of JSON', {
+            status: res.status,
+            url: res.url,
+            contentType,
+            responsePreview: responseText.substring(0, 100) + '...'
+          });
+          // Provide a clearer error message for HTML responses
+          responseText = 'Server error: Received HTML response instead of JSON. This usually indicates a server-side error.';
+        }
       }
     } catch (parseError) {
+      console.error('Error parsing response:', parseError);
       // If JSON parsing fails, fall back to text
       try {
         responseText = await res.text();
+        
+        // Check again for HTML
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+          isHtmlResponse = true;
+          console.error('Received HTML response after parse error', {
+            status: res.status,
+            url: res.url,
+            responsePreview: responseText.substring(0, 100) + '...'
+          });
+          responseText = 'Server error: Received HTML response instead of JSON. This usually indicates a server-side error.';
+        }
       } catch (textError) {
+        console.error('Error getting response text:', textError);
         responseText = res.statusText;
       }
     }
@@ -29,7 +58,7 @@ async function throwIfResNotOk(res: Response) {
       console.error('Authentication error:', {
         status: res.status,
         url: res.url,
-        responseText,
+        responseText: isHtmlResponse ? 'HTML content (truncated)' : responseText,
         cookies: document.cookie ? 'Present' : 'None',
       });
       
@@ -38,16 +67,23 @@ async function throwIfResNotOk(res: Response) {
           status: res.status, 
           url: res.url,
           detail: errorDetail,
-          type: 'auth_error'
+          type: 'auth_error',
+          isHtmlResponse
         }
       });
     }
+    
+    console.error(`API Error (${res.status}):`, {
+      url: res.url,
+      responseText: isHtmlResponse ? 'HTML content (truncated)' : responseText
+    });
     
     throw new Error(`${res.status}: ${responseText}`, {
       cause: { 
         status: res.status, 
         url: res.url,
-        detail: errorDetail
+        detail: errorDetail,
+        isHtmlResponse
       }
     });
   }
@@ -118,10 +154,13 @@ export const getQueryFn: <T>(options: {
 
     // Enhanced debugging for auth issues
     if (res.status === 401) {
+      // Safe cookie checking
+      const cookiesPresent = typeof document !== 'undefined' && document.cookie ? 'Present' : 'None';
+      const sessionMatch = cookiesPresent === 'Present' ? document.cookie.match(/connect\.sid=([^;]+)/) : null;
       console.warn(`[Auth Debug] Authentication failure for ${queryKey[0]}`, {
         status: res.status,
-        cookies: document.cookie ? 'Present' : 'None',
-        sessionID: document.cookie.match(/connect\.sid=([^;]+)/)?.length > 1 ? 'Found' : 'Not found'
+        cookies: cookiesPresent,
+        sessionID: sessionMatch && sessionMatch.length > 1 ? 'Found' : 'Not found'
       });
       
       if (on401 !== "throw") {
