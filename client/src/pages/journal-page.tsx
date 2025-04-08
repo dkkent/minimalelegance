@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -44,7 +44,8 @@ type JournalEntry = {
   spokenLoveslice?: any;
 };
 
-const ALL_THEMES: Theme[] = ["All", "Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
+// We'll fetch themes from the API, but include "All" option locally
+const DEFAULT_THEMES: Theme[] = ["All", "Trust", "Intimacy", "Conflict", "Dreams", "Play", "Money"];
 
 export default function JournalPage() {
   const [_, navigate] = useLocation();
@@ -53,6 +54,31 @@ export default function JournalPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<Theme>("All");
   const [activeTab, setActiveTab] = useState("all");
+  const [availableThemes, setAvailableThemes] = useState<Theme[]>(["All"]);
+  
+  // Fetch themes from the API
+  const { data: themesData } = useQuery({
+    queryKey: ['/api/themes'],
+    queryFn: async () => {
+      const response = await fetch('/api/themes');
+      if (!response.ok) {
+        throw new Error('Failed to fetch themes');
+      }
+      return response.json();
+    }
+  });
+  
+  // Update available themes when API data is loaded
+  useEffect(() => {
+    if (themesData?.themes && themesData.themes.length > 0) {
+      // Extract theme names and add "All" option
+      const themeNames = ["All", ...themesData.themes.map((t: any) => t.name)];
+      setAvailableThemes(themeNames);
+    } else {
+      // Fallback to default themes if API fails
+      setAvailableThemes(DEFAULT_THEMES);
+    }
+  }, [themesData]);
 
   // Fetch journal entries
   const { data: journalEntries, isLoading } = useQuery({
@@ -226,7 +252,7 @@ export default function JournalPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuRadioGroup value={selectedTheme} onValueChange={(value: string) => setSelectedTheme(value as Theme)}>
-                  {ALL_THEMES.map(theme => (
+                  {availableThemes.map((theme: string) => (
                     <DropdownMenuRadioItem key={theme} value={theme}>
                       {theme}
                     </DropdownMenuRadioItem>
