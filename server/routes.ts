@@ -538,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const fileUploadReq = req as unknown as { files?: { [fieldname: string]: any } };
+      const fileUploadReq = req as unknown as RequestWithFiles;
       
       if (!fileUploadReq.files || !fileUploadReq.files.profilePicture) {
         return res.status(400).json({ message: "No profile picture uploaded" });
@@ -553,11 +553,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only image files are allowed" });
       }
       
-      // Save the file and get the relative path
-      const filePath = await saveProfilePicture(file);
+      // Process the image and get paths to all sizes
+      const pictureResult = await saveProfilePicture(file);
       
-      // Update the user's profile picture path in the database
-      const updatedUser = await storage.updateUser(req.user!.id, { profilePicture: filePath });
+      // Update the user's profile picture in the database
+      // Use the original for backward compatibility in the profilePicture field
+      // Store all sizes in the profilePictureSizes field
+      const updatedUser = await storage.updateUser(req.user!.id, { 
+        profilePicture: pictureResult.mainPath,
+        profilePictureSizes: {
+          small: pictureResult.sizes.small,
+          medium: pictureResult.sizes.medium,
+          large: pictureResult.sizes.large
+        }
+      });
       
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update profile picture" });

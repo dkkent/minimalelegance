@@ -160,10 +160,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <DropdownMenuTrigger asChild>
                           <div className="w-[72px] h-10 relative cursor-pointer" aria-label="User profile menu">
                             {/* Partner avatar behind - only show if partner exists */}
-                            {activePartner && activePartner.profilePicture && (
+                            {activePartner && (
                               <div className="absolute left-0 z-0">
                                 <DirectAvatar
-                                  src={activePartner.profilePicture}
+                                  user={activePartner}
                                   alt={activePartner.name || "Partner"}
                                   size={40}
                                   borderColor="white"
@@ -173,17 +173,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             )}
 
                             {/* User avatar - position depends on whether partner exists */}
-                            {user?.profilePicture && (
-                              <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
-                                <DirectAvatar
-                                  src={user.profilePicture}
-                                  alt={user.name || "User"}
-                                  size={40}
-                                  borderColor="white"
-                                  fallbackText={user?.name?.[0] || "U"}
-                                />
-                              </div>
-                            )}
+                            <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
+                              <DirectAvatar
+                                user={user}
+                                alt={user.name || "User"}
+                                size={40}
+                                borderColor="white"
+                                fallbackText={user?.name?.[0] || "U"}
+                              />
+                            </div>
                           </div>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -220,25 +218,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <div className="cursor-pointer">
-                          {user?.profilePicture ? (
-                            <DirectAvatar
-                              src={user.profilePicture}
-                              alt={user.name || "User"}
-                              size={40}
-                              borderColor="var(--sage)"
-                              fallbackText={user?.name?.[0] || "U"}
-                            />
-                          ) : (
-                            <div 
-                              className="h-10 w-10 rounded-full border-2 border-sage flex items-center justify-center bg-sage-light text-sage-dark"
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              {user?.name?.[0] || "U"}
-                            </div>
-                          )}
+                          <DirectAvatar
+                            user={user}
+                            alt={user.name || "User"}
+                            size={40}
+                            borderColor="var(--sage)"
+                            fallbackText={user?.name?.[0] || "U"}
+                          />
                         </div>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -283,10 +269,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                       <div className="w-[72px] h-10 relative">
                         {/* Partner avatar behind - only show if partner exists */}
-                        {activePartner && activePartner.profilePicture && (
+                        {activePartner && (
                           <div className="absolute left-0 z-0">
                             <DirectAvatar
-                              src={activePartner.profilePicture}
+                              user={activePartner}
                               alt={activePartner.name || "Partner"}
                               size={40}
                               borderColor="white"
@@ -296,17 +282,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         )}
 
                         {/* User avatar - position depends on whether partner exists */}
-                        {user?.profilePicture && (
-                          <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
-                            <DirectAvatar
-                              src={user.profilePicture}
-                              alt={user.name || "User"}
-                              size={40}
-                              borderColor="white"
-                              fallbackText={user?.name?.[0] || "U"}
-                            />
-                          </div>
-                        )}
+                        <div className={`absolute ${activePartner ? 'left-6' : 'left-0'} z-10`}>
+                          <DirectAvatar
+                            user={user}
+                            alt={user.name || "User"}
+                            size={40}
+                            borderColor="white"
+                            fallbackText={user?.name?.[0] || "U"}
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : null}
