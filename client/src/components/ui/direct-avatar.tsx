@@ -17,13 +17,13 @@ const AvatarCacheManager = {
   // Maximum cache size (number of entries)
   MAX_CACHE_SIZE: 50,
   
-  // Maximum age for a cache entry (30 minutes in ms)
-  MAX_CACHE_AGE: 30 * 60 * 1000,
+  // Maximum age for a cache entry (8 hours in ms for better persistence)
+  MAX_CACHE_AGE: 8 * 60 * 60 * 1000,
   
   // Get a cached URL or create a new one
   getCachedUrl(path: string): string {
-    // Check if we already have this in cache
-    if (globalImageCache[path] && globalImageCache[path].loaded) {
+    // Check if we already have this in cache (even if not loaded)
+    if (globalImageCache[path]) {
       return globalImageCache[path].url;
     }
     
@@ -32,6 +32,7 @@ const AvatarCacheManager = {
     
     // Create a new cache entry
     const timestamp = Date.now();
+    // Create stable URL with fixed timestamp to improve caching
     const url = `${path}?t=${timestamp}`;
     
     globalImageCache[path] = {
@@ -52,7 +53,39 @@ const AvatarCacheManager = {
   
   // Check if an image is already loaded in cache
   isLoaded(path: string): boolean {
+    if (!path) return false;
+    
+    // Session storage check (persists between page loads)
+    try {
+      const sessionData = sessionStorage.getItem(`avatar-loaded-${path}`);
+      if (sessionData === 'true') {
+        // If we have session data saying this was loaded before, update our cache
+        if (globalImageCache[path]) {
+          globalImageCache[path].loaded = true;
+        }
+        return true;
+      }
+    } catch (e) {
+      // Ignore any session storage errors
+    }
+    
+    // Fall back to memory cache
     return !!globalImageCache[path]?.loaded;
+  },
+  
+  // Persist loaded state to session storage
+  persistLoadedState(path: string, loaded: boolean): void {
+    if (!path) return;
+    
+    try {
+      if (loaded) {
+        sessionStorage.setItem(`avatar-loaded-${path}`, 'true');
+      } else {
+        sessionStorage.removeItem(`avatar-loaded-${path}`);
+      }
+    } catch (e) {
+      // Ignore any session storage errors
+    }
   },
   
   // Clean up old or excess cache entries
@@ -211,12 +244,15 @@ export function DirectAvatar({
     // Verify image actually loads
     const img = new Image();
     img.onload = () => {
-      // Update global cache
+      // Update global cache and persist to session storage
       AvatarCacheManager.setLoaded(cacheKey, true);
+      AvatarCacheManager.persistLoadedState(cacheKey, true);
       setImageLoaded(true);
     };
     img.onerror = () => {
       setImageError(true);
+      // Clear from session storage to avoid persisting error state
+      AvatarCacheManager.persistLoadedState(cacheKey, false);
     };
     img.src = imageUrl;
     
@@ -276,8 +312,9 @@ export function DirectAvatar({
             // Update component state
             setImageLoaded(true);
             
-            // Update global cache
+            // Update global cache and persist to session storage
             AvatarCacheManager.setLoaded(cacheKey, true);
+            AvatarCacheManager.persistLoadedState(cacheKey, true);
           }}
           onError={(e) => {
             // Only log errors in development
@@ -285,6 +322,8 @@ export function DirectAvatar({
               console.error(`DirectAvatar error loading: ${imageUrl}`);
             }
             setImageError(true);
+            // Clear from session storage to avoid persisting error state
+            AvatarCacheManager.persistLoadedState(cacheKey, false);
           }}
         />
       )}
