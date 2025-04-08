@@ -1429,8 +1429,27 @@ export class DatabaseStorage implements IStorage {
    * @returns Array of conversation starters with theme and creator info
    */
   async getAllConversationStarters(): Promise<{ starters: any[] }> {
-    // Getting data from conversation_starters table instead of questions
-    const starters = await db.select({
+    // Get all starters - both legacy and those linked to questions
+    
+    // First get any starters that are directly linked to questions (newer approach)
+    const linkedStarters = await db.select({
+      starter: conversationStarters,
+      question: questions,
+      creator: users,
+    })
+    .from(conversationStarters)
+    .leftJoin(
+      questions,
+      eq(conversationStarters.baseQuestionId, questions.id)
+    )
+    .leftJoin(
+      users,
+      eq(questions.createdById, users.id)
+    )
+    .orderBy(desc(conversationStarters.createdAt));
+    
+    // Then get starters that don't have a baseQuestionId (legacy approach)
+    const legacyStarters = await db.select({
       id: conversationStarters.id,
       content: conversationStarters.content,
       themeId: conversationStarters.theme,
@@ -1441,6 +1460,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: conversationStarters.createdAt
     })
     .from(conversationStarters)
+    .where(isNull(conversationStarters.baseQuestionId))
     .orderBy(desc(conversationStarters.createdAt));
     
     // Get related data (themes)
@@ -1449,8 +1469,33 @@ export class DatabaseStorage implements IStorage {
     // Create a theme map for easy lookup
     const themeMap = new Map(themeValues.themes.map(t => [t.id, t.name]));
     
-    // Enhance starters with related data
-    const enhancedStarters = starters.map(starter => {
+    // Combine and prepare all starters
+    const allStarters = [
+      // Format linked starters
+      ...linkedStarters.map(item => ({
+        id: item.starter.id,
+        content: item.starter.content || (item.question ? item.question.content : null),
+        themeId: item.starter.theme || (item.question ? item.question.theme : null),
+        baseQuestionId: item.starter.baseQuestionId,
+        lovesliceId: item.starter.lovesliceId,
+        markedAsMeaningful: item.starter.markedAsMeaningful,
+        used: item.starter.used,
+        createdAt: item.starter.createdAt,
+        createdById: item.question ? item.question.createdById : null,
+        createdByName: item.creator ? item.creator.name : null,
+        isGlobal: true // Default all to global for now
+      })),
+      // Format legacy starters
+      ...legacyStarters.map(starter => ({
+        ...starter,
+        createdById: null,
+        createdByName: null,
+        isGlobal: true // Default all to global for now
+      }))
+    ];
+    
+    // Process theme names
+    const enhancedStarters = allStarters.map(starter => {
       // Convert themeId to a number if it's a string that looks like a number
       const themeIdAsNumber = typeof starter.themeId === 'string' && !isNaN(parseInt(starter.themeId))
         ? parseInt(starter.themeId)
