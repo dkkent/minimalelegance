@@ -87,6 +87,7 @@ const StarterManagement: React.FC = () => {
     retry: 1
   });
   
+  const loading = loadingStarters || loadingThemes;
   const starters: ConversationStarter[] = startersData?.starters || [];
   const themes: Theme[] = themesData?.themes || [];
   

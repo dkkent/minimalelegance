@@ -74,8 +74,10 @@ const AdminPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto py-10 px-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mb-4"></div>
+          <p className="text-lg font-medium text-muted-foreground mt-4">Loading Admin Panel...</p>
+          <p className="text-sm text-muted-foreground mt-2">This might take a moment</p>
         </div>
       </div>
     );
