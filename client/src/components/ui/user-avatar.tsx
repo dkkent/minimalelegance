@@ -6,6 +6,11 @@ type UserAvatarProps = {
   user?: {
     name?: string;
     profilePicture?: string | null;
+    profilePictureSizes?: {
+      small?: string;
+      medium?: string;
+      large?: string;
+    } | null;
     id?: number;
     email?: string;
   } | null;
@@ -86,7 +91,8 @@ export function UserAvatar({
       return {
         ...user,
         name: user?.name || currentUser.name,
-        profilePicture: user?.profilePicture || currentUser.profilePicture
+        profilePicture: user?.profilePicture || currentUser.profilePicture,
+        profilePictureSizes: user?.profilePictureSizes || currentUser.profilePictureSizes
       };
     }
     return user;
@@ -116,27 +122,76 @@ export function UserAvatar({
     }
   }, [userWithPicture, currentUser]);
   
+  // Get the appropriate size image based on the avatar display size
+  const getOptimalSizeImage = (user: typeof userWithPicture): string => {
+    // If user doesn't exist or doesn't have profile info, return empty string
+    if (!user) return '';
+    
+    // Map our size props to the appropriate image size
+    const sizeToImageSize: Record<string, 'small' | 'medium' | 'large' | 'original'> = {
+      'xs': 'small',
+      'sm': 'small',
+      'md': 'medium',
+      'lg': 'large'
+    };
+    const optimalSize = sizeToImageSize[size] || 'medium';
+    console.log(`UserAvatar - Optimal size for ${size} is ${optimalSize}`);
+    
+    // Check if we have optimized sizes available
+    if (user.profilePictureSizes) {
+      // Handle the original size separately since it's not in the profilePictureSizes object
+      if (optimalSize === 'original' && user.profilePicture) {
+        const path = formatProfilePicturePath(user.profilePicture);
+        console.log(`UserAvatar - Using original image: ${path}`);
+        return path;
+      }
+      
+      // Check for small, medium, large sizes
+      if ((optimalSize === 'small' || optimalSize === 'medium' || optimalSize === 'large') &&
+          user.profilePictureSizes[optimalSize] && 
+          typeof user.profilePictureSizes[optimalSize] === 'string') {
+        // Use the optimized size
+        const path = formatProfilePicturePath(user.profilePictureSizes[optimalSize] as string);
+        console.log(`UserAvatar - Using optimized ${optimalSize} image: ${path}`);
+        return path;
+      }
+    }
+    
+    // Fallback to the original profile picture if no optimized size available
+    if (user.profilePicture) {
+      const path = formatProfilePicturePath(user.profilePicture);
+      console.log(`UserAvatar - Using original image (no optimized sizes): ${path}`);
+      return path;
+    }
+    
+    return '';
+  };
+  
   // Determine the image source with advanced fallback for journal page issues
   const imgSrc = React.useMemo(() => {
-    // First check if the user object has a profile picture
-    if (userWithPicture?.profilePicture) {
-      const path = formatProfilePicturePath(userWithPicture.profilePicture);
-      // Add a cache-busting timestamp to force browser to reload the image
-      return `${path}?t=${new Date().getTime()}`;
+    // First check if the user object has a profile picture or sizes
+    if (userWithPicture) {
+      const path = getOptimalSizeImage(userWithPicture);
+      if (path) {
+        // Add a cache-busting timestamp to force browser to reload the image
+        return `${path}?t=${new Date().getTime()}`;
+      }
     }
     
     // Special case for journal page - if name matches current user
     if (userWithPicture?.name && currentUser?.name) {
       // Check if the user is "Dickon" which matches current user's first name
-      if (userWithPicture.name === "Dickon" && currentUser.name.startsWith("Dickon") && currentUser.profilePicture) {
-        const path = formatProfilePicturePath(currentUser.profilePicture);
-        // Add a cache-busting timestamp
-        return `${path}?t=${new Date().getTime()}`;
+      if (userWithPicture.name === "Dickon" && currentUser.name.startsWith("Dickon")) {
+        const path = getOptimalSizeImage(currentUser);
+        if (path) {
+          // Add a cache-busting timestamp
+          return `${path}?t=${new Date().getTime()}`;
+        }
       }
     }
     
     return '';
-  }, [userWithPicture, currentUser]);
+  }, [userWithPicture, currentUser, size]);
   
   // Check image existence with fetch for debugging
   React.useEffect(() => {

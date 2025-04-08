@@ -18,6 +18,11 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   firebaseUid: text("firebase_uid").unique(),
   profilePicture: text("profile_picture"),
+  profilePictureSizes: json("profile_picture_sizes").$type<{
+    small?: string,
+    medium?: string,
+    large?: string
+  }>(),
   role: userRoleEnum("role").default("user").notNull(),
   lastAdminLogin: timestamp("last_admin_login"),
 });
