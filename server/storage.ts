@@ -1496,16 +1496,30 @@ export class DatabaseStorage implements IStorage {
     
     // Process theme names
     const enhancedStarters = allStarters.map(starter => {
-      // Convert themeId to a number if it's a string that looks like a number
-      const themeIdAsNumber = typeof starter.themeId === 'string' && !isNaN(parseInt(starter.themeId))
-        ? parseInt(starter.themeId)
-        : null;
+      // There are two cases for themeId:
+      // 1. It's a numeric ID that references a theme in our themeMap
+      // 2. It's a string that directly contains the theme name, like "Trust" or "Intimacy"
+      
+      // If themeId is a string that can be parsed as a number, try to get theme name from map
+      let themeName = 'Unknown';
+      
+      if (typeof starter.themeId === 'number') {
+        // Case 1: Direct numeric ID reference
+        themeName = themeMap.has(starter.themeId) ? themeMap.get(starter.themeId) || 'Unknown' : 'Unknown';
+      } else if (typeof starter.themeId === 'string') {
+        if (!isNaN(parseInt(starter.themeId))) {
+          // Case 1a: String that contains a number
+          const themeIdAsNumber = parseInt(starter.themeId);
+          themeName = themeMap.has(themeIdAsNumber) ? themeMap.get(themeIdAsNumber) || starter.themeId : starter.themeId;
+        } else {
+          // Case 2: String that directly contains the theme name
+          themeName = starter.themeId;
+        }
+      }
       
       return {
         ...starter,
-        themeName: themeIdAsNumber && themeMap.has(themeIdAsNumber) 
-          ? themeMap.get(themeIdAsNumber) 
-          : starter.themeId || 'Unknown'
+        themeName: themeName
       };
     });
     
@@ -1540,9 +1554,24 @@ export class DatabaseStorage implements IStorage {
       'Future Plans': '#667eea'
     };
     
-    // Map themes to theme objects
-    const themes = themeResults.map((result, index) => ({
-      id: index + 1,
+    // Define a persistent mapping for theme names to IDs
+    // This ensures consistent IDs regardless of query order
+    const themeIdMap: Record<string, number> = {
+      'Trust': 1,
+      'Intimacy': 2,
+      'Conflict': 3,
+      'Dreams': 4,
+      'Play': 5,
+      'Money': 6,
+      'Growth': 7,
+      'Communication': 8,
+      'Conflict Resolution': 9,
+      'Future Plans': 10
+    };
+    
+    // Map themes to theme objects with consistent IDs
+    const themes = themeResults.map(result => ({
+      id: themeIdMap[result.theme] || (Object.keys(themeIdMap).length + 1), // Use predefined ID or generate a new one
       name: result.theme,
       color: themeColorMap[result.theme] || '#718096' // Default color if not in map
     }));
@@ -1591,7 +1620,7 @@ export class DatabaseStorage implements IStorage {
     
     // Consider a user active if they have recent response, journal or login activity
     // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
-    const result = await db.execute(sql`
+    const result = await db.execute<{ active_users: string }>(sql`
       SELECT COUNT(DISTINCT user_id) as active_users
       FROM responses
       WHERE created_at > ${formattedDate}
@@ -1613,7 +1642,7 @@ export class DatabaseStorage implements IStorage {
     const formattedDate = cutoffDate.toISOString();
     
     // Use raw SQL with a parameterized query to avoid potential Drizzle ORM issues
-    const result = await db.execute(sql`
+    const result = await db.execute<{ entry_count: string }>(sql`
       SELECT COUNT(*) as entry_count
       FROM journal_entries
       WHERE created_at > ${formattedDate}
