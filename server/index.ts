@@ -7,6 +7,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurityMiddleware } from "./middleware/security";
 import { setupFileUpload, ensureUploadDirs } from "./middleware/upload";
+import { setupCacheControlMiddleware } from "./middleware/cache-control";
 import path from "path";
 
 const app = express();
@@ -26,6 +27,9 @@ app.use((req, res, next) => {
 
 // Set up security middleware (rate limiting, helmet, etc.)
 setupSecurityMiddleware(app);
+
+// Set up cache control middleware
+setupCacheControlMiddleware(app);
 
 // Set up file upload middleware
 setupFileUpload(app);
