@@ -538,9 +538,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
+      console.log('Profile picture upload request received');
+      
       const fileUploadReq = req as unknown as RequestWithFiles;
       
+      // Log what was received in the request
+      console.log('Files in request:', fileUploadReq.files ? Object.keys(fileUploadReq.files) : 'No files');
+      
       if (!fileUploadReq.files || !fileUploadReq.files.profilePicture) {
+        console.error('No profile picture found in request');
         return res.status(400).json({ message: "No profile picture uploaded" });
       }
       
@@ -548,40 +554,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle if multiple files were uploaded
       const file = Array.isArray(fileData) ? fileData[0] : fileData;
       
+      console.log('Profile picture info:', {
+        name: file.name,
+        size: file.size,
+        mimetype: file.mimetype,
+        hasTempFile: !!file.tempFilePath,
+        hasData: !!file.data
+      });
+      
       // Validate file type (only allow images)
       if (!file.mimetype.startsWith('image/')) {
+        console.error('Invalid file type:', file.mimetype);
         return res.status(400).json({ message: "Only image files are allowed" });
       }
       
-      // Process the image and get paths to all sizes
-      const pictureResult = await saveProfilePicture(file);
+      // Validate file size
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        console.error('File too large:', file.size);
+        return res.status(400).json({ message: "File size exceeds 5MB limit" });
+      }
       
-      // Update the user's profile picture in the database
-      // Use the original for backward compatibility in the profilePicture field
-      // Store all sizes in the profilePictureSizes field
-      const updatedUser = await storage.updateUser(req.user!.id, { 
-        profilePicture: pictureResult.mainPath,
-        profilePictureSizes: {
+      console.log('Processing image with saveProfilePicture');
+      
+      try {
+        // Process the image and get paths to all sizes
+        const pictureResult = await saveProfilePicture(file);
+        
+        console.log('Image processed successfully, result:', {
+          mainPath: pictureResult.mainPath,
+          hasSizes: !!pictureResult.sizes,
+          availableSizes: pictureResult.sizes ? Object.keys(pictureResult.sizes) : []
+        });
+        
+        // Update the user's profile picture in the database
+        // Use the original for backward compatibility in the profilePicture field
+        // Store all sizes in the profilePictureSizes field
+        console.log('Updating user with ID:', req.user!.id);
+        
+        const profilePictureSizes = {
           small: pictureResult.sizes.small,
           medium: pictureResult.sizes.medium,
           large: pictureResult.sizes.large
+        };
+        
+        console.log('Profile picture sizes to save:', profilePictureSizes);
+        
+        const updatedUser = await storage.updateUser(req.user!.id, { 
+          profilePicture: pictureResult.mainPath,
+          profilePictureSizes
+        });
+        
+        if (!updatedUser) {
+          console.error('Failed to update user after profile picture upload');
+          return res.status(500).json({ message: "Failed to update profile picture" });
         }
-      });
-      
-      if (!updatedUser) {
-        return res.status(500).json({ message: "Failed to update profile picture" });
+        
+        console.log('User updated successfully');
+
+        // Return the updated user without sensitive information
+        const { password, resetToken, resetTokenExpiry, ...safeUserData } = updatedUser;
+        
+        return res.status(200).json({ 
+          message: "Profile picture updated successfully", 
+          user: safeUserData
+        });
+      } catch (processingError) {
+        console.error('Error during image processing:', processingError);
+        if (processingError instanceof Error) {
+          console.error('Error details:', processingError.message);
+          console.error('Stack trace:', processingError.stack);
+        }
+        throw processingError; // Rethrow to be caught by outer catch
       }
-      
-      // Return the updated user without sensitive information
-      const { password, resetToken, resetTokenExpiry, ...safeUserData } = updatedUser;
-      
-      return res.status(200).json({ 
-        message: "Profile picture updated successfully", 
-        user: safeUserData
-      });
     } catch (error) {
       console.error("Profile picture upload error:", error);
-      return res.status(500).json({ message: "An error occurred while uploading your profile picture" });
+      
+      // Enhanced error logging
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+      }
+      
+      return res.status(500).json({ 
+        message: "An error occurred while uploading your profile picture",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
   

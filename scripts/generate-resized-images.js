@@ -2,13 +2,14 @@
  * One-time script to generate optimized image sizes for existing profile pictures
  * Run with: node scripts/generate-resized-images.js
  */
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const sharp = require('sharp');
-const { db } = require('../server/db');
-const { users } = require('../shared/schema');
-const { eq } = require('drizzle-orm');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sharp from 'sharp';
+import { db } from '../server/db.js';
+import { users } from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 // Image sizing configurations
 const SIZES = {
@@ -131,6 +132,9 @@ async function main() {
     process.exit(0);
   }
 }
+
+// Get the directory name of the current module
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Run the main function
 main();
