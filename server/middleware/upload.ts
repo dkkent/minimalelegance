@@ -50,26 +50,40 @@ export interface ProfilePictureResult {
 
 export const saveProfilePicture = async (file: UploadedFile): Promise<ProfilePictureResult> => {
   try {
+    console.log('Starting profile picture processing');
+    
     // Read the file into memory
     let fileBuffer: Buffer;
     
     // If the file is already in memory
     if (file.data && Buffer.isBuffer(file.data)) {
+      console.log('Using file.data buffer, size:', file.data.length);
       fileBuffer = file.data;
     } 
     // If file is stored in a temp file
     else if (file.tempFilePath) {
+      console.log('Reading from tempFilePath:', file.tempFilePath);
       fileBuffer = fs.readFileSync(file.tempFilePath);
+      console.log('Read buffer size:', fileBuffer.length);
     } 
     // Fallback - shouldn't happen with express-fileupload
     else {
+      console.error('No file data or tempFilePath available');
       throw new Error('No file data available');
     }
     
     // Define the upload directory
     const uploadDir = path.join(process.cwd(), 'uploads', 'profile_pictures');
+    console.log('Upload directory:', uploadDir);
+    
+    // Ensure the directory exists
+    if (!fs.existsSync(uploadDir)) {
+      console.log('Creating upload directory');
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
     
     // Process the image into multiple sizes
+    console.log('Starting image processing with Sharp');
     const processedImage = await processImage(
       fileBuffer, 
       uploadDir, 
@@ -80,6 +94,11 @@ export const saveProfilePicture = async (file: UploadedFile): Promise<ProfilePic
         format: 'jpeg' 
       }
     );
+    
+    console.log('Image processing successful. Result:', {
+      mainPath: processedImage.originalPath,
+      sizesAvailable: Object.keys(processedImage.sizes)
+    });
     
     // Return the paths to the processed images
     return {
@@ -93,18 +112,38 @@ export const saveProfilePicture = async (file: UploadedFile): Promise<ProfilePic
     };
   } catch (error: unknown) {
     console.error('Error processing profile picture:', error);
-    // Fallback to original implementation if image processing fails
-    const filename = `fallback-${Date.now()}${path.extname(file.name).toLowerCase()}`;
-    const uploadPath = path.join(process.cwd(), 'uploads', 'profile_pictures', filename);
     
-    await file.mv(uploadPath);
-    const relativePath = `/uploads/profile_pictures/${filename}`;
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
     
-    return {
-      mainPath: relativePath,
-      sizes: {
-        original: relativePath
-      }
-    };
+    // Check if uploads directory exists
+    const uploadDir = path.join(process.cwd(), 'uploads', 'profile_pictures');
+    console.log('Checking upload directory exists:', fs.existsSync(uploadDir));
+    
+    try {
+      // Fallback to original implementation if image processing fails
+      console.log('Using fallback upload method');
+      const filename = `fallback-${Date.now()}${path.extname(file.name).toLowerCase()}`;
+      const uploadPath = path.join(process.cwd(), 'uploads', 'profile_pictures', filename);
+      
+      console.log('Attempting to move file to:', uploadPath);
+      await file.mv(uploadPath);
+      console.log('File moved successfully');
+      
+      const relativePath = `/uploads/profile_pictures/${filename}`;
+      
+      return {
+        mainPath: relativePath,
+        sizes: {
+          original: relativePath
+        }
+      };
+    } catch (fallbackError) {
+      console.error('Fallback upload also failed:', fallbackError);
+      throw new Error('Failed to process and upload image');
+    }
   }
 };
