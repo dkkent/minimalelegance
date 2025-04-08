@@ -14,6 +14,8 @@ import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import HomePage from "@/pages/home-page";
+// Important: Load AdminPage eagerly to avoid issues with nested components
+import AdminPage from "@/pages/admin-page";
 
 // Lazy load other components (loaded on demand)
 const ProfilePage = lazy(() => import("@/pages/profile-page"));
@@ -24,7 +26,6 @@ const InvitePartnerPage = lazy(() => import("@/pages/invite-partner-page"));
 const StartersPage = lazy(() => import("@/pages/starters-page"));
 const ConversationPage = lazy(() => import("@/pages/conversation-page"));
 const SpokenLoveslicePage = lazy(() => import("@/pages/spoken-loveslice-page"));
-const AdminPage = lazy(() => import("@/pages/admin-page"));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -79,6 +80,13 @@ function preloadCriticalComponents() {
     import("@/pages/profile-page");
     // Start loading the journal page component in the background
     import("@/pages/journal-page");
+    // Make sure admin page is preloaded for admin users
+    import("@/pages/admin-page");
+    // Preload admin components as well
+    import("@/components/admin/admin-dashboard");
+    import("@/components/admin/user-management");
+    import("@/components/admin/admin-logs");
+    import("@/components/admin/starter-management");
   };
   
   // If requestIdleCallback is available, use it to preload during idle time
