@@ -32,8 +32,11 @@ export default function ProfilePage() {
   
   const acceptInvitationMutation = useMutation({
     mutationFn: async (code: string) => {
-      const res = await apiRequest("POST", "/api/accept-invitation", { inviteCode: code });
-      return await res.json();
+      const res = await apiRequest("/api/accept-invitation", {
+        method: "POST", 
+        data: { inviteCode: code }
+      });
+      return res;
     },
     onSuccess: (updatedUser: User) => {
       // Update the user data in the cache
@@ -73,8 +76,10 @@ export default function ProfilePage() {
   // Mutation for unlinking Firebase account
   const unlinkMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/auth/unlink-firebase");
-      return await res.json();
+      const res = await apiRequest("/api/auth/unlink-firebase", {
+        method: "POST"
+      });
+      return res;
     },
     onSuccess: (updatedUser: User) => {
       queryClient.setQueryData(["/api/user"], updatedUser);
