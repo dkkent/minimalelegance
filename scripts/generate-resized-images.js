@@ -8,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { db } from '../server/db.js';
+// Use a direct import if the above fails
+// - Note this is a fix for running as a script without proper module path resolution
 import { users } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 

@@ -60,22 +60,40 @@ export async function processImage(
     
     console.log('Using options:', { quality, format, crop });
 
+    // Verify buffer content (early detection of bad data)
+    if (fileBuffer.length < 100) {
+      console.error('Buffer appears to be too small for a valid image:', fileBuffer.length);
+      throw new Error('Invalid image data: buffer too small');
+    }
+
     // Generate a unique filename to avoid collisions
     const baseFilename = uuidv4();
     const extension = format === 'jpeg' ? '.jpg' : `.${format}`;
     console.log('Generated base filename:', baseFilename, 'with extension:', extension);
     
-    // Create a sharp instance from the buffer
-    const image = sharp(fileBuffer);
-    
-    // Get image metadata to determine original dimensions
-    const metadata = await image.metadata();
-    console.log('Image metadata:', {
-      format: metadata.format,
-      width: metadata.width,
-      height: metadata.height,
-      size: fileBuffer.length
-    });
+    // Create a sharp instance from the buffer with error handling
+    let image;
+    try {
+      image = sharp(fileBuffer);
+      // Force metadata read to verify image is valid before proceeding
+      const metadata = await image.metadata();
+      
+      // Additional validation of image metadata
+      if (!metadata.width || !metadata.height) {
+        throw new Error('Invalid image: cannot determine dimensions');
+      }
+      
+      console.log('Image metadata:', {
+        format: metadata.format,
+        width: metadata.width,
+        height: metadata.height,
+        size: fileBuffer.length
+      });
+    } catch (error) {
+      const sharpError = error as Error;
+      console.error('Error initializing Sharp or reading image metadata:', sharpError);
+      throw new Error(`Cannot process image: ${sharpError.message}`);
+    }
     
     // Prepare result object
     const result: ProcessedImage = {
@@ -84,34 +102,47 @@ export async function processImage(
       sizes: {}
     };
     
+    // Keep track of successful operations
+    let successCount = 0;
+    
     // Process each size
     console.log('Processing sizes:', Object.keys(sizes));
     
+    // Process original size first to ensure we have at least one version
+    try {
+      const originalFilePath = path.join(uploadDir, `${baseFilename}-original${extension}`);
+      console.log('Original size filepath:', originalFilePath);
+      
+      await image
+        .clone()
+        .jpeg({ quality })
+        .toFile(originalFilePath);
+      
+      console.log('Original file saved successfully');
+      
+      // Set paths
+      const relativePath = `/uploads/profile_pictures/${path.basename(originalFilePath)}`;
+      result.sizes['original'] = relativePath;
+      result.originalPath = relativePath; // Track the original as the main path
+      
+      console.log('Set original path:', relativePath);
+      successCount++;
+    } catch (error) {
+      const originalError = error as Error;
+      console.error('Error saving original size:', originalError);
+      // If we can't save the original, this is critical - don't continue
+      throw new Error(`Failed to save original image: ${originalError.message}`);
+    }
+    
+    // Now process the resized versions
     for (const [sizeName, dimension] of Object.entries(sizes)) {
+      // Skip original size since we've already processed it
+      if (sizeName === 'original' || dimension === 0) {
+        continue;
+      }
+      
       try {
         console.log(`Processing size: ${sizeName} (${dimension}px)`);
-        
-        // Skip if dimension is 0 (indicates original size)
-        if (dimension === 0) {
-          // For "original" we still optimize and convert format, but keep dimensions
-          const originalFilePath = path.join(uploadDir, `${baseFilename}-original${extension}`);
-          console.log('Original size filepath:', originalFilePath);
-          
-          await image
-            .clone()
-            .jpeg({ quality })
-            .toFile(originalFilePath);
-          
-          console.log('Original file saved successfully');
-          
-          // Set paths
-          const relativePath = `/uploads/profile_pictures/${path.basename(originalFilePath)}`;
-          result.sizes[sizeName] = relativePath;
-          result.originalPath = relativePath; // Track the original as the main path
-          
-          console.log('Set original path:', relativePath);
-          continue;
-        }
         
         // Create resized version
         const resizedFilePath = path.join(uploadDir, `${baseFilename}-${sizeName}${extension}`);
@@ -138,6 +169,7 @@ export async function processImage(
         const relativePath = `/uploads/profile_pictures/${path.basename(resizedFilePath)}`;
         result.sizes[sizeName] = relativePath;
         console.log(`Added path for ${sizeName}:`, relativePath);
+        successCount++;
       } catch (sizeError) {
         console.error(`Error processing size ${sizeName}:`, sizeError);
         // Continue with other sizes even if one fails
@@ -145,26 +177,20 @@ export async function processImage(
       }
     }
     
-    // Make sure we have at least an original path set
-    if (!result.originalPath && Object.keys(result.sizes).length > 0) {
-      // Use the first available size as fallback for original path
-      const firstSize = Object.keys(result.sizes)[0];
-      result.originalPath = result.sizes[firstSize];
-      console.log('Using fallback for originalPath:', result.originalPath);
+    console.log(`Completed processing with ${successCount} successful operations`);
+    
+    // As long as we have the original, we can return a result
+    if (result.originalPath) {
+      console.log('Image processing complete, returning:', {
+        originalPath: result.originalPath,
+        sizeCount: Object.keys(result.sizes).length,
+        sizes: Object.keys(result.sizes)
+      });
+      
+      return result;
+    } else {
+      throw new Error('Failed to generate any image sizes, including original');
     }
-    
-    // Check if we have any paths generated
-    if (Object.keys(result.sizes).length === 0) {
-      throw new Error('Failed to generate any image sizes');
-    }
-    
-    console.log('Image processing complete, returning:', {
-      originalPath: result.originalPath,
-      sizeCount: Object.keys(result.sizes).length,
-      sizes: Object.keys(result.sizes)
-    });
-    
-    return result;
   } catch (error) {
     console.error('Error processing image:', error);
     
