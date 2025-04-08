@@ -1628,12 +1628,35 @@ export class DatabaseStorage implements IStorage {
    * @param data The data to update
    * @returns The updated starter or undefined if not found
    */
-  async updateConversationStarter(id: number, data: { content?: string, themeId?: number, isGlobal?: boolean }): Promise<any> {
+  async updateConversationStarter(id: number, data: { content?: string, themeId?: number | string, isGlobal?: boolean }): Promise<any> {
+    console.log(`[updateConversationStarter] Updating starter ${id} with data:`, data);
     const updateData: any = {};
     
-    if (data.content !== undefined) updateData.content = data.content;
-    if (data.themeId !== undefined) updateData.theme = data.themeId;
-    // Note: isGlobal isn't used in the conversationStarters schema
+    if (data.content !== undefined) {
+      updateData.content = data.content;
+    }
+    
+    if (data.themeId !== undefined) {
+      // Convert themeId to string for storage in the 'theme' column
+      if (typeof data.themeId === 'number') {
+        // For numeric IDs, we need to find the theme name first
+        const themes = await this.getThemes();
+        const theme = themes.themes.find(t => t.id === data.themeId);
+        if (theme) {
+          updateData.theme = theme.name;
+        } else {
+          console.log(`[updateConversationStarter] Theme ID ${data.themeId} not found, using as-is`);
+          updateData.theme = data.themeId.toString();
+        }
+      } else {
+        // String themeId is already a theme name
+        updateData.theme = data.themeId;
+      }
+    }
+    
+    // Note: isGlobal isn't used in the conversationStarters schema yet
+    
+    console.log(`[updateConversationStarter] Final update data:`, updateData);
     
     const [updated] = await db
       .update(conversationStarters)
@@ -1641,6 +1664,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversationStarters.id, id))
       .returning();
     
+    console.log(`[updateConversationStarter] Update result:`, updated);
     return updated;
   }
   

@@ -410,21 +410,27 @@ adminRoutes.patch('/api/admin/conversation-starters/:id', requireAdmin, async (r
       return res.status(400).json({ error: 'Invalid starter ID' });
     }
     
+    console.log('[Admin API] Update conversation starter - Request body:', req.body);
+    
     // Validate update data
     const updateSchema = z.object({
       content: z.string().min(1).optional(),
-      category: z.string().min(1).optional(),
-      isActive: z.boolean().optional()
+      themeId: z.union([z.number(), z.string()]).optional(),
+      isGlobal: z.boolean().optional()
     });
     
     const updateData = updateSchema.parse(req.body);
+    console.log('[Admin API] Update conversation starter - Parsed data:', updateData);
     
     // TODO: Implement proper update for starter+question together
     // For now, use existing method
     const updatedStarter = await storage.updateConversationStarter(starterId, updateData);
     if (!updatedStarter) {
+      console.log('[Admin API] Update conversation starter - Starter not found:', starterId);
       return res.status(404).json({ error: 'Conversation starter not found' });
     }
+    
+    console.log('[Admin API] Update conversation starter - Updated successfully:', updatedStarter);
     
     // Log the admin action
     logAdminAction(req, 'update', 'conversation-starter', starterId, { 
