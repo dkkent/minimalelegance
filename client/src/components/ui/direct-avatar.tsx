@@ -22,20 +22,42 @@ const AvatarCacheManager = {
   
   // Get a cached URL or create a new one
   getCachedUrl(path: string): string {
+    if (!path) return '';
+    
+    // Generate a stable cache key that removes any query parameters
+    const stablePath = path.split('?')[0];
+    
     // Check if we already have this in cache (even if not loaded)
-    if (globalImageCache[path]) {
-      return globalImageCache[path].url;
+    if (globalImageCache[stablePath]) {
+      return globalImageCache[stablePath].url;
     }
     
     // Clean up cache if needed
     this.cleanCache();
     
-    // Create a new cache entry
-    const timestamp = Date.now();
-    // Create stable URL with fixed timestamp to improve caching
-    const url = `${path}?t=${timestamp}`;
+    // Use a stable timestamp based on the path to ensure consistency across page loads
+    // This prevents new timestamps from being generated on every render
+    let timestamp: number;
+    try {
+      // Try to get from session storage first - most stable option
+      const storedTimestamp = sessionStorage.getItem(`avatar-timestamp-${stablePath}`);
+      if (storedTimestamp) {
+        timestamp = parseInt(storedTimestamp, 10);
+      } else {
+        // Generate a hash-like value from the path string to create a stable timestamp
+        timestamp = stablePath.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) * 1000;
+        // Store for future use
+        sessionStorage.setItem(`avatar-timestamp-${stablePath}`, timestamp.toString());
+      }
+    } catch (e) {
+      // Fallback if session storage fails
+      timestamp = Date.now();
+    }
     
-    globalImageCache[path] = {
+    // Create stable URL with fixed timestamp to improve caching
+    const url = `${stablePath}?t=${timestamp}`;
+    
+    globalImageCache[stablePath] = {
       url,
       timestamp,
       loaded: false
@@ -46,22 +68,36 @@ const AvatarCacheManager = {
   
   // Mark an image as loaded in the cache
   setLoaded(path: string, loaded: boolean = true): void {
-    if (globalImageCache[path]) {
-      globalImageCache[path].loaded = loaded;
+    if (!path) return;
+    
+    // Always use stable path as key
+    const stablePath = this.getStablePath(path);
+    
+    if (globalImageCache[stablePath]) {
+      globalImageCache[stablePath].loaded = loaded;
     }
+  },
+  
+  // Get stable path key (removing any query parameters)
+  getStablePath(path: string): string {
+    if (!path) return '';
+    return path.split('?')[0];
   },
   
   // Check if an image is already loaded in cache
   isLoaded(path: string): boolean {
     if (!path) return false;
     
+    // Always use stable path as key
+    const stablePath = this.getStablePath(path);
+    
     // Session storage check (persists between page loads)
     try {
-      const sessionData = sessionStorage.getItem(`avatar-loaded-${path}`);
+      const sessionData = sessionStorage.getItem(`avatar-loaded-${stablePath}`);
       if (sessionData === 'true') {
         // If we have session data saying this was loaded before, update our cache
-        if (globalImageCache[path]) {
-          globalImageCache[path].loaded = true;
+        if (globalImageCache[stablePath]) {
+          globalImageCache[stablePath].loaded = true;
         }
         return true;
       }
@@ -70,18 +106,23 @@ const AvatarCacheManager = {
     }
     
     // Fall back to memory cache
-    return !!globalImageCache[path]?.loaded;
+    return !!globalImageCache[stablePath]?.loaded;
   },
   
   // Persist loaded state to session storage
   persistLoadedState(path: string, loaded: boolean): void {
     if (!path) return;
     
+    // Always use stable path as key
+    const stablePath = this.getStablePath(path);
+    
     try {
       if (loaded) {
-        sessionStorage.setItem(`avatar-loaded-${path}`, 'true');
+        // Store both by stable path and full URL for compatibility
+        sessionStorage.setItem(`avatar-loaded-${stablePath}`, 'true');
       } else {
-        sessionStorage.removeItem(`avatar-loaded-${path}`);
+        // Clean up both entries
+        sessionStorage.removeItem(`avatar-loaded-${stablePath}`);
       }
     } catch (e) {
       // Ignore any session storage errors
