@@ -12,7 +12,10 @@ type ThemeBadgeProps = {
 
 // Define fixed theme colors for consistency
 const getThemeColor = (theme: string): string => {
-  switch (theme.toLowerCase()) {
+  // Normalize the theme name by trimming and converting to lowercase
+  const normalizedTheme = theme.trim().toLowerCase();
+  
+  switch (normalizedTheme) {
     case 'trust':
       return "bg-sage-light text-sage-dark";
     case 'intimacy':
@@ -29,6 +32,7 @@ const getThemeColor = (theme: string): string => {
       return "bg-gray-100 text-gray-700";
     default:
       // Default color for any other theme
+      console.log(`Using default color for theme: "${theme}"`);
       return "bg-gray-100 text-gray-700";
   }
 };
