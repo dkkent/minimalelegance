@@ -29,18 +29,10 @@ export function usePartner() {
           return null;
         }
         
-        const res = await apiRequest("GET", "/api/partner");
-        
-        if (!res.ok) {
-          console.error(`Partner API returned status: ${res.status}`);
-          if (res.status === 404) return null;
-          throw new Error(`Failed to fetch partner data: ${res.statusText}`);
-        }
-        
-        const data = await res.json();
+        const data = await apiRequest("/api/partner");
         
         if (!data) {
-          console.log("Partner data is null");
+          console.error("Partner API returned no data");
           return null;
         }
         
