@@ -1,0 +1,34 @@
+# Skip Question Feature Implementation
+
+## Overview
+We've implemented the "Skip for Now" feature in the Loveslices application, allowing users to skip questions they don't want to answer immediately while still maintaining a transparent communication flow with their partner.
+
+## Key Components Implemented
+
+### 1. Multi-Step Dialog Flow
+- **First Screen**: Confirmation dialog asking if the user wants to skip, with clear explanation
+- **Second Screen**: Dropdown select with predefined skip reasons
+
+### 2. Skip Reasons Dropdown Options
+We've implemented the following skip reason options:
+- "I'm not ready to talk about this yet"
+- "I need more time to reflect"
+- "This feels too sensitive right now"
+- "Let's come back to this another day"
+- "I don't think we need to discuss this"
+
+### 3. UI/UX Improvements
+- Center-aligned text for better readability
+- Improved button labels with clear actions
+- Removed colored icons from buttons for a cleaner look
+- Added gentle animations for transitions between screens
+- Implemented loading animation when fetching a new question
+
+### 4. Schema Updates
+- Added `skipped` boolean field to track skipped questions
+- Added `skipReason` field to store the selected reason
+- Added `skippedAt` timestamp to track when questions were skipped
+
+### 5. Security Enhancement
+- Implemented data masking for sensitive information like emails
+  - Example: "j*********@gmail.com" instead of the full email

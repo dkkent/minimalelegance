@@ -1,0 +1,33 @@
+[vite] connecting...
+[vite] connected.
+Warning: Received &#x60;true&#x60; for a non-boolean attribute &#x60;jsx&#x60;.
+
+If you want to write it to the DOM, pass a string instead: jsx=&quot;true&quot; or jsx={value.toString()}.
+    at style
+    at div
+    at MainLayout (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/components/layouts/main-layout.tsx:33:30)
+    at HomePage (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/pages/home-page.tsx:33:20)
+    at Route (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=65606a62:323:16)
+    at ProtectedRoute (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=65606a62:379:17)
+    at Router
+    at AuthProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/hooks/use-auth.tsx:36:32)
+    at QueryClientProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=65606a62:2805:3)
+    at App
+
+If you want to write it to the DOM, pass a string instead: jsx=&amp;quot;true&amp;quot; or jsx={value.toString()}.
+at style
+at div
+at MainLayout (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/components/layouts/main-layout.tsx:33:30)
+at HomePage (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/pages/home-page.tsx:33:20)
+at Route (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=65606a62:323:16)
+at ProtectedRoute (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/lib/protected-route.tsx:22:3)
+at Switch (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=65606a62:379:17)
+at Router
+at AuthProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/src/hooks/use-auth.tsx:36:32)
+at QueryClientProvider (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=65606a62:2805:3)
+at App
+at t.value (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://f510d43b-0e06-4811-9f23-fc2c17d01cea-00-2f9vw83v1uppl.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400

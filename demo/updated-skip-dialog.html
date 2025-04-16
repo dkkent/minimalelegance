@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Updated Skip Dialog</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .demo-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+    .dialog {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+      padding: 20px;
+      margin: 0 auto;
+    }
+    .dialog-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .dialog-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      font-family: Georgia, serif;
+    }
+    .dialog-description {
+      color: #666;
+      margin: 0 auto;
+      max-width: 400px;
+      text-align: center;
+    }
+    .select-container {
+      margin: 20px 0;
+    }
+    .select-dropdown {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .dialog-footer {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .btn {
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+    .btn-outline {
+      background-color: white;
+      border: 1px solid #ddd;
+    }
+    .btn-primary {
+      background-color: #7BAF95;
+      color: white;
+      border: none;
+    }
+    .dialog-title-screen1, .dialog-desc-screen1, .footer-screen1 {
+      display: block;
+    }
+    .dialog-title-screen2, .dialog-desc-screen2, .footer-screen2, .select-container {
+      display: none;
+    }
+    .screen-2 .dialog-title-screen1, .screen-2 .dialog-desc-screen1, .screen-2 .footer-screen1 {
+      display: none;
+    }
+    .screen-2 .dialog-title-screen2, .screen-2 .dialog-desc-screen2, .screen-2 .footer-screen2, .screen-2 .select-container {
+      display: block;
+    }
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 40px;
+      margin-bottom: 10px;
+      color: #444;
+    }
+    .button-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    .toggle-btn {
+      background-color: #7BAF95;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h2>BEFORE: Original Skip Dialog</h2>
+    <div class="dialog">
+      <div class="dialog-header">
+        <h3 class="dialog-title">Skip This Question?</h3>
+        <p class="dialog-description">You can skip this question and get a new one. Would you like to proceed?</p>
+      </div>
+      <div class="dialog-footer">
+        <div class="btn btn-outline">Keep This Question</div>
+        <div class="btn btn-primary">Skip Question</div>
+      </div>
+    </div>
+
+    <h2>AFTER: Updated First Screen</h2>
+    <div class="dialog" id="dialog">
+      <div class="dialog-header">
+        <h3 class="dialog-title dialog-title-screen1">Are you sure you want to skip this question?</h3>
+        <h3 class="dialog-title dialog-title-screen2">Add a Note (Optional)</h3>
+        <p class="dialog-description dialog-desc-screen1">If you skip this, we'll let your partner know you chose not to answer it. On the next screen you can add a note about why you felt like skipping it.</p>
+        <p class="dialog-description dialog-desc-screen2">Please select a reason for skipping this question. This helps your partner understand and improves your experience.</p>
+      </div>
+      
+      <div class="select-container">
+        <select class="select-dropdown">
+          <option>I'm not ready to talk about this yet</option>
+          <option>I need more time to reflect</option>
+          <option>This feels too sensitive right now</option>
+          <option>Let's come back to this another day</option>
+          <option>I don't think we need to discuss this</option>
+        </select>
+      </div>
+      
+      <div class="dialog-footer footer-screen1">
+        <div class="btn btn-outline">❌ No, Keep This Question</div>
+        <div class="btn btn-primary">✅ Yes, Skip and Add Note</div>
+      </div>
+      
+      <div class="dialog-footer footer-screen2">
+        <div class="btn btn-outline">Back</div>
+        <div class="btn btn-primary">Get New Question</div>
+      </div>
+    </div>
+    
+    <div class="button-row">
+      <button id="toggleBtn" class="toggle-btn">Show Second Screen</button>
+    </div>
+  </div>
+
+  <script>
+    const dialog = document.getElementById('dialog');
+    const toggleBtn = document.getElementById('toggleBtn');
+    
+    toggleBtn.addEventListener('click', () => {
+      if (dialog.classList.contains('screen-2')) {
+        dialog.classList.remove('screen-2');
+        toggleBtn.textContent = 'Show Second Screen';
+      } else {
+        dialog.classList.add('screen-2');
+        toggleBtn.textContent = 'Show First Screen';
+      }
+    });
+  </script>
+</body>
+</html>
