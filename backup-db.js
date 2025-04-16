@@ -1,6 +1,9 @@
 
-const { exec } = require('child_process');
-const fs = require('fs');
+import { exec } from 'child_process';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Get database URL from environment
 const dbUrl = new URL(process.env.DATABASE_URL);
@@ -12,8 +15,8 @@ const database = dbUrl.pathname.slice(1);
 const host = dbUrl.hostname;
 const port = dbUrl.port;
 
-// Create backup command
-const command = `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${username} -F c -b -v -f "backup.dump" ${database}`;
+// Create backup command with full pg_dump path
+const command = `PGPASSWORD="${password}" /nix/store/0z5iwcvalafm3j2c5pfhllsfbxrbyzf4-postgresql-16.5/bin/pg_dump -h ${host} -p ${port} -U ${username} -F c -b -v -f "backup.dump" ${database}`;
 
 exec(command, (error, stdout, stderr) => {
   if (error) {
