@@ -1,8 +1,8 @@
 
 import { exec } from 'child_process';
-import * as dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,14 +17,14 @@ const username = dbUrl.username;
 const password = dbUrl.password;
 const database = dbUrl.pathname.slice(1);
 const host = dbUrl.hostname;
-const port = dbUrl.port;
+const port = dbUrl.port || '5432'; // Default PostgreSQL port if not specified
 
 // Full path to pg_dump and output file
 const pgDumpPath = '/nix/store/0z5iwcvalafm3j2c5pfhllsfbxrbyzf4-postgresql-16.5/bin/pg_dump';
 const backupPath = `${__dirname}/backup.dump`;
 
-// Create backup command
-const command = `PGPASSWORD="${password}" ${pgDumpPath} -h ${host} -p ${port} -U ${username} -F c -b -v -f "${backupPath}" ${database}`;
+// Create backup command with proper quotation
+const command = `PGPASSWORD='${password}' ${pgDumpPath} -h ${host} -p ${port} -U ${username} -F c -b -v -f "${backupPath}" "${database}"`;
 
 exec(command, (error, stdout, stderr) => {
   if (error) {
